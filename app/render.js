@@ -86,7 +86,12 @@ function showErrorInRightPanel(claim, message) {
   var el = document.getElementById("right-panel");
   el.innerHTML =
     '<div class="rp-top">' +
-      '<div class="rp-title">' + escapeHtml(claim.slice(0, 60)) + '</div>' +
+      '<div style="display:flex;align-items:center;min-width:0">' +
+        '<button class="rp-back" id="rp-back-btn" aria-label="Back">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</button>' +
+        '<div class="rp-title">' + escapeHtml(claim.slice(0, 60)) + '</div>' +
+      '</div>' +
       '<div class="rp-actions"><button class="rp-close" id="rp-close-btn" aria-label="Close">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       '</button></div>' +
@@ -96,6 +101,9 @@ function showErrorInRightPanel(claim, message) {
     '</div></div>';
   var closeBtn = document.getElementById("rp-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  var backBtn = document.getElementById("rp-back-btn");
+  if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
+  if (typeof mobileShowResult === "function") mobileShowResult();
 }
 
 function renderRightPanel(entry) {
@@ -131,7 +139,12 @@ function renderRightPanel(entry) {
   var el = document.getElementById("right-panel");
   el.innerHTML =
     '<div class="rp-top">' +
-      '<div class="rp-title">' + escapeHtml(entry.claim.slice(0, 60)) + ' — Full Dossier</div>' +
+      '<div style="display:flex;align-items:center;min-width:0">' +
+        '<button class="rp-back" id="rp-back-btn" aria-label="Back">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</button>' +
+        '<div class="rp-title">' + escapeHtml(entry.claim.slice(0, 60)) + ' — Full Dossier</div>' +
+      '</div>' +
       '<div class="rp-actions">' +
         '<button class="rp-btn rp-sh" id="rp-share-btn" title="Coming soon">' +
           '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>Share' +
@@ -186,6 +199,9 @@ function renderRightPanel(entry) {
 
   var closeBtn = document.getElementById("rp-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  var backBtn = document.getElementById("rp-back-btn");
+  if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
+  if (typeof mobileShowResult === "function") mobileShowResult();
 }
 
 function selectHistoryEntry(entry) {

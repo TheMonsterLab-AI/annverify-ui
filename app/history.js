@@ -65,6 +65,7 @@ function renderHistorySidebar() {
       var id = node.getAttribute("data-history-id");
       var found = loadHistory().filter(function (h) { return h.id === id; })[0];
       if (found) selectHistoryEntry(found);
+      if (typeof closeSidebar === "function") closeSidebar();
     });
   });
 }

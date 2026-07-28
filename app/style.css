@@ -7,7 +7,7 @@
 }
 html,body{height:100%}
 body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--dark);font-size:18px;line-height:1.6;letter-spacing:.01em}
-.shell{display:flex;width:100vw;height:100vh;background:var(--bg);overflow:hidden;color:var(--dark)}
+.shell{display:flex;width:100vw;height:100vh;height:100dvh;background:var(--bg);overflow:hidden;color:var(--dark)}
 
 /* SIDEBAR */
 .sb{width:160px;min-width:160px;background:var(--sb);display:flex;flex-direction:column;border-right:1px solid #E8E0CF}
@@ -141,10 +141,34 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .seal-vfy{font-family:'Source Serif 4',serif;font-weight:400;font-style:italic;font-size:15px;color:var(--dark);line-height:1.2}
 .seal-txt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dark);margin-top:5px;text-align:center;line-height:1.5}
 
-/* 모바일 — 사이드바/히스토리 패널 숨기고 결과 패널이 전체 너비를 차지 */
+/* 모바일 — 기본 화면은 히스토리+입력창(.left). 결과(.right)는 카드 클릭/새 검증 시
+   .shell.mobile-result 클래스(app/mobile.js)로 전체화면 전환. 사이드바는 hamburger로 여닫는
+   오버레이 드로어. 데스크톱(768px 이상)에서는 이 규칙들이 전혀 적용되지 않음 — 항상
+   3컬럼 동시 표시. */
+.hamburger-btn{display:none}
+.rp-back{display:none}
 @media (max-width: 768px){
-  .sb, .left{display:none}
+  .shell{position:relative}
+  .hamburger-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:transparent;border:none;cursor:pointer;color:var(--dark);margin-right:8px}
+
+  /* 사이드바 — 기본은 화면 밖, .open 시 슬라이드인 오버레이 */
+  .sb{position:fixed;top:0;left:0;height:100dvh;height:100vh;z-index:50;transform:translateX(-100%);transition:transform .22s ease;box-shadow:2px 0 16px rgba(0,0,0,.15)}
+  .sb.open{transform:translateX(0)}
+  .sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40}
+  .sb-backdrop.open{display:block}
+
+  /* 기본: 히스토리+입력창 전체화면. 결과 패널은 .mobile-result일 때만 전체화면으로 전환 */
+  .left{display:flex;width:100%;min-width:0}
+  .right{display:none}
+  .shell.mobile-result .left{display:none}
+  .shell.mobile-result .right{display:flex;width:100%}
+
   .rp-content{max-width:none;padding:24px 16px}
+  .rp-back{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;border:none;cursor:pointer;color:var(--muted);margin-right:4px}
+
+  /* 입력창 하단 고정 — 채팅 로그는 그만큼 하단 패딩 확보해 내용이 가려지지 않게 */
+  .ia{position:fixed;left:0;right:0;bottom:0;z-index:10}
+  .chat{padding-bottom:96px}
 }
 
 /* 모바일 base — 데스크톱(18px)보다 한 단계 작게. 본문 요소들은 명시적 px라 body font-size가

@@ -8,9 +8,11 @@
 <link rel="stylesheet" href="app/style.css"/>
 </head>
 <body>
-<div class="shell">
+<div class="shell" id="shell">
+  <!-- 모바일 사이드바 드로어 배경 -->
+  <div class="sb-backdrop" id="sb-backdrop"></div>
   <!-- SIDEBAR -->
-  <div class="sb">
+  <div class="sb" id="sidebar">
     <div class="sb-logo">
       <div class="logo-box">
         <div class="ann">ANN</div>
@@ -47,9 +49,14 @@
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div>
-        <h2>Intelligence Dashboard</h2>
-        <p>Quick verification · ANN 7-Layer Engine</p>
+      <div style="display:flex;align-items:center">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <h2>Intelligence Dashboard</h2>
+          <p>Quick verification · ANN 7-Layer Engine</p>
+        </div>
       </div>
       <div class="tr">
         <div class="ld"></div><span class="ll">Live</span>
@@ -103,6 +110,7 @@
 <script src="app/auth.js"></script>
 <script src="app/history.js"></script>
 <script src="app/render.js"></script>
+<script src="app/mobile.js"></script>
 <script src="app/main.js"></script>
 </body>
 </html>
