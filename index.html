@@ -44,7 +44,8 @@ tailwind.config = {
 #mobile-app .medal-gold { color: #D4AF37; }
 #mobile-app .medal-silver { color: #C0C0C0; }
 #mobile-app .medal-bronze { color: #CD7F32; }
-#mobile-app .mtab { color: #3f4943; }
+/* 44px 최소 터치 타겟 + 모든 탭에 걸린 mockup 원본의 scale-95 idle transform(5% 축소) 보정 — 44/0.95≈46.3px */
+#mobile-app .mtab { color: #3f4943; min-height: 47px; min-width: 47px; }
 #mobile-app .mtab.on { background-color: #1a6b4a; color: #9be9bf; border-radius: 0.75rem; padding: 4px 16px; }
 #mobile-app .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 #mobile-app .mnews-pill, #mobile-app .mnews-filter-pill { color: #3f4943; background-color: #EDE7D9; border-radius: 9999px; padding: 6px 16px; font-weight: 600; }
