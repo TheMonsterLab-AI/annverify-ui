@@ -32,9 +32,16 @@ async function computeIntegrityHash(claimText, parsed) {
   } catch (e) { return null; }
 }
 
-function hostnameOf(url) {
-  try { return new URL(url).hostname.replace(/^www\./, ""); }
-  catch (e) { return url; }
+// §11 참고 출처 — 일부 URL이 percent-encoding/punycode 그대로 노출되던 문제(예:
+// "law.go.xn--kr%20()-nz00a37g032bzukv6ad78aflxch5a") 수정. decodeURIComponent 실패 시
+// (잘못된 % 시퀀스 등) 원본 그대로 fallback.
+function formatUrl(url) {
+  try {
+    var decoded = decodeURIComponent(url);
+    return decoded.length > 60 ? decoded.slice(0, 57) + "..." : decoded;
+  } catch (e) {
+    return url.length > 60 ? url.slice(0, 57) + "..." : url;
+  }
 }
 
 function toneColor(tone) {
@@ -401,7 +408,7 @@ function _secReferences(p) {
       if (typeof c === "string") { url = c; sub = ""; }
       else { url = c.url || ""; sub = c.title || ""; }
       return '<div class="src-row"><span class="src-dot"></span>' +
-        '<div><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + (i + 1) + '. ' + escapeHtml(hostnameOf(url)) + '</a>' +
+        '<div><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + (i + 1) + '. ' + escapeHtml(formatUrl(url)) + '</a>' +
         (sub ? '<span class="src-meta"> — ' + escapeHtml(sub) + '</span>' : '') + '</div></div>';
     }).join("");
   } else {
