@@ -41,7 +41,7 @@ function renderSidebarUser() {
 
 // 모바일 하단 탭바의 Profile 탭 라벨 — 사이드바와 별개로 항상 동기화 필요
 function renderTabbarProfile() {
-  var label = document.getElementById("tab-profile-label");
+  var label = document.getElementById("mtab-profile-label");
   if (!label) return;
   label.textContent = currentUser ? "Profile" : "Sign In";
 }
