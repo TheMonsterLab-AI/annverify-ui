@@ -267,6 +267,13 @@ tailwind.config = {
     </div>
   </main>
 
+  <!-- 새 토론 시작 FAB(목업 원본에 있음) — 단, 클라이언트에 discussPosts 쓰기 로직이 없고
+       worker에도 생성 엔드포인트가 없어(annverify.ai discuss.js 확인됨), annverify.ai의
+       일반 토론 목록으로 이동시키는 폴백으로 연결 -->
+  <button id="mdiscuss-fab" class="fixed right-6 bottom-24 w-14 h-14 bg-primary text-on-primary rounded-xl shadow-lg items-center justify-center active:scale-90 transition-transform z-30" style="display:none">
+    <span class="material-symbols-outlined text-2xl">add_comment</span>
+  </button>
+
   <!-- ── LEADERBOARD (leaderboard.html 목업) ── -->
   <main class="mpage hidden pb-40" id="mpage-leaderboard">
     <section class="px-margin-mobile py-8 border-b border-outline-variant bg-surface-container-low">

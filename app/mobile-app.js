@@ -19,6 +19,13 @@
 //     (most threads run 0-3 comments) since the mockup gives no numeric criteria.
 //   - "CLAIM ID" on Home's preview cards uses the real item id (first 6 chars, uppercased) —
 //     not a fabricated code.
+//   - Discussions mockup cards also show a `visibility` (view count) icon+number — no view/
+//     impression field exists on discussPosts (checked worker/routes/v4/discuss.js), so it's
+//     omitted rather than fabricated; only the real `forum` (comment count) icon is kept.
+//   - Discussions mockup has a floating "+" (add_comment) FAB for starting a new thread — kept
+//     visually (#mdiscuss-fab), but there's no thread-creation endpoint and this app has no
+//     Firestore write path (auth-only, per app/auth.js), so it opens annverify.ai's general
+//     discuss list instead of a fabricated "new thread" flow.
 
 var MOBILE_LIVE_REFRESH_MS = 30000;
 var _mobileLiveTimer = null;
@@ -46,6 +53,8 @@ function showMobilePage(name) {
   if (inputBar) inputBar.classList.toggle("hidden", name !== "home");
   var myRankBar = document.getElementById("mlb-myrank");
   if (myRankBar && name !== "leaderboard") myRankBar.classList.add("hidden");
+  var discussFab = document.getElementById("mdiscuss-fab");
+  if (discussFab) discussFab.style.display = name === "discussions" ? "flex" : "none";
 
   clearInterval(_mobileLiveTimer);
   _mobileLiveTimer = null;
@@ -332,6 +341,15 @@ async function mobileSubmitVerify(claimText) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  // 새 토론 시작 FAB — annverify-ui엔 Firestore 쓰기 로직이 없고 worker에도 생성
+  // 엔드포인트가 없어(확인됨), 실제 동작 가능한 유일한 대안인 일반 토론 목록으로 이동
+  var discussFabBtn = document.getElementById("mdiscuss-fab");
+  if (discussFabBtn) {
+    discussFabBtn.addEventListener("click", function () {
+      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+    });
+  }
+
   document.querySelectorAll(".mtab[data-mpage]").forEach(function (btn) {
     btn.addEventListener("click", function () { showMobilePage(btn.getAttribute("data-mpage")); });
   });
