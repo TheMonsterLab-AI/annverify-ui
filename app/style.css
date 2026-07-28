@@ -226,54 +226,24 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .lb-ap{font-weight:700;color:var(--c);font-size:16px}
 .lb-count{font-size:12px;color:var(--out)}
 
-/* 모바일 — 기본 화면은 히스토리+입력창(.left). 결과(.right)는 카드 클릭/새 검증 시
-   .shell.mobile-result 클래스(app/mobile.js)로 전체화면 전환. 사이드바는 hamburger로 여닫는
-   오버레이 드로어. 데스크톱(768px 이상)에서는 이 규칙들이 전혀 적용되지 않음 — 항상
-   3컬럼 동시 표시. */
-.hamburger-btn{display:none}
+/* 모바일(<768px) — 데스크톱 .shell(사이드바+채팅+3컬럼) 전체를 #mobile-app(목업 4페이지
+   완전 이식)으로 대체. .shell은 기본 숨김 — 단, 검증 결과 리포트(§1-§11 dossier)는
+   목업에 해당 페이지가 없어 기존 .right 뷰를 재사용해야 하므로, "결과 보기" 시에만
+   .shell.mobile-dossier-only로 .right만 전체화면 노출(app/mobile.js가 토글).
+   구 다크 탭바/사이드바 드로어/채팅 입력창 모바일 오버레이는 전부 제거 — #mobile-app이
+   완전히 대체. 데스크톱(768px 이상)에서는 이 규칙들이 전혀 적용되지 않음. */
 .rp-back{display:none}
-.tabbar{display:none}
 @media (max-width: 768px){
-  .shell{position:relative}
-  .hamburger-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:transparent;border:none;cursor:pointer;color:var(--dark);margin-right:8px}
+  .shell{display:none}
+  .shell.mobile-dossier-only{display:flex;position:fixed;inset:0;z-index:100}
+  .shell.mobile-dossier-only .sb,
+  .shell.mobile-dossier-only .sb-backdrop,
+  .shell.mobile-dossier-only .left,
+  .shell.mobile-dossier-only .topbar{display:none}
+  .shell.mobile-dossier-only .right{display:flex;width:100%}
 
-  /* 사이드바 — 기본은 화면 밖, .open 시 슬라이드인 오버레이 */
-  .sb{position:fixed;top:0;left:0;height:100dvh;height:100vh;z-index:50;transform:translateX(-100%);transition:transform .22s ease;box-shadow:2px 0 16px rgba(0,0,0,.15)}
-  .sb.open{transform:translateX(0)}
-  .sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40}
-  .sb-backdrop.open{display:block}
-
-  /* 기본: 히스토리+입력창 전체화면. 결과 패널은 .mobile-result일 때만 전체화면으로 전환 */
-  .left{display:flex;width:100%;min-width:0}
-  .right{display:none}
-  .shell.mobile-result .left{display:none}
-  .shell.mobile-result .right{display:flex;width:100%}
-
-  /* §9/워터마크가 탭바에 가려지지 않도록 리포트 콘텐츠만 별도로 더 큰 여유(64px 탭바 + 56px) */
-  .rp-content{max-width:none;padding:24px 16px 120px}
+  .rp-content{max-width:none;padding:24px 16px 40px}
   .rp-back{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;border:none;cursor:pointer;color:var(--muted);margin-right:4px}
-
-  .pg-scroll{padding:16px 16px calc(64px + env(safe-area-inset-bottom) + 16px)}
-  .pg-list,.lb-tabs{max-width:none}
-
-  /* 입력창 — 하단 고정 탭바(64px) 바로 위 */
-  .ia{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:10}
-  .chat{padding-bottom:calc(96px + 64px + env(safe-area-inset-bottom))}
-
-  /* 하단 탭바 — 삼성 전화 앱 스타일: 거의 검정 단색, 테두리/라운드 없이 깔끔하게 */
-  .tabbar{
-    display:flex;align-items:center;justify-content:space-around;
-    position:fixed;bottom:0;left:0;right:0;
-    height:calc(64px + env(safe-area-inset-bottom));
-    padding-bottom:env(safe-area-inset-bottom);
-    background:#111111;
-    z-index:9999;
-  }
-  .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.45);font-family:'Libre Franklin',sans-serif}
-  .tab-item.on{color:#fff}
-  .tab-icon{display:flex;align-items:center;justify-content:center;line-height:1}
-  .tab-label{display:block;font-size:10px;margin-top:3px;line-height:1;white-space:nowrap}
-  .tab-item.on .tab-label::before{content:'';display:block;width:4px;height:4px;border-radius:50%;background:#fff;margin:0 auto 4px}
 }
 
 /* 모바일 base — 데스크톱(18px)보다 한 단계 작게. 본문 요소들은 명시적 px라 body font-size가

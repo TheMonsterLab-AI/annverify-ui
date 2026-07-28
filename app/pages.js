@@ -216,9 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
-  document.querySelectorAll(".tab-item[data-page]").forEach(function (n) {
-    n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
-  });
   document.querySelectorAll(".lb-tab").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
   });
@@ -334,6 +331,9 @@ async function _loadHomeLeaderboard() {
 
 function loadHomeSections() {
   if (!document.getElementById("home-sections")) return;
+  // 데스크톱(.shell) 전용 기능 — 모바일은 #mobile-app이 완전히 대체하고 .shell은 숨겨지므로,
+  // 보이지도 않는 데스크톱 미리보기 때문에 동일 API를 중복 호출하지 않도록 가드.
+  if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) return;
   _loadHomeLive();
   _loadHomeDiscuss();
   _loadHomeLeaderboard();
@@ -342,4 +342,13 @@ function loadHomeSections() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", loadHomeSections);
+// mobile-app.js의 _maybeInitMobile()과 대칭 — 모바일 폭으로 로드된 후 데스크톱 폭으로
+// 리사이즈되는 경우에도 (아직 다른 액션으로 재호출되지 않았다면) 스켈레톤에 멈춰있지 않도록.
+document.addEventListener("DOMContentLoaded", function () {
+  loadHomeSections();
+  if (window.matchMedia) {
+    window.matchMedia("(max-width: 768px)").addEventListener("change", function (e) {
+      if (!e.matches) loadHomeSections();
+    });
+  }
+});
