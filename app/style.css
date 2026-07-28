@@ -233,22 +233,31 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
   .shell.mobile-result .left{display:none}
   .shell.mobile-result .right{display:flex;width:100%}
 
-  .rp-content{max-width:none;padding:24px 16px calc(56px + 24px)}
+  .rp-content{max-width:none;padding:24px 16px 88px}
   .rp-back{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;border:none;cursor:pointer;color:var(--muted);margin-right:4px}
 
-  .pg-scroll{padding:16px 16px calc(56px + 16px)}
+  .pg-scroll{padding:16px 16px 88px}
   .pg-list,.lb-tabs{max-width:none}
 
-  /* 입력창 — 탭바(56px) 바로 위에 고정. 채팅 로그는 입력창+탭바 높이만큼 하단 패딩 확보 */
-  .ia{position:fixed;left:0;right:0;bottom:56px;z-index:10}
-  .chat{padding-bottom:calc(96px + 56px)}
+  /* 입력창 — 플로팅 탭바(bottom:16px, height:60px → 대략 88px 지점) 바로 위에 고정 */
+  .ia{position:fixed;left:0;right:0;bottom:88px;z-index:10}
+  .chat{padding-bottom:calc(96px + 88px)}
 
-  /* 하단 탭바 */
-  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:56px;background:#fff;border-top:1px solid #E8E0CF;z-index:30}
-  .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Libre Franklin',sans-serif}
-  .tab-item.on{color:var(--c)}
+  /* 하단 플로팅 pill 탭바 — 비활성은 아이콘만, 활성만 아이콘+텍스트 + 초록 pill 배경 */
+  .tabbar{
+    display:flex;align-items:center;justify-content:space-around;
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    width:calc(100% - 32px);max-width:400px;height:60px;
+    border-radius:30px;background:rgba(255,255,255,.85);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.6);
+    padding:0 6px;z-index:30;
+  }
+  .tab-item{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:8px;border-radius:20px;background:none;border:none;cursor:pointer;color:var(--out);font-family:'Libre Franklin',sans-serif;transition:background .15s,padding .15s}
+  .tab-item.on{color:var(--c);background:rgba(74,122,106,.15);padding:6px 16px}
   .tab-icon{font-size:18px;line-height:1}
-  .tab-label{font-size:12px;line-height:1}
+  .tab-label{display:none;font-size:12px;font-weight:700;line-height:1;white-space:nowrap}
+  .tab-item.on .tab-label{display:inline}
 }
 
 /* 모바일 base — 데스크톱(18px)보다 한 단계 작게. 본문 요소들은 명시적 px라 body font-size가
