@@ -47,6 +47,11 @@ tailwind.config = {
 #mobile-app .mtab { color: #3f4943; }
 #mobile-app .mtab.on { background-color: #1a6b4a; color: #9be9bf; border-radius: 0.75rem; padding: 4px 16px; }
 #mobile-app .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+#mobile-app .mnews-pill, #mobile-app .mnews-filter-pill { color: #3f4943; background-color: #EDE7D9; border-radius: 9999px; padding: 6px 16px; font-weight: 600; }
+#mobile-app .mnews-pill.on, #mobile-app .mnews-filter-pill.on { background-color: #1a6b4a; color: #fff; }
+#mobile-app .mmenu-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 8px; border-radius: 8px; background: transparent; border: none; cursor: pointer; }
+#mobile-app .mmenu-item:hover { background-color: #EDE7D9; }
+#mmenu-drawer { transition: transform 0.2s ease; }
 /* .shell 자체의 모바일 숨김/mobile-dossier-only 전환은 app/style.css에 이미 정의됨(단일 출처) */
 @media (max-width: 768px) {
   #mobile-app { display: block; min-height: 100dvh; }
@@ -192,7 +197,7 @@ tailwind.config = {
       <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-body-sm">AI</div>
       <h1 class="font-headline-sm text-headline-sm font-bold text-primary">ANN Verify</h1>
     </div>
-    <button class="text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 p-2 rounded-full" aria-label="Menu">
+    <button id="mmenu-btn" class="text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 p-2 rounded-full" aria-label="Menu">
       <span class="material-symbols-outlined">menu</span>
     </button>
   </header>
@@ -296,6 +301,43 @@ tailwind.config = {
     </section>
   </main>
 
+  <!-- ── NEWS — news.html 첨부 파일 내용이 실제로 전달되지 않아(프로즈 스펙만 있음),
+       상세 설명(AI뉴스/세계뉴스 pill 탭, 카테고리 배지, featured 카드 등)을 바탕으로
+       기존 목업들과 동일한 디자인 언어로 구현. 실제 목업 HTML과 다를 수 있음 — 플래그. ── -->
+  <main class="mpage hidden pb-40" id="mpage-news">
+    <div class="px-margin-mobile pt-sm pb-4">
+      <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">News</h2>
+    </div>
+    <div class="px-margin-mobile mb-4 flex gap-2">
+      <button class="mnews-pill px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="ai">AI News</button>
+      <button class="mnews-pill px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="world">World News</button>
+    </div>
+
+    <div id="mnews-ai">
+      <div class="px-margin-mobile space-y-4" id="mnews-ai-list">
+        <div class="paper-card h-40 animate-pulse"></div>
+        <div class="paper-card h-32 animate-pulse"></div>
+        <div class="paper-card h-32 animate-pulse"></div>
+      </div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-ai-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+    </div>
+
+    <div id="mnews-world" class="hidden">
+      <div class="px-margin-mobile mb-4 flex gap-2 overflow-x-auto" id="mnews-world-filters">
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="all">전체</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="politics">정치</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="economy">경제</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="social">사회</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="international">국제</button>
+      </div>
+      <div class="px-margin-mobile space-y-4" id="mnews-world-list">
+        <div class="paper-card h-40 animate-pulse"></div>
+        <div class="paper-card h-32 animate-pulse"></div>
+      </div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-world-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+    </div>
+  </main>
+
   <!-- My Rank 스티키 바 — 로그인 시에만 표시(leaderboard 페이지에서만) -->
   <div class="fixed bottom-20 left-0 w-full z-40 px-xs mb-2 hidden" id="mlb-myrank">
     <div class="max-w-md mx-auto bg-primary-container text-on-primary-container editorial-border border-primary rounded-xl shadow-xl p-sm flex justify-between items-center">
@@ -322,10 +364,13 @@ tailwind.config = {
     </div>
   </div>
 
-  <!-- 하단 탭바 (모든 목업 4개 공통 구조) -->
+  <!-- 하단 탭바 — Profile 제거, News 추가(햄버거 드로어로 이동) -->
   <nav class="bg-surface dark:bg-surface-dim border-t border-outline-variant fixed bottom-0 left-0 w-full flex justify-around items-center h-20 pb-safe px-xs z-50">
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="home">
       <span class="material-symbols-outlined mtab-icon">home</span><span class="font-label-caps text-label-caps mt-1">Home</span>
+    </button>
+    <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="news">
+      <span class="material-symbols-outlined mtab-icon">newspaper</span><span class="font-label-caps text-label-caps mt-1">News</span>
     </button>
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="livefeed">
       <span class="material-symbols-outlined mtab-icon">sensors</span><span class="font-label-caps text-label-caps mt-1">Live Feed</span>
@@ -336,10 +381,32 @@ tailwind.config = {
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="leaderboard">
       <span class="material-symbols-outlined mtab-icon">emoji_events</span><span class="font-label-caps text-label-caps mt-1">Rank</span>
     </button>
-    <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" id="mtab-profile">
-      <span class="material-symbols-outlined mtab-icon">person</span><span class="font-label-caps text-label-caps mt-1" id="mtab-profile-label">Profile</span>
-    </button>
   </nav>
+
+  <!-- 햄버거 드로어 — 헤더 menu 아이콘 클릭 시 우측에서 슬라이드인. news.html 첨부 내용이
+       실제로 없어(프로즈 설명만: primary-container 헤더+유저정보, Profile/Settings/Help/구분선/
+       Sign Out, 로그아웃=text-error, 비로그인=Sign In 버튼) 그 설명대로 구현. -->
+  <div id="mmenu-backdrop" class="hidden fixed inset-0 bg-black/40 z-[60]"></div>
+  <aside id="mmenu-drawer" class="fixed top-0 right-0 h-full w-72 max-w-[80%] bg-surface z-[70] transform translate-x-full transition-transform duration-200 flex flex-col">
+    <div class="bg-primary-container text-on-primary-container p-md" id="mmenu-header">
+      <!-- JS(app/mobile-app.js)가 로그인 상태에 따라 이름/티어 또는 Sign In 버튼으로 채움 -->
+    </div>
+    <nav class="flex-1 flex flex-col py-2">
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" data-mgoto="leaderboard">
+        <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md">Profile</span>
+      </button>
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-settings">
+        <span class="material-symbols-outlined">settings</span><span class="font-body-md text-body-md">Settings</span>
+      </button>
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-help">
+        <span class="material-symbols-outlined">help</span><span class="font-body-md text-body-md">Help</span>
+      </button>
+      <div class="h-px bg-outline-variant my-2"></div>
+      <button class="mmenu-item hidden flex items-center gap-3 px-md py-3 text-error hover:bg-error-container/30 transition-colors text-left" id="mmenu-signout">
+        <span class="material-symbols-outlined">logout</span><span class="font-body-md text-body-md">Sign Out</span>
+      </button>
+    </nav>
+  </aside>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

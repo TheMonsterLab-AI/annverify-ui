@@ -39,12 +39,6 @@ function renderSidebarUser() {
   }
 }
 
-// 모바일 하단 탭바의 Profile 탭 라벨 — 사이드바와 별개로 항상 동기화 필요
-function renderTabbarProfile() {
-  var label = document.getElementById("mtab-profile-label");
-  if (!label) return;
-  label.textContent = currentUser ? "Profile" : "Sign In";
-}
 
 function doSignIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
@@ -66,5 +60,7 @@ async function getIdTokenOrNull() {
 auth.onAuthStateChanged(function (user) {
   currentUser = user;
   renderSidebarUser();
-  renderTabbarProfile();
+  // 모바일 햄버거 드로어 헤더(유저명/티어 또는 Sign In) — app/mobile-app.js에 정의,
+  // 스크립트 로드 순서상 auth.js가 먼저 실행되지만 이 콜백은 비동기(Firebase 초기화 후)라 안전.
+  if (typeof renderMobileMenuHeader === "function") renderMobileMenuHeader();
 });
