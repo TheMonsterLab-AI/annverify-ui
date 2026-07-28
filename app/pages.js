@@ -236,3 +236,110 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+// ── Home content — 채팅 로그가 빈 상태일 때 표시되는 3개 미리보기 섹션 ──────
+// 각 섹션은 독립적으로 로드/실패 처리 — 하나가 실패해도 나머지는 정상 표시.
+// 마크업은 index.html(초기 상태)과 app/history.js의 clearChatLog()(재방문 시) 양쪽에
+// 동일하게 있어야 함 — chat-empty 플레이스홀더가 이미 같은 방식으로 중복돼 있던 기존 패턴을 따름.
+function HOME_SECTIONS_HTML() {
+  return (
+    '<div id="home-sections">' +
+      '<div class="home-sec">' +
+        '<div class="home-sec-header"><span class="home-sec-title">🔴 Live Verifications</span><span class="home-sec-more" data-page="livefeed">더보기 &gt;</span></div>' +
+        '<div class="home-sec-list" id="home-live-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
+      '</div>' +
+      '<div class="home-sec">' +
+        '<div class="home-sec-header"><span class="home-sec-title">💬 Hot Discussions</span><span class="home-sec-more" data-page="discussions">더보기 &gt;</span></div>' +
+        '<div class="home-sec-list" id="home-discuss-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
+      '</div>' +
+      '<div class="home-sec">' +
+        '<div class="home-sec-header"><span class="home-sec-title">🏆 Top Verifiers</span><span class="home-sec-more" data-page="leaderboard">더보기 &gt;</span></div>' +
+        '<div class="home-sec-list" id="home-lb-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function _hideHomeSec(containerId) {
+  var el = document.getElementById(containerId);
+  var sec = el && el.closest(".home-sec");
+  if (sec) sec.classList.add("hidden");
+}
+
+async function _loadHomeLive() {
+  var el = document.getElementById("home-live-list");
+  if (!el) return;
+  try {
+    var res = await fetch(API_URL + "/api/v5/live-feed?since=0&limit=3");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) { _hideHomeSec("home-live-list"); return; }
+    el.innerHTML = items.map(function (it) {
+      var info = verdictInfo(it.verdict);
+      return '<div class="home-card">' +
+        '<span class="' + _badgeClass(info.tone) + '">' + escapeHtml(info.label) + '</span>' +
+        '<div class="home-card-text">' + escapeHtml((it.claimPreview || "").toString().slice(0, 80)) + '</div>' +
+        '<div class="home-card-time">' + escapeHtml(relativeTime(it.createdAt)) + '</div>' +
+      '</div>';
+    }).join("");
+  } catch (e) {
+    console.warn("[home] live preview failed:", e.message);
+    _hideHomeSec("home-live-list");
+  }
+}
+
+async function _loadHomeDiscuss() {
+  var el = document.getElementById("home-discuss-list");
+  if (!el) return;
+  try {
+    var res = await fetch(API_URL + "/api/v4/discuss/ranking");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var items = (Array.isArray(data.ranking) ? data.ranking : []).slice(0, 3);
+    if (!items.length) { _hideHomeSec("home-discuss-list"); return; }
+    el.innerHTML = items.map(function (it) {
+      return '<div class="home-card">' +
+        '<div class="home-card-text">' + escapeHtml((it.claimPreview || "").toString().slice(0, 80)) + '</div>' +
+        '<div class="home-card-meta">💬 ' + (it.commentCount || 0) + ' · ' + escapeHtml(relativeTime(it.createdAt)) + '</div>' +
+      '</div>';
+    }).join("");
+  } catch (e) {
+    console.warn("[home] discuss preview failed:", e.message);
+    _hideHomeSec("home-discuss-list");
+  }
+}
+
+async function _loadHomeLeaderboard() {
+  var el = document.getElementById("home-lb-list");
+  if (!el) return;
+  try {
+    var res = await fetch(API_URL + "/api/v4/points/leaderboard?period=alltime");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var items = (Array.isArray(data.leaderboard) ? data.leaderboard : []).slice(0, 5);
+    if (!items.length) { _hideHomeSec("home-lb-list"); return; }
+    el.innerHTML = items.map(function (r, i) {
+      return '<div class="home-card home-lb-row">' +
+        '<span class="home-lb-rank">' + (i + 1) + '</span>' +
+        '<span class="home-lb-name">' + escapeHtml(r.displayName || "Verifier") + '</span>' +
+        '<span class="home-lb-ap">' + (r.annPoints || 0) + ' AP</span>' +
+      '</div>';
+    }).join("");
+  } catch (e) {
+    console.warn("[home] leaderboard preview failed:", e.message);
+    _hideHomeSec("home-lb-list");
+  }
+}
+
+function loadHomeSections() {
+  if (!document.getElementById("home-sections")) return;
+  _loadHomeLive();
+  _loadHomeDiscuss();
+  _loadHomeLeaderboard();
+  document.querySelectorAll(".home-sec-more[data-page]").forEach(function (n) {
+    n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", loadHomeSections);
