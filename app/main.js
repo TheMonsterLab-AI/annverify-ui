@@ -126,12 +126,14 @@ async function triggerVerifyFromSuggestion(claimText) {
   }
 
   incrementVerifyUsage();
+  var realHash = await computeIntegrityHash(claimText, parsed);
   var entry = {
     id: id,
     claim: claimText,
     verdictClass: parsed.verdict_class || null,
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
-    bislHash: parsed.bisl_hash || null,
+    bislHash: realHash, // real client-computed SHA-256 — NOT parsed.bisl_hash (server's is not a real digest, see computeIntegrityHash)
+    model: data.model || null, // raw envelope field, e.g. "claude-sonnet-4-6" — not present inside `parsed`
     ts: Date.now(),
     elapsedMs: Date.now() - startedAt,
     parsed: parsed,

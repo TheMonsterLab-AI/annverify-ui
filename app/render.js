@@ -12,6 +12,26 @@
 //   - "Sources" list → mockup shows title+domain+date per source; the API's web_citations is a
 //     flat array of URL strings only, so title/date are derived from the URL itself, not fabricated.
 
+// annverify.ai's own render.js explicitly does NOT trust the server's bisl_hash field —
+// comment there reads: "The v5 model returns a bisl_hash field that is NOT a real digest;
+// we never display it." It computes a genuine client-side SHA-256 instead (Web Crypto) and
+// uses that everywhere a hash is shown. Mirrored here rather than trusting parsed.bisl_hash.
+async function computeIntegrityHash(claimText, parsed) {
+  try {
+    var payload = JSON.stringify({
+      i: claimText,
+      s: parsed.overall_score,
+      v: parsed.verdict_class,
+      e: parsed.executive_summary || "",
+      c: (parsed.claims || []).map(function (c) { return (c && c.sentence) || ""; }),
+    });
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
+    return "ann-" + Array.prototype.map.call(new Uint8Array(buf), function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+  } catch (e) { return null; }
+}
+
 function hostnameOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ""); }
   catch (e) { return url; }
@@ -214,6 +234,182 @@ function showErrorInRightPanel(claim, errKo, errEn) {
   if (typeof mobileShowResult === "function") mobileShowResult();
 }
 
+// ── Full report sections §1-§11. Field names verified against
+// annverify.ai/frontend/app/{check.js,render.js} and worker/routes/verify.js's Required
+// JSON fields spec — not guessed. Notable corrections vs. a naive reading of the schema:
+//   - §4's 4th metric is `metrics.recency`, not "temporal" — `temporal` is a separate
+//     top-level object (freshness/expiry_risk/...), rendered separately as §8.
+//   - §6 evidence: the prompt asks Claude for key_evidence.{supporting,contradicting,NEUTRAL}
+//     (verify.js line 442) but annverify.ai's own renderer reads `.contextual` instead of
+//     `.neutral` — a real mismatch in their code (that field is therefore always empty there).
+//     Used the actually-prompted field name `neutral` here rather than copying that bug.
+//   - §9 hash: annverify.ai's own renderer explicitly does NOT trust the server's bisl_hash
+//     ("not a real digest") and computes a genuine client-side SHA-256 instead — mirrored via
+//     computeIntegrityHash() above; entry.bislHash is already that real hash, not the server's.
+//   - §3/§9 engine/tier/model: `_engine`/`_tier`/`_version` fields only exist for the V5 "veri"
+//     engine path in annverify.ai's own code — this app only ever calls /api/verify (V1), which
+//     never sets those fields, so they're always absent. Used honest static labels ("ANN Verify
+//     V1", "Standard" — matching the literal `depth:"standard"` this app sends) instead of
+//     fabricating a version number, and pulled the real model name from the raw response
+//     envelope's top-level `model` field (e.g. "claude-sonnet-4-6") instead — a field that
+//     exists but isn't inside `parsed` at all, easy to miss if you only checked the prompt spec.
+//   - §10 limitations: annverify.ai's real §10 content (i18n key report.forensic.limitations_fields)
+//     is a technical list of *its own* schema fields that aren't populated yet — not a generic
+//     disclaimer, and specific to their exact response shape. Used the fixed bilingual disclaimer
+//     from this task's spec instead of copying that mismatched list.
+
+function _secExecutiveSummary(p, entry, info) {
+  var text = (p.executive_summary || "").trim();
+  if (!text) {
+    text = "This claim was assessed as " + info.label + " with " + Math.round((entry.confidence || 0) * 100) + "% confidence.";
+  }
+  return '<div class="rp-section"><div class="rp-sec">§1 Executive Summary</div>' +
+    '<div class="pg-text">' + escapeHtml(text) + '</div></div>';
+}
+
+function _secMethodology(entry, p) {
+  var layerCount = Array.isArray(p.layer_analysis) ? p.layer_analysis.length : 0;
+  var rows = [
+    ["Engine", "ANN Verify (V1)"],
+    ["Tier", "Standard"],
+    ["Model", entry.model || "—"],
+    ["Layers analyzed", String(layerCount)],
+    ["Processing time", entry.elapsedMs != null ? (entry.elapsedMs / 1000).toFixed(1) + "s" : "—"],
+    ["Analyzed at", new Date(entry.ts).toLocaleString()],
+  ];
+  var rowsHtml = rows.map(function (r) {
+    return '<div class="rp-meta-row"><span class="rp-meta-k">' + escapeHtml(r[0]) + '</span><span class="rp-meta-v">' + escapeHtml(r[1]) + '</span></div>';
+  }).join("");
+  return '<div class="rp-section"><div class="rp-sec">§3 Analysis Methodology</div>' + rowsHtml + '</div>';
+}
+
+function _secVerdictMetrics(p, info) {
+  var m = p.metrics || {};
+  var metricDefs = [
+    ["factual", "Factual Accuracy"],
+    ["logic", "Logical Consistency"],
+    ["source_quality", "Source Quality"],
+    ["recency", "Recency"],
+  ];
+  var barsHtml = metricDefs.map(function (d) {
+    var v = (typeof m[d[0]] === "number") ? Math.round(m[d[0]]) : null;
+    if (v == null) return "";
+    return '<div class="rp-conf-lbl">' + escapeHtml(d[1]) + '</div>' +
+      '<div class="rp-bar"><div class="rp-fill" style="width:' + v + '%;background:' + toneColor(info.tone) + '"></div></div>' +
+      '<div class="rp-pct" style="color:' + toneColor(info.tone) + '">' + v + '%</div>';
+  }).join("");
+  return '<div class="rp-section"><div class="rp-sec">§4 Verdict &amp; Metrics</div>' +
+    '<div class="rp-conf-lbl">Overall</div>' +
+    '<div class="pg-text">Grade ' + escapeHtml(p.overall_grade || "—") + ' · ' + (typeof p.overall_score === "number" ? p.overall_score : "—") + '/100</div>' +
+    (barsHtml || '<div class="src-meta" style="padding:8px 0">No metric breakdown returned.</div>') +
+    '</div>';
+}
+
+function _secLayerAnalysis(p) {
+  var layers = Array.isArray(p.layer_analysis) ? p.layer_analysis : [];
+  var body;
+  if (layers.length) {
+    body = layers.map(function (l, i) {
+      var name = l.name || l.label || l.layer || ("Layer " + (i + 1));
+      var detail = l.detail || l.summary || l.description || l.note || "";
+      var scoreHtml = (l.score != null) ? '<span class="rp-layer-score">' + escapeHtml(l.score) + '</span>' : "";
+      return '<div class="rp-layer-card">' +
+        '<div class="rp-layer-head"><span class="rp-layer-name">' + escapeHtml(name) + '</span>' + scoreHtml + '</div>' +
+        (detail ? '<div class="rp-layer-detail">' + escapeHtml(detail) + '</div>' : "") +
+        '</div>';
+    }).join("");
+  } else {
+    body = '<div class="src-meta" style="padding:8px 0">No layer analysis returned.</div>';
+  }
+  return '<div class="rp-section"><div class="rp-sec">§5 Layer Analysis</div>' + body + '</div>';
+}
+
+function _secEvidence(p) {
+  var ev = p.key_evidence || {};
+  function block(items, label, dotColor) {
+    if (!items || !items.length) return "";
+    var rows = items.map(function (s) {
+      return '<div class="src-row"><span class="src-dot" style="background:' + dotColor + '"></span><div>' + escapeHtml(s) + '</div></div>';
+    }).join("");
+    return '<div class="rp-conf-lbl">' + escapeHtml(label) + '</div>' + rows;
+  }
+  var html = block(ev.supporting, "Supporting", "#4A7A6A") +
+    block(ev.contradicting, "Contradicting", "#BA1A1A") +
+    block(ev.neutral, "Neutral / Contextual", "#9AA09C");
+  if (!html) html = '<div class="src-meta" style="padding:8px 0">No evidence breakdown returned.</div>';
+  return '<div class="rp-section"><div class="rp-sec">§6 Evidence</div>' + html + '</div>';
+}
+
+function _secClaims(p) {
+  var claims = Array.isArray(p.claims) ? p.claims : [];
+  var body;
+  if (claims.length) {
+    body = claims.map(function (c, i) {
+      var st = (c.status || c.verdict || "").toString();
+      var info = verdictInfo(st.toUpperCase().replace(/[^A-Z_]/g, ""));
+      return '<div class="rp-claim-card">' +
+        '<div class="rp-card-row"><span class="chip">C' + (i + 1) + '</span>' +
+        '<span class="' + (info.tone === "err" ? "pg-badge pg-badge-err" : info.tone === "ok" ? "pg-badge pg-badge-ok" : "pg-badge pg-badge-mid") + '">' + escapeHtml(info.label) + '</span></div>' +
+        '<div class="pg-text">' + escapeHtml(c.sentence || "") + '</div>' +
+        (c.verdict ? '<div class="rp-claim-verdict">' + escapeHtml(c.verdict) + '</div>' : "") +
+        '</div>';
+    }).join("");
+  } else {
+    body = '<div class="src-meta" style="padding:8px 0">No individual claims returned.</div>';
+  }
+  return '<div class="rp-section"><div class="rp-sec">§7 Claim Verdicts</div>' + body + '</div>';
+}
+
+function _secTemporal(p) {
+  var temp = p.temporal;
+  var body;
+  if (temp && (temp.freshness || temp.timeframe)) {
+    body =
+      (temp.timeframe ? '<div class="rp-meta-row"><span class="rp-meta-k">Timeframe</span><span class="rp-meta-v">' + escapeHtml(temp.timeframe) + '</span></div>' : "") +
+      (temp.freshness ? '<div class="rp-meta-row"><span class="rp-meta-k">Freshness</span><span class="rp-meta-v">' + escapeHtml(temp.freshness) + '</span></div>' : "") +
+      (temp.expiry_risk ? '<div class="rp-meta-row"><span class="rp-meta-k">Expiry Risk</span><span class="rp-meta-v">' + escapeHtml(temp.expiry_risk) + '</span></div>' : "") +
+      '<div class="rp-meta-row"><span class="rp-meta-k">Recheck Recommended</span><span class="rp-meta-v">' + (temp.recheck_recommended ? "Yes" : "No") + '</span></div>';
+  } else {
+    body = '<div class="src-meta" style="padding:8px 0">No temporal assessment returned.</div>';
+  }
+  return '<div class="rp-section"><div class="rp-sec">§8 Temporal Analysis</div>' + body + '</div>';
+}
+
+function _secVerificationRecord(entry, p) {
+  return '<div class="rp-section"><div class="rp-sec">§9 Verification Record</div>' +
+    '<div class="mono">' +
+      "SHA-256: " + escapeHtml(entry.bislHash || "n/a") + "<br>" +
+      "Claim ID: " + escapeHtml(p.claimId || "n/a") + "<br>" +
+      "Claim Hash: " + escapeHtml(p.claimHash || "n/a") + "<br>" +
+      "Engine: ANN Verify V1 · Tier: Standard<br>" +
+      "Document No: AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" + (entry.bislHash || "").replace(/^ann-/, "").slice(0, 8) +
+    "</div></div>";
+}
+
+function _secLimitations() {
+  return '<div class="rp-section"><div class="rp-sec">§10 Limitations</div>' +
+    '<div class="pg-text">이 리포트는 AI 기반 분석이며 최종 판단은 사용자 책임입니다.<br>' +
+    '<span style="color:var(--out);font-size:14px">This report is an AI-generated analysis. Final judgment is the user’s responsibility.</span></div></div>';
+}
+
+function _secReferences(p) {
+  var citations = Array.isArray(p.web_citations) ? p.web_citations : [];
+  var body;
+  if (citations.length) {
+    body = citations.slice(0, 20).map(function (c, i) {
+      var url, sub;
+      if (typeof c === "string") { url = c; sub = ""; }
+      else { url = c.url || ""; sub = c.title || ""; }
+      return '<div class="src-row"><span class="src-dot"></span>' +
+        '<div><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + (i + 1) + '. ' + escapeHtml(hostnameOf(url)) + '</a>' +
+        (sub ? '<span class="src-meta"> — ' + escapeHtml(sub) + '</span>' : '') + '</div></div>';
+    }).join("");
+  } else {
+    body = '<div class="src-meta" style="padding:8px 0">No external sources returned.</div>';
+  }
+  return '<div class="rp-section" style="margin-bottom:80px"><div class="rp-sec">§11 References</div>' + body + '</div>';
+}
+
 function renderRightPanel(entry) {
   var p = entry.parsed || {};
   var info = verdictInfo(entry.verdictClass);
@@ -223,26 +419,6 @@ function renderRightPanel(entry) {
 
   var dossierId = "AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" +
     (entry.bislHash || "").replace(/^ann-/, "").slice(0, 8);
-
-  var sourcesHtml = "";
-  var citations = Array.isArray(p.web_citations) ? p.web_citations : [];
-  if (citations.length) {
-    citations.slice(0, 8).forEach(function (url) {
-      sourcesHtml +=
-        '<div class="src-row"><span class="src-dot"></span>' +
-        '<div><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(hostnameOf(url)) + '</a>' +
-        '<span class="src-meta"> — ' + escapeHtml(url.length > 70 ? url.slice(0, 70) + "…" : url) + '</span></div></div>';
-    });
-  } else {
-    sourcesHtml = '<div class="src-meta" style="padding:4px 0">No external sources returned.</div>';
-  }
-
-  var chipsHtml = "";
-  var layers = Array.isArray(p.layer_analysis) ? p.layer_analysis : [];
-  layers.forEach(function (l) {
-    chipsHtml += '<span class="chip">✓ ' + escapeHtml(l.name || l.layer || "") + '</span>';
-  });
-  if (!layers.length) chipsHtml = '<span class="src-meta">No layer analysis returned.</span>';
 
   var el = document.getElementById("right-panel");
   el.innerHTML =
@@ -272,8 +448,9 @@ function renderRightPanel(entry) {
         '<div class="rp-claim">' + escapeHtml(entry.claim) + '</div>' +
         '<div class="rp-sub">Engine ANN · Processing time: ' + (entry.elapsedMs != null ? (entry.elapsedMs / 1000).toFixed(1) + 's' : '—') + '</div>' +
       '</div>' +
+      _secExecutiveSummary(p, entry, info) +
       '<div class="rp-section">' +
-        '<div class="rp-sec">§1 Confidence &amp; Consensus</div>' +
+        '<div class="rp-sec">§2 Confidence &amp; Consensus</div>' +
         '<div class="rp-conf-lbl">Confidence Score</div>' +
         '<div class="rp-bar"><div class="rp-fill" style="width:' + confPct + '%;background:' + toneColor(info.tone) + '"></div></div>' +
         '<div class="rp-pct" style="color:' + toneColor(info.tone) + '">' + confPct + '%</div>' +
@@ -283,22 +460,15 @@ function renderRightPanel(entry) {
           '<div class="rp-pct" style="color:#C9A84C">' + consensusPct + '%</div>'
           : '') +
       '</div>' +
-      '<div class="rp-section">' +
-        '<div class="rp-sec">§2 Sources</div>' +
-        sourcesHtml +
-      '</div>' +
-      '<div class="rp-section">' +
-        '<div class="rp-sec">§3 7-Layer Analysis</div>' +
-        '<div class="chips">' + chipsHtml + '</div>' +
-      '</div>' +
-      '<div class="rp-section" style="margin-bottom:80px">' +
-        '<div class="rp-sec">§4 Cryptographic Integrity</div>' +
-        '<div class="mono">' +
-          'BISL Hash: ' + escapeHtml(entry.bislHash || "n/a") + '<br>' +
-          'Status: ' + escapeHtml(p.bisl_status || "n/a") + '<br>' +
-          'Engine: ANN · annverify.ai' +
-        '</div>' +
-      '</div>' +
+      _secMethodology(entry, p) +
+      _secVerdictMetrics(p, info) +
+      _secLayerAnalysis(p) +
+      _secEvidence(p) +
+      _secClaims(p) +
+      _secTemporal(p) +
+      _secVerificationRecord(entry, p) +
+      _secLimitations() +
+      _secReferences(p) +
       '<div class="seal">' +
         '<div class="seal-box"><div class="seal-ann">ANN</div><div class="seal-vfy">Verify</div></div>' +
         '<div class="seal-txt">AI News Network<br>annverify.ai</div>' +
