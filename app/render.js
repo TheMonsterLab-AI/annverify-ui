@@ -86,15 +86,24 @@ function mapErrorToMessage(res, data, isNetworkError) {
 }
 
 // ── Left panel: chat log ────────────────────────────────────────────────
+// 빈 상태 플레이스홀더 + 홈 미리보기 섹션 제거 — 첫 메시지가 오면 대화가 그 자리를 대체.
+function _clearChatEmptyState() {
+  var empty = document.getElementById("chat-empty");
+  if (empty) empty.remove();
+  var home = document.getElementById("home-sections");
+  if (home) home.remove();
+}
+
 function clearChatLog() {
   var log = document.getElementById("chat-log");
-  log.innerHTML = '<div class="chat-empty" id="chat-empty"><p>Ask me anything or share a news claim to fact-check...</p></div>';
+  log.innerHTML = '<div class="chat-empty" id="chat-empty"><p>Ask me anything or share a news claim to fact-check...</p></div>' +
+    (typeof HOME_SECTIONS_HTML === "function" ? HOME_SECTIONS_HTML() : "");
+  if (typeof loadHomeSections === "function") loadHomeSections();
 }
 
 function appendUserBubble(text) {
   var log = document.getElementById("chat-log");
-  var empty = document.getElementById("chat-empty");
-  if (empty) empty.remove();
+  _clearChatEmptyState();
   var div = document.createElement("div");
   div.className = "um";
   div.textContent = text;
@@ -105,8 +114,7 @@ function appendUserBubble(text) {
 // AI 대화 응답 버블. shouldVerify=true면 인라인 "Verify this" 제안 버튼 포함.
 function appendAiBubble(text, shouldVerify, extractedClaim) {
   var log = document.getElementById("chat-log");
-  var empty = document.getElementById("chat-empty");
-  if (empty) empty.remove();
+  _clearChatEmptyState();
   var row = document.createElement("div");
   row.className = "am-row";
   row.innerHTML =
@@ -130,8 +138,7 @@ function appendAiBubble(text, shouldVerify, extractedClaim) {
 
 function appendUsageLimitMessage(kind) {
   var log = document.getElementById("chat-log");
-  var empty = document.getElementById("chat-empty");
-  if (empty) empty.remove();
+  _clearChatEmptyState();
   var div = document.createElement("div");
   div.innerHTML = usageLimitMessageHtml(kind);
   log.appendChild(div.firstChild);
