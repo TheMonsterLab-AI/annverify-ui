@@ -10,7 +10,7 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .shell{display:flex;width:100vw;height:100vh;background:var(--bg);overflow:hidden;color:var(--dark)}
 
 /* SIDEBAR */
-.sb{width:220px;min-width:220px;background:var(--sb);display:flex;flex-direction:column;border-right:1px solid #E8E0CF}
+.sb{width:160px;min-width:160px;background:var(--sb);display:flex;flex-direction:column;border-right:1px solid #E8E0CF}
 .sb-logo{padding:18px 16px 14px;display:flex;align-items:center;gap:10px}
 .logo-box{width:42px;height:42px;flex-shrink:0;border:3px solid var(--c);border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .logo-box.lg{width:64px;height:64px;border-width:4px;border-radius:14px;margin:0 auto 14px}
@@ -61,7 +61,7 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .body{flex:1;display:flex;overflow:hidden}
 
 /* LEFT */
-.left{width:340px;min-width:340px;display:flex;flex-direction:column;border-right:1px solid #E8E0CF;background:var(--bg)}
+.left{width:280px;min-width:280px;display:flex;flex-direction:column;border-right:1px solid #E8E0CF;background:var(--bg)}
 .chat{flex:1;overflow-y:auto;padding:16px var(--pad);display:flex;flex-direction:column;gap:12px}
 .chat::-webkit-scrollbar{width:3px}
 .chat::-webkit-scrollbar-thumb{background:#E0D8CC}
@@ -108,9 +108,13 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .rp-sh:hover{background:#DDF0E8}
 .rp-close{width:26px;height:26px;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .rp-close:hover{background:#F5F1EA}
-.rp-body{flex:1;overflow-y:auto;padding:var(--pad);display:flex;flex-direction:column;gap:16px;position:relative}
+.rp-body{flex:1;overflow-y:auto;position:relative}
 .rp-body::-webkit-scrollbar{width:3px}
 .rp-body::-webkit-scrollbar-thumb{background:#E0D8CC}
+/* 결과 내용이 넓은 화면에서 끝까지 늘어나지 않도록 제한 — 스크롤 컨테이너(.rp-body)는
+   패널 전체 너비를 유지하되(스크롤바가 우측 끝에 붙도록), 실제 콘텐츠만 가운데 정렬 */
+.rp-content{max-width:860px;margin:0 auto;padding:40px 48px;display:flex;flex-direction:column;gap:20px;position:relative}
+.rp-section{background:var(--bg);border:1px solid #E8E0CF;border-radius:12px;padding:20px 24px}
 .rp-vbadge{padding:4px 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#EAF4EF;color:var(--c);display:inline-block;margin-bottom:8px}
 .rp-vbadge.err{background:#FDEAEA;color:var(--err)}
 .rp-claim{font-family:'Source Serif 4',serif;font-size:22px;color:var(--dark);margin-bottom:4px}
@@ -128,7 +132,6 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .chips{display:flex;flex-wrap:wrap;gap:4px}
 .chip{font-size:14px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;background:#EAF4EF;color:var(--c)}
 .mono{background:#F5F1EA;padding:10px 12px;font-family:monospace;font-size:14px;color:var(--muted);word-break:break-all}
-.divl{height:1px;background:#F0EBE1}
 .rp-error{padding:20px;color:var(--err);font-size:16px}
 
 /* 인장 — 우측 하단 워터마크 */
@@ -138,8 +141,10 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .seal-vfy{font-family:'Source Serif 4',serif;font-weight:400;font-style:italic;font-size:15px;color:var(--dark);line-height:1.2}
 .seal-txt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dark);margin-top:5px;text-align:center;line-height:1.5}
 
-@media (max-width: 900px){
-  .left{width:280px;min-width:280px}
+/* 모바일 — 사이드바/히스토리 패널 숨기고 결과 패널이 전체 너비를 차지 */
+@media (max-width: 768px){
+  .sb, .left{display:none}
+  .rp-content{max-width:none;padding:24px 16px}
 }
 
 /* 모바일 base — 데스크톱(18px)보다 한 단계 작게. 본문 요소들은 명시적 px라 body font-size가

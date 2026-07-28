@@ -91,7 +91,9 @@ function showErrorInRightPanel(claim, message) {
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       '</button></div>' +
     '</div>' +
-    '<div class="rp-error">Verification failed: ' + escapeHtml(message) + '</div>';
+    '<div class="rp-body"><div class="rp-content">' +
+      '<div class="rp-error">Verification failed: ' + escapeHtml(message) + '</div>' +
+    '</div></div>';
   var closeBtn = document.getElementById("rp-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
 }
@@ -142,15 +144,14 @@ function renderRightPanel(entry) {
         '</button>' +
       '</div>' +
     '</div>' +
-    '<div class="rp-body">' +
+    '<div class="rp-body"><div class="rp-content">' +
       '<div>' +
         '<div class="rp-vbadge' + (info.tone === "err" ? " err" : "") + '">' + escapeHtml(info.label) + '</div>' +
         '<div style="font-size:9px;color:var(--muted);margin-bottom:8px">Dossier #' + escapeHtml(dossierId) + ' · Issued ' + new Date(entry.ts).toLocaleDateString() + '</div>' +
         '<div class="rp-claim">' + escapeHtml(entry.claim) + '</div>' +
         '<div class="rp-sub">Engine ANN · Processing time: ' + (entry.elapsedMs != null ? (entry.elapsedMs / 1000).toFixed(1) + 's' : '—') + '</div>' +
       '</div>' +
-      '<div class="divl"></div>' +
-      '<div>' +
+      '<div class="rp-section">' +
         '<div class="rp-sec">§1 Confidence &amp; Consensus</div>' +
         '<div class="rp-conf-lbl">Confidence Score</div>' +
         '<div class="rp-bar"><div class="rp-fill" style="width:' + confPct + '%;background:' + toneColor(info.tone) + '"></div></div>' +
@@ -161,18 +162,15 @@ function renderRightPanel(entry) {
           '<div class="rp-pct" style="color:#C9A84C">' + consensusPct + '%</div>'
           : '') +
       '</div>' +
-      '<div class="divl"></div>' +
-      '<div>' +
+      '<div class="rp-section">' +
         '<div class="rp-sec">§2 Sources</div>' +
         sourcesHtml +
       '</div>' +
-      '<div class="divl"></div>' +
-      '<div>' +
+      '<div class="rp-section">' +
         '<div class="rp-sec">§3 7-Layer Analysis</div>' +
         '<div class="chips">' + chipsHtml + '</div>' +
       '</div>' +
-      '<div class="divl"></div>' +
-      '<div style="padding-bottom:80px">' +
+      '<div class="rp-section" style="margin-bottom:80px">' +
         '<div class="rp-sec">§4 Cryptographic Integrity</div>' +
         '<div class="mono">' +
           'BISL Hash: ' + escapeHtml(entry.bislHash || "n/a") + '<br>' +
@@ -184,7 +182,7 @@ function renderRightPanel(entry) {
         '<div class="seal-box"><div class="seal-ann">ANN</div><div class="seal-vfy">Verify</div></div>' +
         '<div class="seal-txt">AI News Network<br>annverify.ai</div>' +
       '</div>' +
-    '</div>';
+    '</div></div>';
 
   var closeBtn = document.getElementById("rp-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
