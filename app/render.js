@@ -23,7 +23,47 @@ function toneColor(tone) {
   return "#4A7A6A";
 }
 
+// ── Error message mapping ────────────────────────────────────────────────
+// Real /api/verify error shapes (checked against worker/utils/inputValidation.js, not
+// assumed): input-validation failures return {error:'INVALID_INPUT', pattern, code, reason}
+// where `pattern` is UPPER_SNAKE_CASE (TOO_SHORT, IP_IN_TEXT, IP_ADDRESS, PURE_NUMERIC,
+// SINGLE_WORD, MAC_ADDRESS, PHONE_NUMBER) — not the lowercase values in the original spec.
+function mapErrorToMessage(res, data, isNetworkError) {
+  if (isNetworkError) {
+    return { ko: "연결에 실패했습니다. 인터넷 연결을 확인해주세요.", en: "Connection failed. Please check your internet connection." };
+  }
+  if (res && res.status === 429) {
+    return { ko: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", en: "Too many requests. Please try again later." };
+  }
+  if (res && res.status >= 500) {
+    return { ko: "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", en: "A server error occurred. Please try again later." };
+  }
+  if (data && data.error === "INVALID_INPUT") {
+    var pattern = (data.pattern || "").toString().toUpperCase();
+    if (pattern === "TOO_SHORT") {
+      return { ko: "입력이 너무 짧습니다. 15자 이상 입력해주세요.", en: "Input is too short. Please enter at least 15 characters." };
+    }
+    if (pattern === "IP_IN_TEXT" || pattern === "IP_ADDRESS") {
+      return { ko: "IP 주소는 검증할 수 없습니다.", en: "IP addresses cannot be verified." };
+    }
+    if (pattern === "PURE_NUMERIC") {
+      return { ko: "숫자만 입력된 경우 검증할 수 없습니다.", en: "Numbers-only input cannot be verified." };
+    }
+    // generic fallback — covers SINGLE_WORD, MAC_ADDRESS, PHONE_NUMBER, and anything else
+    return {
+      ko: "검증할 수 없는 입력입니다. 구체적인 주장이나 뉴스 URL을 입력해주세요.\n예: '정부가 세금을 인상했다' 또는 기사 URL",
+      en: "This input can't be verified. Please enter a specific claim or a news URL.",
+    };
+  }
+  return { ko: "검증에 실패했습니다. 잠시 후 다시 시도해주세요.", en: "Verification failed. Please try again later." };
+}
+
 // ── Left panel: chat log ────────────────────────────────────────────────
+function clearChatLog() {
+  var log = document.getElementById("chat-log");
+  log.innerHTML = '<div class="chat-empty" id="chat-empty"><p>Ask me anything or share a news claim to fact-check...</p></div>';
+}
+
 function appendUserBubble(text) {
   var log = document.getElementById("chat-log");
   var empty = document.getElementById("chat-empty");
@@ -33,6 +73,55 @@ function appendUserBubble(text) {
   div.textContent = text;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+// AI 대화 응답 버블. shouldVerify=true면 인라인 "Verify this" 제안 버튼 포함.
+function appendAiBubble(text, shouldVerify, extractedClaim) {
+  var log = document.getElementById("chat-log");
+  var empty = document.getElementById("chat-empty");
+  if (empty) empty.remove();
+  var row = document.createElement("div");
+  row.className = "am-row";
+  row.innerHTML =
+    '<div class="am-icon">ANN</div>' +
+    '<div class="am">' +
+      '<div>' + escapeHtml(text) + '</div>' +
+      (shouldVerify && extractedClaim
+        ? '<button class="am-verify-btn" data-claim="' + escapeHtml(extractedClaim) + '">Verify this — 검증하기</button>'
+        : '') +
+    '</div>';
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+  var verifyBtn = row.querySelector(".am-verify-btn");
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", function () {
+      verifyBtn.disabled = true;
+      if (typeof triggerVerifyFromSuggestion === "function") triggerVerifyFromSuggestion(extractedClaim);
+    });
+  }
+}
+
+function appendUsageLimitMessage(kind) {
+  var log = document.getElementById("chat-log");
+  var empty = document.getElementById("chat-empty");
+  if (empty) empty.remove();
+  var div = document.createElement("div");
+  div.innerHTML = usageLimitMessageHtml(kind);
+  log.appendChild(div.firstChild);
+  log.scrollTop = log.scrollHeight;
+  var signInBtn = document.getElementById("usage-signin-btn");
+  if (signInBtn) signInBtn.addEventListener("click", function () { if (typeof doSignIn === "function") doSignIn(); });
+}
+
+function appendTypingIndicator(id) {
+  var log = document.getElementById("chat-log");
+  var div = document.createElement("div");
+  div.className = "am-typing";
+  div.id = "typing-" + id;
+  div.innerHTML = '<div class="sp"></div><span>ANN is thinking...</span>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
 }
 
 function appendPendingRow(id) {
@@ -46,28 +135,47 @@ function appendPendingRow(id) {
     '<div class="ps">ANN 7-Layer Engine</div></div>';
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+function _verifyCardNode(entry) {
+  var info = verdictInfo(entry.verdictClass);
+  var card = document.createElement("div");
+  card.className = "mini-card active" + (info.tone === "err" ? " err" : "");
+  card.setAttribute("data-verify-id", entry.id);
+  card.innerHTML =
+    '<span class="mv ' + (info.tone === "err" ? "mvf" : "mvv") + '">' + escapeHtml(info.label) + '</span>' +
+    '<div><div class="mc">' + escapeHtml(entry.claim.slice(0, 120)) + '</div>' +
+    '<div class="ms">Confidence ' + Math.round((entry.confidence || 0) * 100) + '% — click to view full dossier</div></div>';
+  card.addEventListener("click", function () { renderRightPanel(entry); });
+  return card;
+}
+
+function _verifyErrorNode(claim, errKo, errEn) {
+  var div = document.createElement("div");
+  div.className = "pd err";
+  div.innerHTML = '<div><div class="pt">' + escapeHtml(errKo || "Verification failed") + '</div>' +
+    '<div class="ps">' + escapeHtml(errEn || "") + '</div></div>';
+  return div;
 }
 
 function replacePendingWithCard(id, entry, isError) {
   var pending = document.getElementById("pending-" + id);
   if (!pending) return;
-  if (isError) {
-    pending.className = "pd err";
-    pending.innerHTML =
-      '<div><div class="pt">Verification failed</div>' +
-      '<div class="ps">' + escapeHtml(entry.errorMessage || "Unknown error") + '</div></div>';
-    return;
-  }
-  var info = verdictInfo(entry.verdictClass);
-  var card = document.createElement("div");
-  card.className = "mini-card active" + (info.tone === "err" ? " err" : "");
-  card.setAttribute("data-history-id", entry.id);
-  card.innerHTML =
-    '<span class="mv ' + (info.tone === "err" ? "mvf" : "mvv") + '">' + escapeHtml(info.label) + '</span>' +
-    '<div><div class="mc">' + escapeHtml(entry.claim.slice(0, 120)) + '</div>' +
-    '<div class="ms">Confidence ' + Math.round((entry.confidence || 0) * 100) + '% — click to view full dossier</div></div>';
-  card.addEventListener("click", function () { selectHistoryEntry(entry); });
-  pending.replaceWith(card);
+  if (isError) { pending.replaceWith(_verifyErrorNode(entry.claim, entry.errorKo, entry.errorEn)); return; }
+  pending.replaceWith(_verifyCardNode(entry));
+}
+
+function appendVerifyResultCard(entry) {
+  var log = document.getElementById("chat-log");
+  log.appendChild(_verifyCardNode(entry));
+  log.scrollTop = log.scrollHeight;
+}
+
+function appendVerifyErrorCard(claim, errKo, errEn) {
+  var log = document.getElementById("chat-log");
+  log.appendChild(_verifyErrorNode(claim, errKo, errEn));
+  log.scrollTop = log.scrollHeight;
 }
 
 // ── Right panel: Full Dossier ───────────────────────────────────────────
@@ -82,7 +190,7 @@ function showEmptyRightPanel() {
     '</div>';
 }
 
-function showErrorInRightPanel(claim, message) {
+function showErrorInRightPanel(claim, errKo, errEn) {
   var el = document.getElementById("right-panel");
   el.innerHTML =
     '<div class="rp-top">' +
@@ -97,7 +205,7 @@ function showErrorInRightPanel(claim, message) {
       '</button></div>' +
     '</div>' +
     '<div class="rp-body"><div class="rp-content">' +
-      '<div class="rp-error">Verification failed: ' + escapeHtml(message) + '</div>' +
+      '<div class="rp-error">' + escapeHtml(errKo) + (errEn ? '<br><span class="rp-error-en">' + escapeHtml(errEn) + '</span>' : '') + '</div>' +
     '</div></div>';
   var closeBtn = document.getElementById("rp-close-btn");
   if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
@@ -204,9 +312,3 @@ function renderRightPanel(entry) {
   if (typeof mobileShowResult === "function") mobileShowResult();
 }
 
-function selectHistoryEntry(entry) {
-  renderRightPanel(entry);
-  document.querySelectorAll(".hi[data-history-id]").forEach(function (n) {
-    n.classList.toggle("active", n.getAttribute("data-history-id") === entry.id);
-  });
-}
