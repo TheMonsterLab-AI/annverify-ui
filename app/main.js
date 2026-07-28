@@ -95,5 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
     input.focus();
     showEmptyRightPanel();
     document.querySelectorAll(".hi.active").forEach(function (n) { n.classList.remove("active"); });
+    if (typeof mobileShowHistory === "function") mobileShowHistory();
+    if (typeof closeSidebar === "function") closeSidebar();
   });
 });
