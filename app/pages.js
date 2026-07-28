@@ -23,6 +23,9 @@ function showAppPage(name) {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.classList.toggle("on", n.getAttribute("data-page") === name);
   });
+  document.querySelectorAll(".tab-item[data-page]").forEach(function (n) {
+    n.classList.toggle("on", n.getAttribute("data-page") === name);
+  });
   if (typeof mobileShowHistory === "function") mobileShowHistory();
   if (typeof closeSidebar === "function") closeSidebar();
 
@@ -213,7 +216,23 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
+  document.querySelectorAll(".tab-item[data-page]").forEach(function (n) {
+    n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
+  });
   document.querySelectorAll(".lb-tab").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
   });
+
+  // Profile 탭 — 별도 페이지 없음(스펙: "로그인/로그아웃"만). 로그인 상태면 로그아웃,
+  // 아니면 로그인 플로우. 라벨은 auth.js의 onAuthStateChanged에서 갱신됨.
+  var profileTab = document.getElementById("tab-profile");
+  if (profileTab) {
+    profileTab.addEventListener("click", function () {
+      if (typeof currentUser !== "undefined" && currentUser) {
+        if (confirm("Sign out?")) auth.signOut();
+      } else if (typeof doSignIn === "function") {
+        doSignIn();
+      }
+    });
+  }
 });

@@ -39,6 +39,13 @@ function renderSidebarUser() {
   }
 }
 
+// 모바일 하단 탭바의 Profile 탭 라벨 — 사이드바와 별개로 항상 동기화 필요
+function renderTabbarProfile() {
+  var label = document.getElementById("tab-profile-label");
+  if (!label) return;
+  label.textContent = currentUser ? "Profile" : "Sign In";
+}
+
 function doSignIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(function (err) {
@@ -59,4 +66,5 @@ async function getIdTokenOrNull() {
 auth.onAuthStateChanged(function (user) {
   currentUser = user;
   renderSidebarUser();
+  renderTabbarProfile();
 });

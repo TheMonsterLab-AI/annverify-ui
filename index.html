@@ -127,6 +127,25 @@
       </div>
     </div>
   </div>
+
+  <!-- 모바일 하단 탭바 -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab-item on" data-page="dashboard">
+      <span class="tab-icon">🏠</span><span class="tab-label">Home</span>
+    </button>
+    <button class="tab-item" data-page="livefeed">
+      <span class="tab-icon">📡</span><span class="tab-label">Live Feed</span>
+    </button>
+    <button class="tab-item" data-page="discussions">
+      <span class="tab-icon">💬</span><span class="tab-label">Discussions</span>
+    </button>
+    <button class="tab-item" data-page="leaderboard">
+      <span class="tab-icon">🏆</span><span class="tab-label">Leaderboard</span>
+    </button>
+    <button class="tab-item" id="tab-profile">
+      <span class="tab-icon">👤</span><span class="tab-label" id="tab-profile-label">Sign In</span>
+    </button>
+  </nav>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
