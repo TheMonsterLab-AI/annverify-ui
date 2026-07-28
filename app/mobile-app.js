@@ -307,12 +307,96 @@ async function _loadMobileMyRank() {
   }
 }
 
-// ── Verify input (Home page) — direct /api/verify, no chat step, per the mockup ──────────
-// canVerify() checked here FIRST (not just inside triggerVerifyFromSuggestion) because that
-// function's own limit-exceeded message (appendUsageLimitMessage) writes into the desktop
-// #chat-log, which is hidden on mobile — a mobile user would see nothing happen. HTTP/network
-// errors from the actual verify call don't have this problem: showErrorInRightPanel() already
-// calls mobileShowResult() itself, surfacing the dossier panel with the error visibly.
+// ── Input router (Home page) ──────────────────────────────────────────────
+// 버그: mobileSubmitVerify()가 모든 입력(일반 대화 포함)을 곧바로 /api/verify로 보내서
+// "안녕" 같은 비검증성 텍스트가 "검증할 수 없는 입력" 에러로 이어졌음. URL/명확한 검증
+// 의도는 여전히 /api/verify로 바로 보내되, 그 외 일반 대화는 데스크톱과 동일하게
+// /api/v4/chat을 먼저 거치도록 라우팅을 분리.
+var MOBILE_URL_RE = /^(https?:\/\/|www\.)\S+/i;
+
+function _looksLikeUrl(text) {
+  return MOBILE_URL_RE.test((text || "").trim());
+}
+
+async function mobileSubmitInput(text) {
+  text = (text || "").trim();
+  if (!text) return;
+  _hideMobileChatReply();
+  if (_looksLikeUrl(text)) {
+    await mobileSubmitVerify(text);
+  } else {
+    await mobileSubmitChat(text);
+  }
+}
+
+function _hideMobileChatReply() {
+  var box = document.getElementById("mobile-chat-reply");
+  if (box) box.classList.add("hidden");
+  var verifyBtn = document.getElementById("mobile-chat-verify-btn");
+  if (verifyBtn) verifyBtn.classList.add("hidden");
+}
+
+// 일반 대화 텍스트 — /api/v4/chat만 거치고, shouldVerify:true일 때만 "Verify this
+// claim" 버튼을 노출(자동으로 /api/verify를 호출해 검증 쿼터를 소모하지 않음 — 데스크톱의
+// "Verify this" 제안 버튼과 동일한 원칙).
+async function mobileSubmitChat(text) {
+  var errEl = document.getElementById("mobile-verify-error");
+  if (errEl) errEl.classList.add("hidden");
+
+  if (typeof canChat === "function" && !canChat()) {
+    if (errEl) {
+      var signedIn = typeof currentUser !== "undefined" && !!currentUser;
+      errEl.textContent = signedIn
+        ? "Daily chat limit reached. Upgrade to Pro for more."
+        : "Daily chat limit reached. Sign in for a higher limit.";
+      errEl.classList.remove("hidden");
+    }
+    return;
+  }
+
+  var btn = document.getElementById("mobile-verify-btn");
+  if (btn) btn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/v4/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, history: [] }),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (typeof incrementChatUsage === "function") incrementChatUsage();
+
+    var box = document.getElementById("mobile-chat-reply");
+    var replyText = document.getElementById("mobile-chat-reply-text");
+    var verifyBtn = document.getElementById("mobile-chat-verify-btn");
+    if (replyText) replyText.textContent = data.reply || "...";
+    if (box) box.classList.remove("hidden");
+    if (verifyBtn) {
+      if (data.shouldVerify === true && data.extractedClaim) {
+        verifyBtn.classList.remove("hidden");
+        verifyBtn.onclick = function () {
+          _hideMobileChatReply();
+          mobileSubmitVerify(data.extractedClaim);
+        };
+      } else {
+        verifyBtn.classList.add("hidden");
+      }
+    }
+  } catch (e) {
+    console.warn("[mobile chat] failed:", e.message);
+    if (errEl) {
+      errEl.textContent = "Failed to reach the assistant. Please try again.";
+      errEl.classList.remove("hidden");
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// URL/명확한 검증 의도 — 곧바로 /api/verify. canVerify() 여기서 먼저 확인하는 이유는
+// triggerVerifyFromSuggestion() 자체의 한도초과 메시지(appendUsageLimitMessage)가 데스크톱의
+// #chat-log에 쓰여 모바일에선 보이지 않기 때문 — 실제 fetch/네트워크 에러는
+// showErrorInRightPanel()이 mobileShowResult()를 직접 호출해 dossier로 노출되므로 문제 없음.
 async function mobileSubmitVerify(claimText) {
   claimText = (claimText || "").trim();
   if (!claimText) return;
@@ -613,9 +697,9 @@ document.addEventListener("DOMContentLoaded", function () {
   var verifyBtn = document.getElementById("mobile-verify-btn");
   var verifyInput = document.getElementById("mobile-claim-input");
   if (verifyBtn && verifyInput) {
-    verifyBtn.addEventListener("click", function () { mobileSubmitVerify(verifyInput.value); verifyInput.value = ""; });
+    verifyBtn.addEventListener("click", function () { mobileSubmitInput(verifyInput.value); verifyInput.value = ""; });
     verifyInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { mobileSubmitVerify(verifyInput.value); verifyInput.value = ""; }
+      if (e.key === "Enter") { mobileSubmitInput(verifyInput.value); verifyInput.value = ""; }
     });
   }
 

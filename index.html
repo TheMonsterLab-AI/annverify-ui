@@ -361,6 +361,13 @@ tailwind.config = {
         <button id="mobile-verify-btn" class="absolute right-2 top-2 bottom-2 w-12 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors" aria-label="Verify"><span class="material-symbols-outlined">fact_check</span></button>
       </div>
       <p id="mobile-verify-error" class="hidden text-error font-body-sm text-body-sm mt-2 text-center"></p>
+      <!-- URL/명확한 검증 의도가 아닌 일반 대화 입력 시 /api/v4/chat 응답(reply, 필요하면
+           shouldVerify 제안 버튼)이 표시되는 자리 — 데스크톱 채팅 로그와 별개, 모바일엔
+           로그가 없어 최신 1턴만 보여줌 -->
+      <div id="mobile-chat-reply" class="hidden paper-card p-sm mt-2 text-body-sm text-on-surface">
+        <p id="mobile-chat-reply-text"></p>
+        <button id="mobile-chat-verify-btn" class="hidden mt-2 w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">Verify this claim</button>
+      </div>
     </div>
   </div>
 
