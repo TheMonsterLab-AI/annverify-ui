@@ -149,6 +149,22 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .rp-error{padding:20px;color:var(--err);font-size:16px;white-space:pre-line;line-height:1.6}
 .rp-error-en{display:inline-block;margin-top:4px;font-size:13px;color:var(--err);opacity:.75}
 
+/* §3/§9 메타 행, §5 레이어 카드, §7 주장 카드 — full report 섹션(§1-§11) 전용 */
+.rp-meta-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #F0EBE1;font-size:14px}
+.rp-meta-row:last-child{border-bottom:none}
+.rp-meta-k{color:var(--muted)}
+.rp-meta-v{color:var(--dark);font-weight:700;text-align:right}
+.rp-layer-card{border:1px solid #E8E0CF;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.rp-layer-card:last-child{margin-bottom:0}
+.rp-layer-head{display:flex;justify-content:space-between;align-items:center}
+.rp-layer-name{font-weight:700;font-size:15px;color:var(--dark)}
+.rp-layer-score{font-weight:700;color:var(--c);font-size:14px}
+.rp-layer-detail{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5}
+.rp-card-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.rp-claim-card{border:1px solid #E8E0CF;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.rp-claim-card:last-child{margin-bottom:0}
+.rp-claim-verdict{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5}
+
 /* 인장 — 우측 하단 워터마크 */
 .seal{position:absolute;bottom:var(--pad);right:var(--pad);display:flex;flex-direction:column;align-items:center;opacity:.15;pointer-events:none;user-select:none}
 .seal-box{width:56px;height:56px;border:3.5px solid var(--dark);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center}
