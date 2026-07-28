@@ -34,3 +34,17 @@ function escapeHtml(s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 }
+
+function relativeTime(ts) {
+  if (!ts) return "";
+  var diffS = Math.floor((Date.now() - ts) / 1000);
+  if (diffS < 5) return "just now";
+  if (diffS < 60) return diffS + "s ago";
+  var diffM = Math.floor(diffS / 60);
+  if (diffM < 60) return diffM + "m ago";
+  var diffH = Math.floor(diffM / 60);
+  if (diffH < 24) return diffH + "h ago";
+  var diffD = Math.floor(diffH / 24);
+  if (diffD < 30) return diffD + "d ago";
+  return new Date(ts).toLocaleDateString();
+}
