@@ -346,25 +346,36 @@ function _renderDesktopNewsWorldLike(containerId, items) {
     return;
   }
   var html = filtered.map(function (it) {
+    var thumbHtml = it.thumb ? '<img src="' + escapeHtml(it.thumb) + '" class="wnews-thumb" loading="lazy"/>' : "";
     return (
-      '<div class="news-card">' +
-        '<span class="news-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
-        '<div class="news-title">' + escapeHtml(it.topTitle) + '</div>' +
-        (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
-        '<div class="news-footer">' +
-          (it.topSource ? '<span class="news-score" style="color:var(--muted)">' + escapeHtml(it.topSource) + '</span>' : "") +
-          _newsDiscussBtnHtml() +
-          '<button class="news-discuss-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
+      '<div class="wnews-card">' +
+        thumbHtml +
+        '<div class="wnews-body">' +
+          '<div class="wnews-meta">' +
+            '<span class="wnews-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
+            (it.topSource ? '<span class="wnews-source">' + escapeHtml(it.topSource) + '</span>' : "") +
+          '</div>' +
+          '<div class="wnews-title">' + escapeHtml(it.topTitle) + '</div>' +
+          (it.topSnippet ? '<div class="wnews-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
+          '<div class="wnews-actions">' +
+            '<button class="wnews-discuss-btn">토론</button>' +
+            '<button class="wnews-factcheck-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );
   }).join("");
   var el = document.getElementById(containerId);
   el.innerHTML = html;
-  _wireNewsDiscussButtons(el);
+  el.querySelectorAll(".wnews-discuss-btn").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+    });
+  });
   // "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접 verify
   // 숏컷과 달리 여기도 그 원칙을 따름.
-  el.querySelectorAll("[data-url]").forEach(function (btn) {
+  el.querySelectorAll(".wnews-factcheck-btn[data-url]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
       var url = btn.getAttribute("data-url");

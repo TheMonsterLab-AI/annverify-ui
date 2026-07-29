@@ -953,7 +953,7 @@ function _worldNewsCardHtml(item) {
           '<span class="' + catClass + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps">' + escapeHtml(catLabel) + '</span>' +
           '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(item.topSource || item.topDomain || "") + '</span>' +
         '</div>' +
-        '<h3 class="font-headline-sm text-headline-sm mb-1 leading-tight">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
+        '<h3 class="mb-1 leading-tight" style="font-family:\'Source Serif 4\',serif;font-size:18px;font-weight:700;color:#1c1b1b">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
         (item.topSnippet ? '<p class="font-body-sm text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(item.topSnippet) + '</p>' : "") +
         '<div class="flex gap-2 mt-2">' +
           '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">토론</button>' +

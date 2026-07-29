@@ -320,7 +320,8 @@ tailwind.config = {
   </button>
 
   <!-- ── LEADERBOARD (leaderboard.html 목업) ── -->
-  <main class="mpage hidden pb-40" id="mpage-leaderboard">
+  <!-- 탭바(80px) + My Performance 바(~80px) + safe-area 확보. pb-40(160px)는 safe-area 미반영이라 교체. -->
+  <main class="mpage hidden" style="padding-bottom:calc(80px + 80px + env(safe-area-inset-bottom))" id="mpage-leaderboard">
     <section class="px-margin-mobile py-8 border-b border-outline-variant bg-surface-container-low">
       <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-2">Leaderboard</h2>
       <p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">Top verifiers ranked by ANN Points earned through accurate verification activity.</p>
@@ -391,8 +392,10 @@ tailwind.config = {
     </div>
   </main>
 
-  <!-- My Rank 스티키 바 — 로그인 시에만 표시(leaderboard 페이지에서만) -->
-  <div class="fixed bottom-20 left-0 w-full z-40 px-xs mb-2 hidden" id="mlb-myrank">
+  <!-- My Rank 스티키 바 — 로그인 시에만 표시(leaderboard 페이지에서만).
+       탭바 실측 높이는 h-20(80px, task 가정 64px는 실제와 다름 — index.html:421 확인).
+       safe-area-inset-bottom 있는 기기에서 탭바에 가려지는 문제 → 탭바 높이 위로 고정. -->
+  <div class="fixed left-0 w-full px-xs mb-2 hidden" style="bottom:calc(80px + env(safe-area-inset-bottom)); z-index:49" id="mlb-myrank">
     <div class="max-w-md mx-auto bg-primary-container text-on-primary-container editorial-border border-primary rounded-xl shadow-xl p-sm flex justify-between items-center">
       <div class="flex items-center gap-3">
         <div class="bg-surface rounded-full w-8 h-8 flex items-center justify-center"><span class="material-symbols-outlined text-primary text-sm">person</span></div>
