@@ -429,10 +429,78 @@ tailwind.config = {
       </button>
     </nav>
   </aside>
+
+  <!-- 토론 상세 — annverify.ai discuss.js의 _loadDiscussDetail/voteDiscuss/postCommunityComment를
+       Firestore 직접 호출로 포팅(worker에 상세/댓글/투표 엔드포인트 없음, 확인됨). Discussions
+       탭 카드 클릭으로만 진입 — 탭바에는 없는 drill-down 화면. -->
+  <div id="mdiscuss-detail" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mdd-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Discussion</h1>
+      <button id="mdd-share" class="p-2 -mr-2 rounded-full hover:bg-surface-container-high" aria-label="Share"><span class="material-symbols-outlined">share</span></button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mdd-body" style="padding-bottom:96px">
+      <div class="paper-card h-48 animate-pulse"></div>
+    </div>
+    <div class="shrink-0 bg-surface border-t border-outline-variant p-sm px-margin-mobile flex gap-2 items-center pb-safe">
+      <input id="mdd-comment-input" class="flex-1 h-11 px-4 bg-surface-container-lowest border border-outline-variant rounded-full text-body-md placeholder:text-on-surface-variant" placeholder="댓글을 입력하세요..." type="text" maxlength="500"/>
+      <button id="mdd-comment-send" class="w-11 h-11 shrink-0 bg-primary text-white rounded-full flex items-center justify-center" aria-label="Send"><span class="material-symbols-outlined text-[20px]">send</span></button>
+    </div>
+  </div>
+
+  <!-- 새 토론 작성 — annverify.ai submitDiscussCreate() 필드셋 포팅. 실제 앱은 항상 seed/직전
+       검증결과가 있어야만 작성 가능하지만(UX 제약), firestore.rules의 isQualityDiscussPost()는
+       title 15자 이상만으로도 통과시켜 클레임 연결을 선택사항으로 둠(스펙 그대로). -->
+  <div id="mdiscuss-create" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mdc-cancel" class="font-label-caps text-label-caps text-on-surface-variant px-2 py-1">취소</button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">새 토론</h1>
+      <button id="mdc-submit" class="font-label-caps text-label-caps text-white bg-primary rounded-full px-4 py-1.5" disabled>게시</button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md space-y-4" style="padding-bottom:32px">
+      <input id="mdc-title" class="w-full h-12 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant" placeholder="토론 제목을 입력하세요" type="text" maxlength="200"/>
+      <textarea id="mdc-content" class="w-full h-40 p-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant resize-none" placeholder="내용을 입력하세요 (20자 이상, 1000자 이하)"></textarea>
+      <p id="mdc-error" class="hidden text-error font-body-sm text-body-sm"></p>
+
+      <div>
+        <button id="mdc-claim-link-btn" class="w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">link</span>검증 결과 연결하기
+        </button>
+        <div id="mdc-claim-linked" class="hidden paper-card p-sm mt-2">
+          <div class="flex items-center justify-between gap-2">
+            <p class="font-body-sm font-bold flex-1" id="mdc-claim-linked-text"></p>
+            <button id="mdc-claim-unlink" class="p-1 text-on-surface-variant shrink-0" aria-label="Unlink"><span class="material-symbols-outlined text-[18px]">close</span></button>
+          </div>
+        </div>
+        <div id="mdc-claim-picker-list" class="hidden mt-2 space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div class="flex items-center justify-between paper-card p-sm">
+        <span class="font-body-sm text-on-surface">익명으로 게시</span>
+        <button id="mdc-anon-toggle" class="relative w-11 h-6 rounded-full bg-surface-container-high transition-colors shrink-0" data-on="false" aria-label="Post anonymously">
+          <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로그인 안내 모달 — 미로그인 상태로 투표/댓글/작성 시도 시 -->
+  <div id="mdiscuss-login-modal" class="hidden fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-margin-mobile">
+    <div class="paper-card p-md w-full max-w-xs text-center">
+      <p class="font-body-md text-on-surface mb-4">로그인이 필요합니다</p>
+      <div class="flex gap-2">
+        <button id="mdlm-cancel" class="flex-1 py-2 border border-outline-variant rounded-lg font-label-caps text-label-caps text-on-surface-variant">취소</button>
+        <button id="mdlm-signin" class="flex-1 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">로그인</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobile-toast" class="hidden fixed left-1/2 z-[99] bg-[#1c1b1b] text-white px-4 py-2.5 rounded-full font-body-sm text-body-sm shadow-lg max-w-[90%] text-center" style="bottom:calc(64px + env(safe-area-inset-bottom) + 16px);transform:translateX(-50%)"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="app/config.js"></script>
 <script src="app/usage.js"></script>
 <script src="app/auth.js"></script>
@@ -441,6 +509,7 @@ tailwind.config = {
 <script src="app/mobile.js"></script>
 <script src="app/pages.js"></script>
 <script src="app/mobile-app.js"></script>
+<script src="app/discuss-detail.js"></script>
 <script src="app/main.js"></script>
 </body>
 </html>
