@@ -29,6 +29,25 @@ function verdictInfo(verdictClass) {
   return VERDICT_MAP[verdictClass] || { label: verdictClass || "Unknown", tone: "mid" };
 }
 
+// Live Feed 전용 4색 verdict 팔레트 — task 스펙(VERIFIED/FALSE/UNVERIFIED/PARTIALLY_TRUE 4개
+// 대표값)을 VERDICT_MAP의 ok/mid/err 그룹핑과 같은 논리로 9개 verdict_class 전체에 매핑.
+// Discussions의 .pg-badge(3-tone)는 그대로 두고 이 팔레트는 Live Feed .lf-badge/.lf-bar에만 사용.
+var LIVEFEED_VERDICT_COLOR = {
+  VERIFIED:          "#1A6B4A",
+  LIKELY_TRUE:       "#1A6B4A",
+  PARTIALLY_TRUE:    "#755b00",
+  OUTDATED:          "#755b00",
+  OPINION:           "#755b00",
+  UNVERIFIED:        "#6f7a72",
+  CONTEXT_MISSING:   "#6f7a72",
+  MISLEADING:        "#ba1a1a",
+  FALSE:             "#ba1a1a",
+};
+
+function livefeedVerdictColor(verdictClass) {
+  return LIVEFEED_VERDICT_COLOR[verdictClass] || "#6f7a72";
+}
+
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
