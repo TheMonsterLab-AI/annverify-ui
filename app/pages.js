@@ -310,12 +310,20 @@ async function _loadDesktopNewsLocal() {
   }
 }
 
+// World News/로컬 뉴스가 동일 데이터를 보여주던 버그(#26) — worker global.js는 country
+// 쿼리가 없으면 CF-IPCountry 헤더로 국가를 정하고, 그것도 없으면 'US'로 떨어짐(코드 확인).
+// 이 앱 자체 요청도(그리고 실사용자 대다수도 한국 기반일 가능성이 높아) CF-IPCountry가 KR로
+// 잡혀 country 생략 호출이 country=KR 명시 호출과 완전히 같아짐 — curl로 실측 확인
+// (두 응답 모두 detectedCountry:"KR"). worker에 "글로벌 집계" 모드 자체가 없어(국가별 단일
+// 호출만 가능) World News를 KR이 아닌 다른 나라로 명시 고정하는 것 외엔 해결책이 없음.
+// GB로 고정 — 이 시점 기준 US/DE/FR은 ranking이 비어있어 제외, JP/GB/IN은 실데이터 있음
+// (실측), 그중 영어권이라 이 앱 UI 언어와도 맞는 GB 선택.
 async function _loadDesktopNewsWorld() {
   var containerId = "news-world-list";
   if (_desktopNewsCache.world) { _renderDesktopNewsWorldLike(containerId, _desktopNewsCache.world); return; }
   _pgSkeleton(containerId, 6);
   try {
-    var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
+    var res = await fetch(API_URL + "/api/v4/partner/global?country=GB&type=ranking");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
     var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
@@ -328,9 +336,15 @@ async function _loadDesktopNewsWorld() {
 }
 
 // World News/로컬 뉴스 둘 다 같은 /api/v4/partner/global 응답 모양이라 렌더러 공유.
+// 로컬 뉴스만 빈 결과일 때 "준비 중" 문구로 안내(스펙: 빈 데이터보다 정직한 안내가 낫다) —
+// 실측상 country=KR은 항상 데이터가 있었지만, 워커의 국가별 배치 작업이 어느 시점 못 돌았을
+// 가능성까지 대비한 방어적 문구.
 function _renderDesktopNewsWorldLike(containerId, items) {
   var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
-  if (!filtered.length) { _pgEmpty(containerId, "No news available"); return; }
+  if (!filtered.length) {
+    _pgEmpty(containerId, containerId === "news-local-list" ? "로컬 뉴스 준비 중입니다." : "No news available");
+    return;
+  }
   var html = filtered.map(function (it) {
     return (
       '<div class="news-card">' +

@@ -982,12 +982,20 @@ function _wireNewsCardActionButtons(el) {
   });
 }
 
+// World News/로컬 뉴스가 같은 데이터를 보여주던 버그(#26) 원인 — worker global.js의 country
+// 해석 로직(country 쿼리 없으면 CF-IPCountry 헤더 → 없으면 'US')이 이 앱 자체에서(그리고
+// 십중팔구 한국 기반 실사용자 트래픽에서도) 'KR'로 떨어져, country 생략 호출이 country=KR
+// 명시 호출과 완전히 동일해짐 — 실측 확인(curl, detectedCountry:"KR" 둘 다 동일). worker에
+// "world/글로벌 집계" 모드 자체가 없어(국가별 단일 호출만 지원, global.js 확인) 클라이언트
+// 쪽에서 World News를 KR이 아닌 다른 나라로 명시 고정하는 것 외엔 해결책이 없음 — GB로 고정
+// (실데이터 있는 것 확인됨: US/DE/FR은 이 시점 기준 ranking이 비어있어 후보에서 제외, JP/GB/IN
+// 은 실데이터 있음 — 영어권이라 이 앱의 영어 UI와도 맞는 GB를 선택).
 async function _loadMobileNewsWorld() {
   var el = document.getElementById("mnews-world-list");
   if (!el) return;
   if (_worldNewsCache) { _renderMobileWorldNews(); return; }
   try {
-    var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
+    var res = await fetch(API_URL + "/api/v4/partner/global?country=GB&type=ranking");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
     _worldNewsCache = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
@@ -1034,7 +1042,10 @@ function _renderMobileLocalNews() {
   var el = document.getElementById("mnews-local-list");
   if (!el || !_localNewsCache) return;
   var items = _localNewsCache.filter(function (it) { return it.topUrl && it.topTitle; });
-  if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No news available</p>'; return; }
+  // KR은 실측상 항상 데이터가 있었지만(curl 확인), 워커가 어느 시점에 특정 국가 배치 작업을
+  // 못 돌렸을 경우까지 대비 — 빈 데이터를 "일반 로딩 실패"처럼 보이게 하는 대신 정직하게
+  // "준비 중" 안내(빈 결과보다 낫다는 스펙 원칙).
+  if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">로컬 뉴스 준비 중입니다.</p>'; return; }
   el.innerHTML = items.map(_worldNewsCardHtml).join("");
   _wireNewsCardActionButtons(el);
 }
