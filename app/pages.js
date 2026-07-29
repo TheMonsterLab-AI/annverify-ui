@@ -48,13 +48,12 @@ function showAppPage(name) {
     loadLiveFeed();
     _livefeedTimer = setInterval(loadLiveFeed, LIVEFEED_REFRESH_MS);
   } else if (name === "news") {
-    loadDesktopNews(document.querySelector("#page-news .lb-tab.on").getAttribute("data-newstab"));
+    loadDesktopNews(document.querySelector("#page-news .news-tab.on").getAttribute("data-newstab"));
   } else if (name === "discussions") {
     loadDiscussions();
   } else if (name === "leaderboard") {
-    // #page-leaderboard로 한정 — News 페이지도 같은 .lb-tab/.lb-tabs 클래스를 재사용해서(둘 다
-    // 원래 리더보드 전용이던 pill-tab 스타일) 스코프 없는 querySelector는 News의 탭을 먼저
-    // 집을 수 있음(문서 순서상 News가 Leaderboard보다 앞에 있음) — data-period가 없어 버그.
+    // News는 이제 별도 .news-tab 클래스를 써서(app/style.css) .lb-tab과 완전히 분리됨 —
+    // 더 이상 셀렉터 충돌 위험이 없지만, #page-leaderboard로 스코프하는 습관은 유지.
     loadLeaderboard(document.querySelector("#page-leaderboard .lb-tab.on").getAttribute("data-period"));
   }
 }
@@ -366,13 +365,11 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
-  // News 페이지도 같은 .lb-tab pill 스타일을 재사용해서(data-period 대신 data-newstab을 씀)
-  // 두 셀렉터를 분리 — 안 그러면 News 탭 클릭이 loadLeaderboard(null)을 부르고, News 자체
-  // 전환은 안 일어남.
   document.querySelectorAll(".lb-tab[data-period]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
   });
-  document.querySelectorAll(".lb-tab[data-newstab]").forEach(function (tab) {
+  // News는 별도 .news-tab 클래스(app/style.css) — .lb-tab과 완전히 분리돼 있어 셀렉터 충돌 없음.
+  document.querySelectorAll(".news-tab[data-newstab]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadDesktopNews(tab.getAttribute("data-newstab")); });
   });
 
