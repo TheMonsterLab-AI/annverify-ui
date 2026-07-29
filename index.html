@@ -177,16 +177,18 @@ tailwind.config = {
       </div>
     </div>
 
-    <!-- NEWS FEED (모바일 News 탭과 동일 콘텐츠 — worker/routes/v4/news.js, global.js. 데스크톱
-         .pg-card/.pg-badge 시스템으로 재구현, 모바일의 Tailwind 카테고리 컬러 팔레트는
-         데스크톱 CSS 시스템과 달라 그대로 재사용 불가) -->
+    <!-- NEWS FEED (모바일 News 탭과 동일 콘텐츠/엔드포인트 — worker/routes/v4/news.js, global.js.
+         카드 디자인은 모바일 paper-card 톤에 맞춤(app/style.css .news-*), 로컬 뉴스는
+         country=KR 파라미터 재사용(전용 엔드포인트 없음, 모바일 작업에서 확인됨)) -->
     <div class="body page-container hidden" id="page-news">
       <div class="pg-scroll">
         <div class="lb-tabs">
           <button class="lb-tab on" id="news-tab-ai" data-newstab="ai">AI News</button>
+          <button class="lb-tab" id="news-tab-local" data-newstab="local">로컬 뉴스</button>
           <button class="lb-tab" id="news-tab-world" data-newstab="world">World News</button>
         </div>
         <div class="pg-list" id="news-ai-list"></div>
+        <div class="pg-list hidden" id="news-local-list"></div>
         <div class="pg-list hidden" id="news-world-list"></div>
       </div>
     </div>
@@ -445,7 +447,7 @@ tailwind.config = {
       </div>
     </div>
     <nav class="flex-1 flex flex-col py-2">
-      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" data-mgoto="leaderboard">
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
         <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md">Profile</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-settings">
@@ -460,6 +462,22 @@ tailwind.config = {
       </button>
     </nav>
   </aside>
+
+  <!-- 프로필 — 별도 Profile 페이지가 없어 햄버거 메뉴의 Profile이 Leaderboard(My Rank)로
+       리다이렉트되던 임시 조치를 대체. 실제 존재하는 GET /api/v4/points/me(이미 모바일 My
+       Rank 바에서 쓰던 Bearer-token 엔드포인트, annPoints/rank/history 반환)를 재사용 —
+       "Firestore users 컬렉션" 직접 읽기는 필드명/rules를 확인하지 못해 대신 이미 검증된
+       엔드포인트로 대체. 이름/이메일/가입일은 Firebase Auth currentUser에서(전부 실제 값). -->
+  <div id="mprofile-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mprofile-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Profile</h1>
+      <span class="w-10"></span>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mprofile-body">
+      <div class="paper-card h-32 animate-pulse"></div>
+    </div>
+  </div>
 
   <!-- 토론 상세 — annverify.ai discuss.js의 _loadDiscussDetail/voteDiscuss/postCommunityComment를
        Firestore 직접 호출로 포팅(worker에 상세/댓글/투표 엔드포인트 없음, 확인됨). Discussions

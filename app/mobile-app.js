@@ -325,20 +325,17 @@ async function _loadMobileMyRank() {
 // 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
 function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
 
-// setTimeout(100ms) — DOM 삽입 직후 곧바로 scrollIntoView를 호출하면 레이아웃이 아직
-// 확정 전이라 타겟이 화면 밖에 생성된 채로 남는 경우가 실측됨(레이아웃 안정화 대기 필요).
-// 매번 #mhome-chat-log의 실제 마지막 자식을 새로 조회 — mobileReplaceLoadingWithResult()가
-// 같은 wrapper의 innerHTML만 바꾸는 경우에도 항상 올바른 최신 요소를 잡음.
+// scrollIntoView({block:'end'})는 요소의 아래쪽 끝을 "뷰포트 하단"에 맞추는데, 그 뷰포트
+// 하단이 fixed 탭바+입력창에 가려진 영역이라는 걸 모름 — 실측 결과 말풍선이 그 뒤에 가려진
+// 채로 남는 경우가 있어(#mpage-home에 이미 pb-56로 여유 패딩을 둔 것과 별개로, scrollIntoView
+// 자체의 "뷰포트 하단 = 문서 하단"이라는 가정이 fixed 오버레이 앞에서 깨짐), 대신 항상 문서
+// 전체 스크롤 하단(document.body.scrollHeight)으로 이동 — pb-56 패딩이 이미 fixed 입력창
+// 높이만큼 여유를 확보해두고 있어 전체 바닥까지 스크롤하면 마지막 말풍선이 그 여유 공간
+// 위쪽에 위치해 fixed 오버레이에 가려지지 않음. setTimeout 150ms(100ms보다 여유 있게).
 function _mhomeScrollToLatest() {
   setTimeout(function () {
-    var log = document.getElementById("mhome-chat-log");
-    var lastMsg = log && log.lastElementChild;
-    if (lastMsg && lastMsg.scrollIntoView) {
-      lastMsg.scrollIntoView({ behavior: "smooth", block: "end" });
-    } else {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-    }
-  }, 100);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }, 150);
 }
 
 // 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
@@ -624,6 +621,81 @@ function mobileSubmitVerify(claimText) {
   return mobileTriggerVerify(claimText, { showUserBubble: true });
 }
 
+// ── Profile page ──────────────────────────────────────────────────────────
+// "Firestore users 컬렉션" 직접 조회는 필드명/보안규칙을 확인하지 못해(discuss-detail.js의
+// discussPosts처럼 검증된 스키마가 아님) 대신 이미 검증되고 실제 쓰이고 있는
+// GET /api/v4/points/me(모바일 My Rank 바, app/mobile-app.js _loadMobileMyRank 참고)를
+// 재사용 — annPoints/rank/history(최대 20건 활동 로그)는 전부 실제 서버 필드. 이름/이메일/
+// 가입일은 Firebase Auth currentUser에서(전부 실제 값, 서버 조회 불필요).
+// "검증 횟수"는 /me가 직접 주지 않음(worker 확인됨 — verifyCount는 leaderboard 로우에만
+// 있고 /me엔 없음) — 대신 history 배열 길이를 "최근 활동(최대 20건)"으로 정직하게 표기.
+function openMobileProfile() {
+  var overlay = document.getElementById("mprofile-page");
+  if (overlay) overlay.classList.remove("hidden");
+  _loadMobileProfile();
+}
+
+function closeMobileProfile() {
+  var overlay = document.getElementById("mprofile-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+async function _loadMobileProfile() {
+  var body = document.getElementById("mprofile-body");
+  if (!body || typeof currentUser === "undefined" || !currentUser) return;
+
+  var joinDate = (currentUser.metadata && currentUser.metadata.creationTime)
+    ? new Date(currentUser.metadata.creationTime).toLocaleDateString()
+    : "--";
+  body.innerHTML =
+    '<div class="paper-card p-md mb-md text-center">' +
+      '<div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-bold mx-auto mb-2">' +
+        escapeHtml((currentUser.displayName || "V").charAt(0).toUpperCase()) +
+      '</div>' +
+      '<p class="font-headline-sm text-headline-sm">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
+      '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+    '</div>' +
+    '<div class="grid grid-cols-2 gap-base mb-md">' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">AP Points</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-ap">--</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Rank</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-rank">--</div></div>' +
+    '</div>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2">Recent Activity</h3>' +
+    '<div id="mprofile-history"><div class="paper-card h-16 animate-pulse"></div></div>';
+
+  try {
+    var idToken = await getIdTokenOrNull();
+    if (!idToken) throw new Error("no id token");
+    var res = await fetch(API_URL + "/api/v4/points/me", { headers: { Authorization: "Bearer " + idToken } });
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    var apEl = document.getElementById("mprofile-ap");
+    var rankEl = document.getElementById("mprofile-rank");
+    if (apEl) apEl.textContent = data.annPoints || 0;
+    if (rankEl) rankEl.textContent = (data.rank != null) ? ("#" + data.rank) : "--";
+
+    var histEl = document.getElementById("mprofile-history");
+    if (!histEl) return;
+    var history = Array.isArray(data.history) ? data.history : [];
+    if (!history.length) {
+      histEl.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
+      return;
+    }
+    histEl.innerHTML = history.map(function (h) {
+      return '<div class="paper-card p-sm mb-2 flex items-center justify-between gap-2">' +
+          '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(h.action || "Activity") + '</p>' +
+          '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(h.timestamp)) + '</p></div>' +
+          '<span class="font-body-sm font-bold text-primary shrink-0">+' + (h.points || 0) + '</span>' +
+        '</div>';
+    }).join("");
+  } catch (e) {
+    console.warn("[mobile profile] failed:", e.message);
+    var histEl2 = document.getElementById("mprofile-history");
+    if (histEl2) histEl2.innerHTML = '<p class="text-error font-body-sm text-center py-md">Failed to load activity.</p>';
+  }
+}
+
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
 // news.html's actual mockup content was never attached to that task (only a prose
 // description) — built from that description, not a literal HTML transplant like the
@@ -713,12 +785,17 @@ function _wireMobileMenu() {
   if (menuBtn) menuBtn.addEventListener("click", openMobileMenu);
   if (backdrop) backdrop.addEventListener("click", closeMobileMenu);
 
-  // Profile 항목 — 별도 프로필 페이지가 없어(세션 내내 재확인됨), 유저 정보가 실제로
-  // 표시되는 Leaderboard(My Rank)로 이동. Settings/Help는 스펙에 동작이 명시되지 않아
-  // 드로어만 닫음(placeholder — 없는 기능을 만들어내지 않음).
-  document.querySelectorAll(".mmenu-item[data-mgoto]").forEach(function (btn) {
-    btn.addEventListener("click", function () { closeMobileMenu(); });
-  });
+  // Profile — 실제 Profile 페이지로 이동(이전엔 Leaderboard로 리다이렉트하던 임시 조치였음,
+  // openMobileProfile() 참고). Settings/Help는 스펙에 동작이 명시되지 않아 드로어만 닫음
+  // (placeholder — 없는 기능을 만들어내지 않음).
+  var profileBtn = document.getElementById("mmenu-profile");
+  if (profileBtn) {
+    profileBtn.addEventListener("click", function () {
+      closeMobileMenu();
+      if (typeof currentUser === "undefined" || !currentUser) { showMobileLoginModal(); return; }
+      openMobileProfile();
+    });
+  }
   var settingsBtn = document.getElementById("mmenu-settings");
   var helpBtn = document.getElementById("mmenu-help");
   if (settingsBtn) settingsBtn.addEventListener("click", closeMobileMenu);
@@ -963,6 +1040,9 @@ function _renderMobileLocalNews() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  var profileBackBtn = document.getElementById("mprofile-back");
+  if (profileBackBtn) profileBackBtn.addEventListener("click", closeMobileProfile);
+
   // 새 토론 시작 FAB — app/discuss-detail.js가 Firestore 직접 쓰기로 실제 작성 화면을 염
   // (openMobileDiscussCreate 자체가 미로그인 시 로그인 모달을 띄움)
   var discussFabBtn = document.getElementById("mdiscuss-fab");
