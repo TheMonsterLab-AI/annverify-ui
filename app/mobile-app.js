@@ -539,6 +539,7 @@ var WORLD_NEWS_CATEGORY_CLASSES = {
 var _mobileNewsTab = "ai";
 var _worldNewsCategory = "all";
 var _worldNewsCache = null;
+var _localNewsCache = null;
 
 function _wireMobileNews() {
   document.querySelectorAll(".mnews-pill[data-newstab]").forEach(function (btn) {
@@ -553,15 +554,25 @@ function _wireMobileNews() {
   });
 }
 
+function _showMobileNewsTabPanel(tab) {
+  document.getElementById("mnews-ai").classList.toggle("hidden", tab !== "ai");
+  document.getElementById("mnews-local").classList.toggle("hidden", tab !== "local");
+  document.getElementById("mnews-world").classList.toggle("hidden", tab !== "world");
+}
+
+function _loadMobileNewsTab(tab) {
+  if (tab === "ai") _loadMobileNewsAi();
+  else if (tab === "local") _loadMobileNewsLocal();
+  else _loadMobileNewsWorld();
+}
+
 function _switchMobileNewsTab(tab) {
   _mobileNewsTab = tab;
   document.querySelectorAll(".mnews-pill[data-newstab]").forEach(function (b) {
     b.classList.toggle("on", b.getAttribute("data-newstab") === tab);
   });
-  document.getElementById("mnews-ai").classList.toggle("hidden", tab !== "ai");
-  document.getElementById("mnews-world").classList.toggle("hidden", tab !== "world");
-  if (tab === "ai") _loadMobileNewsAi();
-  else _loadMobileNewsWorld();
+  _showMobileNewsTabPanel(tab);
+  _loadMobileNewsTab(tab);
 }
 
 function loadMobileNews() {
@@ -571,10 +582,8 @@ function loadMobileNews() {
   document.querySelectorAll(".mnews-filter-pill[data-category]").forEach(function (b) {
     b.classList.toggle("on", b.getAttribute("data-category") === _worldNewsCategory);
   });
-  document.getElementById("mnews-ai").classList.toggle("hidden", _mobileNewsTab !== "ai");
-  document.getElementById("mnews-world").classList.toggle("hidden", _mobileNewsTab !== "world");
-  if (_mobileNewsTab === "ai") _loadMobileNewsAi();
-  else _loadMobileNewsWorld();
+  _showMobileNewsTabPanel(_mobileNewsTab);
+  _loadMobileNewsTab(_mobileNewsTab);
 }
 
 function _aiNewsCardHtml(a, featured) {
@@ -585,15 +594,15 @@ function _aiNewsCardHtml(a, featured) {
   var thumbHtml = a.thumb
     ? '<img src="' + escapeHtml(a.thumb) + '" class="w-full h-40 object-cover" loading="lazy"/>'
     : '<div class="w-full h-40 bg-surface-container flex items-center justify-center text-on-surface-variant"><span class="material-symbols-outlined text-4xl">image</span></div>';
-  var titleClass = featured ? "font-headline-md text-headline-md" : "font-headline-sm text-headline-sm";
+  var titleClass = featured ? "font-headline-md text-[28px] leading-tight" : "font-headline-sm text-[18px] leading-snug";
   return '<div class="paper-card overflow-hidden">' +
       (featured ? thumbHtml : "") +
       '<div class="p-md">' +
         '<span class="' + badgeClass + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps">' + escapeHtml(topicCat.toUpperCase()) + '</span>' +
-        '<h3 class="' + titleClass + ' mt-2 mb-1 leading-tight">' + escapeHtml(a.title || "") + '</h3>' +
+        '<h3 class="' + titleClass + ' mt-2 mb-1">' + escapeHtml(a.title || "") + '</h3>' +
         '<p class="font-body-sm text-on-surface-variant" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(a.excerpt || "") + '</p>' +
         '<div class="flex items-center justify-between mt-3">' +
-          '<div class="flex items-center gap-2"><span class="font-body-sm font-bold text-primary">' + score + '%</span><span class="px-1.5 py-0.5 rounded bg-surface-container text-[10px] font-bold">' + escapeHtml(grade) + '</span></div>' +
+          '<div class="flex items-center gap-3"><span class="font-body-sm font-bold text-primary">' + score + '%</span><span class="px-2.5 py-1 rounded bg-surface-container text-[10px] font-bold">' + escapeHtml(grade) + '</span></div>' +
           '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">토론</button>' +
         '</div>' +
       '</div>' +
@@ -644,6 +653,25 @@ function _worldNewsCardHtml(item) {
     '</div>';
 }
 
+// World News/로컬 뉴스 카드의 "토론"/"새 팩트체크" 버튼 — 두 탭이 동일 카드 렌더러
+// (_worldNewsCardHtml)를 쓰므로 클릭 와이어링도 공유.
+function _wireNewsCardActionButtons(el) {
+  el.querySelectorAll(".mnews-discuss-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () { window.open("https://annverify.ai/#discuss", "_blank", "noopener"); });
+  });
+  el.querySelectorAll(".mnews-factcheck-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var url = btn.getAttribute("data-url");
+      if (!url) return;
+      _switchMobileNewsTab("ai"); // 뉴스 화면에서 나가되, 검증은 대시보드 dossier로 이어짐
+      showMobilePage("home");
+      var input = document.getElementById("mobile-claim-input");
+      if (input) input.value = url;
+      mobileSubmitVerify(url);
+    });
+  });
+}
+
 async function _loadMobileNewsWorld() {
   var el = document.getElementById("mnews-world-list");
   if (!el) return;
@@ -668,20 +696,37 @@ function _renderMobileWorldNews() {
   if (_worldNewsCategory !== "all") items = items.filter(function (it) { return it.category === _worldNewsCategory; });
   if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No news available</p>'; return; }
   el.innerHTML = items.map(_worldNewsCardHtml).join("");
-  el.querySelectorAll(".mnews-discuss-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () { window.open("https://annverify.ai/#discuss", "_blank", "noopener"); });
-  });
-  el.querySelectorAll(".mnews-factcheck-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var url = btn.getAttribute("data-url");
-      if (!url) return;
-      _switchMobileNewsTab("ai"); // 뉴스 화면에서 나가되, 검증은 대시보드 dossier로 이어짐
-      showMobilePage("home");
-      var input = document.getElementById("mobile-claim-input");
-      if (input) input.value = url;
-      mobileSubmitVerify(url);
-    });
-  });
+  _wireNewsCardActionButtons(el);
+}
+
+// 로컬 뉴스 — annverify.ai worker/routes/에 전용 로컬뉴스 엔드포인트 없음(확인됨). 같은
+// /api/v4/partner/global을 country=KR로 호출 — 실제로는 한국 Google Trends 기반 트렌드
+// 토픽을 반환(global.js의 runGlobalCountryUpdate → fetchGoogleTrends('KR')). World News와
+// 동일한 카드 렌더러(_worldNewsCardHtml) 재사용, 필터 pill은 스펙에 없어 생략.
+async function _loadMobileNewsLocal() {
+  var el = document.getElementById("mnews-local-list");
+  if (!el) return;
+  if (_localNewsCache) { _renderMobileLocalNews(); return; }
+  try {
+    var res = await fetch(API_URL + "/api/v4/partner/global?country=KR&type=ranking");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    _localNewsCache = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
+    _renderMobileLocalNews();
+  } catch (e) {
+    console.warn("[mobile news:local] failed:", e.message);
+    el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
+    el.onclick = function () { el.onclick = null; _localNewsCache = null; _loadMobileNewsLocal(); };
+  }
+}
+
+function _renderMobileLocalNews() {
+  var el = document.getElementById("mnews-local-list");
+  if (!el || !_localNewsCache) return;
+  var items = _localNewsCache.filter(function (it) { return it.topUrl && it.topTitle; });
+  if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No news available</p>'; return; }
+  el.innerHTML = items.map(_worldNewsCardHtml).join("");
+  _wireNewsCardActionButtons(el);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
