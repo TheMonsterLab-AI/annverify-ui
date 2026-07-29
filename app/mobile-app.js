@@ -23,10 +23,8 @@
 //     impression field exists on discussPosts today (checked worker/routes/v4/discuss.js), so
 //     it's rendered only when `viewCount` is actually present on the item (forward-compatible,
 //     not fabricated) — currently always absent, so it never renders.
-//   - Discussions mockup has a floating "+" (add_comment) FAB for starting a new thread — kept
-//     visually (#mdiscuss-fab), but there's no thread-creation endpoint and this app has no
-//     Firestore write path (auth-only, per app/auth.js), so it opens annverify.ai's general
-//     discuss list instead of a fabricated "new thread" flow.
+//   - Discussions mockup's floating "+" (add_comment) FAB now opens the real create-discussion
+//     screen (app/discuss-detail.js, Firestore direct writes, same architecture as annverify.ai).
 
 var MOBILE_LIVE_REFRESH_MS = 30000;
 var _mobileLiveTimer = null;
@@ -192,7 +190,7 @@ async function loadMobileDiscussions() {
       var viewCountHtml = (typeof it.viewCount === "number")
         ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
         : '';
-      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden">' +
+      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
           '<div class="p-md flex gap-4">' +
             '<div class="flex flex-col items-center gap-1"><span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span></div>' +
             '<div class="flex-1">' +
@@ -206,6 +204,11 @@ async function loadMobileDiscussions() {
           '</div>' +
         '</div>';
     }).join("");
+    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        if (typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
+      });
+    });
   } catch (e) {
     console.warn("[mobile discussions] failed:", e.message);
     el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
@@ -730,12 +733,12 @@ function _renderMobileLocalNews() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // 새 토론 시작 FAB — annverify-ui엔 Firestore 쓰기 로직이 없고 worker에도 생성
-  // 엔드포인트가 없어(확인됨), 실제 동작 가능한 유일한 대안인 일반 토론 목록으로 이동
+  // 새 토론 시작 FAB — app/discuss-detail.js가 Firestore 직접 쓰기로 실제 작성 화면을 염
+  // (openMobileDiscussCreate 자체가 미로그인 시 로그인 모달을 띄움)
   var discussFabBtn = document.getElementById("mdiscuss-fab");
   if (discussFabBtn) {
     discussFabBtn.addEventListener("click", function () {
-      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+      if (typeof openMobileDiscussCreate === "function") openMobileDiscussCreate();
     });
   }
 
