@@ -16,7 +16,7 @@ var _lbCache = { alltime: null, weekly: null };
 
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
-  ["dashboard", "livefeed", "news", "discussions", "leaderboard"].forEach(function (p) {
+  ["dashboard", "livefeed", "trends", "news", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
   });
@@ -37,6 +37,9 @@ function showAppPage(name) {
   var titles = {
     dashboard:    ["Intelligence Dashboard", "Quick verification · ANN 7-Layer Engine"],
     livefeed:     ["Live Feed", "Recent public verification activity"],
+    // task 스펙은 "last 24h"이지만 실제 /api/v4/trends/claims 집계 윈도우는 7일
+    // (worker/routes/v4/trends.js WINDOW_MS 확인) — 실제와 다른 문구를 걸 수 없어 정정.
+    trends:       ["Trending Topics", "Most verified claims in the last 7 days"],
     news:         ["News Feed", "AI News · World News"],
     discussions:  ["Discussions", "Top discussion threads"],
     leaderboard:  ["Leaderboard", "Top verifiers by ANN Points"],
@@ -47,6 +50,8 @@ function showAppPage(name) {
   if (name === "livefeed") {
     loadLiveFeed();
     _livefeedTimer = setInterval(loadLiveFeed, LIVEFEED_REFRESH_MS);
+  } else if (name === "trends") {
+    loadDesktopTrends();
   } else if (name === "news") {
     loadDesktopNews(document.querySelector("#page-news .news-tab.on").getAttribute("data-newstab"));
   } else if (name === "discussions") {
@@ -180,6 +185,62 @@ async function loadDiscussions() {
     console.warn("[discussions] load failed:", e.message);
     _pgError(containerId, loadDiscussions);
   }
+}
+
+// ── Trends (worker/routes/v4/trends.js — live_activity 최근 7일 claimPreview 단어 빈도
+// 상위 8개, KV 1시간 캐시). 응답은 { keywords: [{word, count}], generatedAt } — verdict별
+// 분포는 API에 없음(단어 빈도 집계만, 검증별 verdict와 연결되지 않음). task 스펙의 3색
+// VERIFIED/FALSE/UNVERIFIED 분포바는 실제 데이터가 없어 만들 수 없어, 대신 최다빈도(top word)
+// 대비 상대 빈도를 단일색(#005235) 바로 표시 — 없는 verdict 데이터를 지어내지 않기 위함.
+async function loadDesktopTrends() {
+  var containerId = "trends-list";
+  _pgSkeleton(containerId, 3);
+  try {
+    var res = await fetch(API_URL + "/api/v4/trends/claims");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var keywords = Array.isArray(data.keywords) ? data.keywords : [];
+    _renderTrendsList(containerId, keywords, true);
+  } catch (e) {
+    console.warn("[trends] load failed:", e.message);
+    _pgError(containerId, loadDesktopTrends);
+  }
+}
+
+function _trendCardHtml(kw, i, maxCount) {
+  var pct = maxCount > 0 ? Math.round((kw.count / maxCount) * 100) : 0;
+  return (
+    '<div class="trend-card" data-word="' + escapeHtml(kw.word) + '">' +
+      '<span class="trend-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
+      '<div class="trend-body">' +
+        '<div class="trend-word">' + escapeHtml(kw.word) + '</div>' +
+        '<div class="trend-count">' + kw.count + ' verifications</div>' +
+        '<div class="trend-bar-track"><div class="trend-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+// containerId 재사용(데스크톱 페이지 목록 + 모바일 홈 미리보기 3개 둘 다) — limit로 개수만 제어.
+function _renderTrendsList(containerId, keywords, isDesktop, limit) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!keywords.length) { _pgEmpty(containerId, "트렌드 데이터가 없습니다."); return; }
+  var items = limit ? keywords.slice(0, limit) : keywords;
+  var maxCount = keywords.reduce(function (m, k) { return Math.max(m, k.count || 0); }, 0);
+  el.innerHTML = items.map(function (kw, i) { return _trendCardHtml(kw, i, maxCount); }).join("");
+  el.querySelectorAll(".trend-card[data-word]").forEach(function (card) {
+    card.addEventListener("click", function () {
+      var word = card.getAttribute("data-word");
+      if (!word) return;
+      if (isDesktop) {
+        showAppPage("dashboard");
+        if (typeof submitChatMessage === "function") submitChatMessage(word);
+      } else if (typeof _fillMobileClaimInput === "function") {
+        _fillMobileClaimInput(word);
+      }
+    });
+  });
 }
 
 // ── Leaderboard ──────────────────────────────────────────────────────────
