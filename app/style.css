@@ -274,6 +274,15 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .news-tab{padding:10px 20px;min-height:44px;background:transparent;border:1px solid #D4C9B0;border-radius:9999px;color:#3f4943;font-weight:500;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
 .news-tab.on{background:#005235;color:#fff;border-color:#005235}
 
+/* World Feed 국가 필터 — 가로 스크롤, no-scrollbar. task 스펙의 Tailwind 토큰명(bg-primary-
+   container/text-on-primary-container)을 데스크톱 plain CSS로 값 변환(#1a6b4a/#9be9bf,
+   tailwind.config 참고 — 데스크톱은 Tailwind가 아니라 app/style.css 직접 사용이라 클래스명
+   그대로는 못 씀). */
+.wf-pills{display:flex;gap:8px;max-width:860px;margin:0 auto 24px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.wf-pills::-webkit-scrollbar{display:none}
+.wf-pill{flex-shrink:0;padding:8px 18px;background:transparent;border:1px solid #D4C9B0;border-radius:9999px;color:#3f4943;font-weight:500;font-size:14px;cursor:pointer;font-family:'Libre Franklin',sans-serif;white-space:nowrap}
+.wf-pill.on{background:#1a6b4a;color:#9be9bf;border-color:#1a6b4a}
+
 /* Leaderboard */
 .lb-tabs{display:flex;max-width:860px;margin:0 auto 16px}
 .lb-tab{padding:8px 18px;background:transparent;border:1px solid #E8E0CF;color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
