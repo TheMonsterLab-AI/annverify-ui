@@ -134,6 +134,58 @@ function _fillMobileClaimInput(word) {
   if (input) { input.value = word; input.focus(); }
 }
 
+// ── World Feed — 국가 필터(WORLD_FEED_COUNTRIES는 app/pages.js 정의, 데스크톱과 공유).
+// "전체"는 6개국 병렬 fetch 병합(진짜 전체집계 API가 없어 정직하게 구현, 데스크톱과 동일 방식).
+var _mWorldFeedCache = {};
+
+function openMobileWorldFeed() {
+  var overlay = document.getElementById("mworldfeed-page");
+  if (overlay) overlay.classList.remove("hidden");
+  loadMobileWorldFeed("all");
+}
+
+function closeMobileWorldFeed() {
+  var overlay = document.getElementById("mworldfeed-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+async function loadMobileWorldFeed(countryId) {
+  countryId = countryId || "all";
+  document.querySelectorAll("#mwf-pills .mnews-pill[data-country]").forEach(function (p) {
+    p.classList.toggle("on", p.getAttribute("data-country") === countryId);
+  });
+  var el = document.getElementById("mworldfeed-list");
+  if (!el) return;
+  if (_mWorldFeedCache[countryId]) { _renderMobileWorldFeed(_mWorldFeedCache[countryId]); return; }
+  el.innerHTML = '<div class="paper-card h-40 animate-pulse"></div><div class="paper-card h-32 animate-pulse"></div>';
+
+  try {
+    var items;
+    if (countryId === "all") {
+      var realCountries = WORLD_FEED_COUNTRIES.filter(function (c) { return c.id !== "all"; });
+      var results = await Promise.all(realCountries.map(function (c) { return _fetchWorldFeedCountry(c.id, c.label); }));
+      items = [].concat.apply([], results);
+    } else {
+      items = await _fetchWorldFeedCountry(countryId, null);
+    }
+    _mWorldFeedCache[countryId] = items;
+    _renderMobileWorldFeed(items);
+  } catch (e) {
+    console.warn("[mobile world feed] failed:", e.message);
+    el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
+    el.onclick = function () { el.onclick = null; loadMobileWorldFeed(countryId); };
+  }
+}
+
+function _renderMobileWorldFeed(items) {
+  var el = document.getElementById("mworldfeed-list");
+  if (!el) return;
+  var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
+  if (!filtered.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">해당 국가의 뉴스가 없습니다.</p>'; return; }
+  el.innerHTML = filtered.map(_worldNewsCardHtml).join("");
+  _wireNewsCardActionButtons(el);
+}
+
 async function _loadMobileHomeStats() {
   var el = document.getElementById("mhome-stat-verifications");
   if (!el) return;
@@ -997,17 +1049,20 @@ async function _loadMobileNewsAi() {
   }
 }
 
+// item._countryLabel — World Feed의 "전체" 필터에서만 설정(여러 국가를 합쳐 보여줄 때 출처
+// 앞에 국가명을 붙여 구분, app/mobile-app.js loadMobileWorldFeed 참고). News 탭에서는 항상 미설정.
 function _worldNewsCardHtml(item) {
   var cat = item.category || "social";
   var catLabel = WORLD_NEWS_CATEGORY_LABEL[cat] || cat;
   var catClass = WORLD_NEWS_CATEGORY_CLASSES[cat] || WORLD_NEWS_CATEGORY_CLASSES.social;
   var thumbHtml = item.thumb ? '<img src="' + escapeHtml(item.thumb) + '" class="w-full h-32 object-cover" loading="lazy"/>' : "";
+  var sourceText = (item._countryLabel ? item._countryLabel + " · " : "") + (item.topSource || item.topDomain || "");
   return '<div class="paper-card overflow-hidden">' +
       thumbHtml +
       '<div class="p-md">' +
         '<div class="flex items-center gap-2 mb-1">' +
           '<span class="' + catClass + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps">' + escapeHtml(catLabel) + '</span>' +
-          '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(item.topSource || item.topDomain || "") + '</span>' +
+          '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(sourceText) + '</span>' +
         '</div>' +
         '<h3 class="mb-1 leading-tight" style="font-family:\'Source Serif 4\',serif;font-size:18px;font-weight:700;color:#1c1b1b">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
         (item.topSnippet ? '<p class="font-body-sm text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(item.topSnippet) + '</p>' : "") +
@@ -1114,6 +1169,19 @@ document.addEventListener("DOMContentLoaded", function () {
   if (trendsViewAllBtn) trendsViewAllBtn.addEventListener("click", openMobileTrends);
   var trendsBackBtn = document.getElementById("mtrends-back");
   if (trendsBackBtn) trendsBackBtn.addEventListener("click", closeMobileTrends);
+
+  var worldFeedMenuBtn = document.getElementById("mmenu-worldfeed");
+  if (worldFeedMenuBtn) {
+    worldFeedMenuBtn.addEventListener("click", function () {
+      closeMobileMenu();
+      openMobileWorldFeed();
+    });
+  }
+  var worldFeedBackBtn = document.getElementById("mwf-back");
+  if (worldFeedBackBtn) worldFeedBackBtn.addEventListener("click", closeMobileWorldFeed);
+  document.querySelectorAll("#mwf-pills .mnews-pill[data-country]").forEach(function (pill) {
+    pill.addEventListener("click", function () { loadMobileWorldFeed(pill.getAttribute("data-country")); });
+  });
 
   // 새 토론 시작 FAB — app/discuss-detail.js가 Firestore 직접 쓰기로 실제 작성 화면을 염
   // (openMobileDiscussCreate 자체가 미로그인 시 로그인 모달을 띄움)

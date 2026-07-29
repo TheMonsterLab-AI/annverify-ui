@@ -16,7 +16,7 @@ var _lbCache = { alltime: null, weekly: null };
 
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
-  ["dashboard", "livefeed", "trends", "news", "discussions", "leaderboard"].forEach(function (p) {
+  ["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
   });
@@ -41,6 +41,7 @@ function showAppPage(name) {
     // (worker/routes/v4/trends.js WINDOW_MS 확인) — 실제와 다른 문구를 걸 수 없어 정정.
     trends:       ["Trending Topics", "Most verified claims in the last 7 days"],
     news:         ["News Feed", "AI News · World News"],
+    worldfeed:    ["World Feed", "Global news by region"],
     discussions:  ["Discussions", "Top discussion threads"],
     leaderboard:  ["Leaderboard", "Top verifiers by ANN Points"],
   };
@@ -54,6 +55,9 @@ function showAppPage(name) {
     loadDesktopTrends();
   } else if (name === "news") {
     loadDesktopNews(document.querySelector("#page-news .news-tab.on").getAttribute("data-newstab"));
+  } else if (name === "worldfeed") {
+    var onPill = document.querySelector("#page-worldfeed .wf-pill.on");
+    loadWorldFeed(onPill ? onPill.getAttribute("data-country") : "all");
   } else if (name === "discussions") {
     loadDiscussions();
   } else if (name === "leaderboard") {
@@ -425,18 +429,20 @@ async function _loadDesktopNewsWorld() {
   }
 }
 
-// World News/로컬 뉴스 둘 다 같은 /api/v4/partner/global 응답 모양이라 렌더러 공유.
-// 로컬 뉴스만 빈 결과일 때 "준비 중" 문구로 안내(스펙: 빈 데이터보다 정직한 안내가 낫다) —
-// 실측상 country=KR은 항상 데이터가 있었지만, 워커의 국가별 배치 작업이 어느 시점 못 돌았을
-// 가능성까지 대비한 방어적 문구.
-function _renderDesktopNewsWorldLike(containerId, items) {
+// World News/로컬 뉴스/World Feed 전부 같은 /api/v4/partner/global 응답 모양이라 렌더러 공유.
+// emptyMessage 미지정 시 기존 동작(News Feed 탭들) 그대로 유지 — World Feed(app/pages.js
+// loadWorldFeed)는 "해당 국가의 뉴스가 없습니다." 전용 문구를 넘김.
+// it._countryLabel이 있으면(World Feed "전체" 필터 — 여러 국가를 합쳐 보여줄 때만 설정)
+// 출처 앞에 국가명을 붙여 어느 나라 뉴스인지 표시 — 카드 컴포넌트 자체는 그대로 재사용.
+function _renderDesktopNewsWorldLike(containerId, items, emptyMessage) {
   var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
   if (!filtered.length) {
-    _pgEmpty(containerId, containerId === "news-local-list" ? "로컬 뉴스 준비 중입니다." : "No news available");
+    _pgEmpty(containerId, emptyMessage || (containerId === "news-local-list" ? "로컬 뉴스 준비 중입니다." : "No news available"));
     return;
   }
   var html = filtered.map(function (it) {
     var thumbHtml = it.thumb ? '<img src="' + escapeHtml(it.thumb) + '" class="news-thumb" loading="lazy"/>' : "";
+    var sourceText = (it._countryLabel ? it._countryLabel + " · " : "") + (it.topSource || "");
     return (
       '<div class="news-card">' +
         thumbHtml +
@@ -444,7 +450,7 @@ function _renderDesktopNewsWorldLike(containerId, items) {
           '<span class="news-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
           '<div class="news-title">' + escapeHtml(it.topTitle) + '</div>' +
           (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
-          (it.topSource ? '<div class="news-source-row"><span class="news-source">' + escapeHtml(it.topSource) + '</span></div>' : "") +
+          (sourceText ? '<div class="news-source-row"><span class="news-source">' + escapeHtml(sourceText) + '</span></div>' : "") +
           '<div class="news-actions">' +
             '<button class="news-discuss-btn">토론</button>' +
             '<button class="news-factcheck-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
@@ -474,6 +480,62 @@ function _renderDesktopNewsWorldLike(containerId, items) {
   });
 }
 
+// ── World Feed (worker/routes/v4/global.js SUPPORTED_COUNTRIES 확인 결과) ──────────────
+// task 요청 국가 중 "중국(CN)"은 55개 지원 국가 목록에 없음 — 실측(curl country=CN)으로도
+// 서버가 detectedCountry(KR)로 조용히 폴백하는 것 확인, 지어내지 않고 필터에서 제외.
+// "전체" 필터: API에 진짜 "전체 국가 집계" 모드가 없음(country 파라미터 필수, 단일국가만
+// 반환 — 이전 World News 버그 조사에서 이미 확인) — 6개국을 병렬로 fetch해서 합치는 방식으로
+// 정직하게 구현(하나를 "전체"라고 속이지 않음). 카드에 국가명을 붙여 출처 구분.
+var WORLD_FEED_COUNTRIES = [
+  { id: "all", label: "전체" },
+  { id: "US", label: "미국" },
+  { id: "GB", label: "영국" },
+  { id: "JP", label: "일본" },
+  { id: "IN", label: "인도" },
+  { id: "FR", label: "프랑스" },
+  { id: "DE", label: "독일" },
+];
+var _worldFeedCache = {};
+
+async function _fetchWorldFeedCountry(id, label) {
+  try {
+    var res = await fetch(API_URL + "/api/v4/partner/global?country=" + id + "&type=ranking");
+    if (!res.ok) return [];
+    var data = await res.json();
+    var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
+    if (label) items.forEach(function (it) { it._countryLabel = label; });
+    return items;
+  } catch (e) {
+    return [];
+  }
+}
+
+async function loadWorldFeed(countryId) {
+  countryId = countryId || "all";
+  document.querySelectorAll(".wf-pill[data-country]").forEach(function (p) {
+    p.classList.toggle("on", p.getAttribute("data-country") === countryId);
+  });
+  var containerId = "world-feed-list";
+  if (_worldFeedCache[countryId]) { _renderDesktopNewsWorldLike(containerId, _worldFeedCache[countryId], "해당 국가의 뉴스가 없습니다."); return; }
+  _pgSkeleton(containerId, 3);
+
+  try {
+    var items;
+    if (countryId === "all") {
+      var realCountries = WORLD_FEED_COUNTRIES.filter(function (c) { return c.id !== "all"; });
+      var results = await Promise.all(realCountries.map(function (c) { return _fetchWorldFeedCountry(c.id, c.label); }));
+      items = [].concat.apply([], results);
+    } else {
+      items = await _fetchWorldFeedCountry(countryId, null);
+    }
+    _worldFeedCache[countryId] = items;
+    _renderDesktopNewsWorldLike(containerId, items, "해당 국가의 뉴스가 없습니다.");
+  } catch (e) {
+    console.warn("[world feed] load failed:", e.message);
+    _pgError(containerId, function () { loadWorldFeed(countryId); });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
@@ -484,6 +546,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // News는 별도 .news-tab 클래스(app/style.css) — .lb-tab과 완전히 분리돼 있어 셀렉터 충돌 없음.
   document.querySelectorAll(".news-tab[data-newstab]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadDesktopNews(tab.getAttribute("data-newstab")); });
+  });
+  document.querySelectorAll(".wf-pill[data-country]").forEach(function (pill) {
+    pill.addEventListener("click", function () { loadWorldFeed(pill.getAttribute("data-country")); });
   });
 
   // Profile 탭 — 별도 페이지 없음(스펙: "로그인/로그아웃"만). 로그인 상태면 로그아웃,

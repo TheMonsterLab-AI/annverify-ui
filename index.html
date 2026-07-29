@@ -66,6 +66,8 @@ tailwind.config = {
 /* News 카드 "토론"/"새 팩트체크" 버튼 — 인라인 Tailwind 유틸(py-2 등, font-label-caps=9px)이
    너무 작아서(터치 타겟 44px 미달) #mobile-app 프리픽스로 우선순위를 올려 덮어씀. */
 #mobile-app .mnews-discuss-btn, #mobile-app .mnews-factcheck-btn { font-size: 15px; padding: 12px 20px; min-height: 44px; }
+#mwf-pills::-webkit-scrollbar { display: none; }
+#mwf-pills .mnews-pill { flex-shrink: 0; white-space: nowrap; }
 #mobile-app .mmenu-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 8px; border-radius: 8px; background: transparent; border: none; cursor: pointer; }
 #mobile-app .mmenu-item:hover { background-color: #EDE7D9; }
 #mmenu-drawer { transition: transform 0.2s ease; }
@@ -107,6 +109,9 @@ tailwind.config = {
     </div>
     <div class="ni" data-page="news">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a2 2 0 012 2v13a2 2 0 01-2 2H4z"/><path d="M18 8H4M18 8v11"/><path d="M8 4v4"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg>News Feed
+    </div>
+    <div class="ni" data-page="worldfeed">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a15 15 0 000 18a15 15 0 000-18"/></svg>World Feed
     </div>
     <div class="ni" data-page="discussions">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Discussions<span class="nb g">Hot</span>
@@ -217,6 +222,24 @@ tailwind.config = {
         <div class="pg-list" id="news-ai-list"></div>
         <div class="pg-list hidden" id="news-local-list"></div>
         <div class="pg-list hidden" id="news-world-list"></div>
+      </div>
+    </div>
+
+    <!-- WORLD FEED (국가별 필터 — worker/routes/v4/global.js SUPPORTED_COUNTRIES 55개국 중
+         task 요청 국가에서 "중국(CN)"만 미지원이라 제외, 확인됨. "전체"는 API에 진짜 전체집계
+         모드가 없어 6개국 병렬 fetch 병합으로 구현(app/pages.js loadWorldFeed 주석 참고)) -->
+    <div class="body page-container hidden" id="page-worldfeed">
+      <div class="pg-scroll">
+        <div class="wf-pills">
+          <button class="wf-pill on" data-country="all">전체</button>
+          <button class="wf-pill" data-country="US">미국</button>
+          <button class="wf-pill" data-country="GB">영국</button>
+          <button class="wf-pill" data-country="JP">일본</button>
+          <button class="wf-pill" data-country="IN">인도</button>
+          <button class="wf-pill" data-country="FR">프랑스</button>
+          <button class="wf-pill" data-country="DE">독일</button>
+        </div>
+        <div class="pg-list" id="world-feed-list"></div>
       </div>
     </div>
 
@@ -490,6 +513,9 @@ tailwind.config = {
       </div>
     </div>
     <nav class="flex-1 flex flex-col py-2">
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-worldfeed">
+        <span class="material-symbols-outlined">language</span><span class="font-body-md text-body-md">World Feed</span>
+      </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
         <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md">Profile</span>
       </button>
@@ -534,6 +560,30 @@ tailwind.config = {
       <div class="paper-card h-20 animate-pulse"></div>
       <div class="paper-card h-20 animate-pulse"></div>
       <div class="paper-card h-20 animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- World Feed — 햄버거 메뉴로만 진입, 탭바에는 없는 drill-down 화면(Trends와 동일 패턴).
+       국가 필터/카드는 데스크톱 World Feed와 동일 데이터·문구(app/pages.js WORLD_FEED_COUNTRIES
+       참고 — 중국 미지원, "전체"는 6개국 병렬 fetch 병합). -->
+  <div id="mworldfeed-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mwf-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">World Feed</h1>
+      <div class="w-9"></div>
+    </header>
+    <div class="shrink-0 px-margin-mobile pt-sm flex gap-2 overflow-x-auto" id="mwf-pills" style="scrollbar-width:none">
+      <button class="mnews-pill on" data-country="all">전체</button>
+      <button class="mnews-pill" data-country="US">미국</button>
+      <button class="mnews-pill" data-country="GB">영국</button>
+      <button class="mnews-pill" data-country="JP">일본</button>
+      <button class="mnews-pill" data-country="IN">인도</button>
+      <button class="mnews-pill" data-country="FR">프랑스</button>
+      <button class="mnews-pill" data-country="DE">독일</button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md space-y-4" id="mworldfeed-list" style="padding-bottom:32px">
+      <div class="paper-card h-40 animate-pulse"></div>
+      <div class="paper-card h-32 animate-pulse"></div>
     </div>
   </div>
 
