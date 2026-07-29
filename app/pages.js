@@ -394,7 +394,12 @@ function _renderDesktopNewsWorldLike(containerId, items) {
   }).join("");
   var el = document.getElementById(containerId);
   el.innerHTML = html;
-  _wireNewsDiscussButtons(el);
+  el.querySelectorAll(".news-discuss-btn").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+    });
+  });
   // "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접 verify
   // 숏컷과 달리 여기도 그 원칙을 따름.
   el.querySelectorAll(".news-factcheck-btn[data-url]").forEach(function (btn) {
