@@ -40,7 +40,8 @@ tailwind.config = {
 #mobile-app .sidebar-tone { background-color: #EDE7D9; }
 #mobile-app .bg-paper { background-color: #FDFAF5; }
 #mobile-app .border-brand { border-color: #D4C9B0; }
-#mobile-app .verdict-line { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+#mobile-app .verdict-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+#mobile-app #mdiscuss-fab { bottom: calc(64px + env(safe-area-inset-bottom) + 24px); }
 #mobile-app .medal-gold { color: #D4AF37; }
 #mobile-app .medal-silver { color: #C0C0C0; }
 #mobile-app .medal-bronze { color: #CD7F32; }
@@ -204,7 +205,7 @@ tailwind.config = {
   </header>
 
   <!-- ── HOME (home.html 목업) ── -->
-  <main class="mpage px-margin-mobile pt-sm pb-40 max-w-md mx-auto" id="mpage-home">
+  <main class="mpage px-margin-mobile pt-sm pb-56 max-w-md mx-auto" id="mpage-home">
     <div class="py-md">
       <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Home Dashboard</h2>
       <p class="text-on-surface-variant font-body-sm mt-1">Status Report: Verification Stream Active</p>
@@ -276,7 +277,7 @@ tailwind.config = {
   <!-- 새 토론 시작 FAB(목업 원본에 있음) — 단, 클라이언트에 discussPosts 쓰기 로직이 없고
        worker에도 생성 엔드포인트가 없어(annverify.ai discuss.js 확인됨), annverify.ai의
        일반 토론 목록으로 이동시키는 폴백으로 연결 -->
-  <button id="mdiscuss-fab" class="fixed right-6 bottom-24 w-14 h-14 bg-primary text-on-primary rounded-xl shadow-lg items-center justify-center active:scale-90 transition-transform z-30" style="display:none">
+  <button id="mdiscuss-fab" class="fixed right-6 w-14 h-14 bg-primary text-on-primary rounded-xl shadow-lg items-center justify-center active:scale-90 transition-transform z-30" style="display:none">
     <span class="material-symbols-outlined text-2xl">add_comment</span>
   </button>
 
@@ -310,8 +311,9 @@ tailwind.config = {
       <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">News</h2>
     </div>
     <div class="px-margin-mobile mb-4 flex gap-2">
-      <button class="mnews-pill px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="ai">AI News</button>
-      <button class="mnews-pill px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="world">World News</button>
+      <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="ai">AI News</button>
+      <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="local">로컬 뉴스</button>
+      <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="world">World News</button>
     </div>
 
     <div id="mnews-ai">
@@ -321,6 +323,18 @@ tailwind.config = {
         <div class="paper-card h-32 animate-pulse"></div>
       </div>
       <div class="px-margin-mobile mt-4"><button id="mnews-ai-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+    </div>
+
+    <!-- 로컬 뉴스 — 전용 엔드포인트 없음(annverify.ai worker/routes/ 확인됨), World News와
+         동일한 /api/v4/partner/global을 country=KR로 호출(실제로 한국 Google Trends 기반
+         국가별 트렌드를 반환 — global.js의 runGlobalCountryUpdate 확인). 카드도 World News와
+         동일 렌더러(_worldNewsCardHtml) 재사용. -->
+    <div id="mnews-local" class="hidden">
+      <div class="px-margin-mobile space-y-4" id="mnews-local-list">
+        <div class="paper-card h-40 animate-pulse"></div>
+        <div class="paper-card h-32 animate-pulse"></div>
+      </div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-local-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
     </div>
 
     <div id="mnews-world" class="hidden">
