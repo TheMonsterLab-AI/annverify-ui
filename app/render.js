@@ -86,12 +86,25 @@ function mapErrorToMessage(res, data, isNetworkError) {
 }
 
 // ── Left panel: chat log ────────────────────────────────────────────────
+// 모바일(<768px)은 데스크톱 #chat-log가 아예 숨겨져 있어(.shell 자체가 안 보임) 별도
+// #mhome-chat-log 컨테이너를 씀 — 말풍선 생성 함수들은 전부 이 헬퍼로 대상을 결정해
+// 데스크톱/모바일 호출부를 하나로 유지(중복 없음). #mhome-chat-log가 아직 DOM에 없으면(이
+// PR은 그 마크업을 추가하지 않음 — 다음 작업에서 추가 예정) #chat-log로 안전하게 폴백해
+// mobileSubmitVerify() 등 기존 호출부가 깨지지 않도록 함.
+function _activeChatLogId() {
+  var isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+  if (isMobile && document.getElementById("mhome-chat-log")) return "mhome-chat-log";
+  return "chat-log";
+}
+
 // 빈 상태 플레이스홀더 + 홈 미리보기 섹션 제거 — 첫 메시지가 오면 대화가 그 자리를 대체.
+// 모바일에서는 대시보드(#mhome-dashboard)를 숨기고 채팅 로그로 전환하는 트리거도 겸함.
 function _clearChatEmptyState() {
   var empty = document.getElementById("chat-empty");
   if (empty) empty.remove();
   var home = document.getElementById("home-sections");
   if (home) home.remove();
+  if (typeof _showMobileHomeChat === "function") _showMobileHomeChat();
 }
 
 function clearChatLog() {
@@ -102,8 +115,8 @@ function clearChatLog() {
 }
 
 function appendUserBubble(text) {
-  var log = document.getElementById("chat-log");
   _clearChatEmptyState();
+  var log = document.getElementById(_activeChatLogId());
   var div = document.createElement("div");
   div.className = "um";
   div.textContent = text;
@@ -113,8 +126,8 @@ function appendUserBubble(text) {
 
 // AI 대화 응답 버블. shouldVerify=true면 인라인 "Verify this" 제안 버튼 포함.
 function appendAiBubble(text, shouldVerify, extractedClaim) {
-  var log = document.getElementById("chat-log");
   _clearChatEmptyState();
+  var log = document.getElementById(_activeChatLogId());
   var row = document.createElement("div");
   row.className = "am-row";
   row.innerHTML =
@@ -137,8 +150,8 @@ function appendAiBubble(text, shouldVerify, extractedClaim) {
 }
 
 function appendUsageLimitMessage(kind) {
-  var log = document.getElementById("chat-log");
   _clearChatEmptyState();
+  var log = document.getElementById(_activeChatLogId());
   var div = document.createElement("div");
   div.innerHTML = usageLimitMessageHtml(kind);
   log.appendChild(div.firstChild);
@@ -148,7 +161,7 @@ function appendUsageLimitMessage(kind) {
 }
 
 function appendTypingIndicator(id) {
-  var log = document.getElementById("chat-log");
+  var log = document.getElementById(_activeChatLogId());
   var div = document.createElement("div");
   div.className = "am-typing";
   div.id = "typing-" + id;
@@ -159,7 +172,7 @@ function appendTypingIndicator(id) {
 }
 
 function appendPendingRow(id) {
-  var log = document.getElementById("chat-log");
+  var log = document.getElementById(_activeChatLogId());
   var div = document.createElement("div");
   div.className = "pd";
   div.id = "pending-" + id;
@@ -201,18 +214,31 @@ function replacePendingWithCard(id, entry, isError) {
 }
 
 function appendVerifyResultCard(entry) {
-  var log = document.getElementById("chat-log");
+  var log = document.getElementById(_activeChatLogId());
   log.appendChild(_verifyCardNode(entry));
   log.scrollTop = log.scrollHeight;
 }
 
 function appendVerifyErrorCard(claim, errKo, errEn) {
-  var log = document.getElementById("chat-log");
+  var log = document.getElementById(_activeChatLogId());
   log.appendChild(_verifyErrorNode(claim, errKo, errEn));
   log.scrollTop = log.scrollHeight;
 }
 
 // ── Right panel: Full Dossier ───────────────────────────────────────────
+// X 닫기 버튼 — 모바일에서는 dossier가 .shell.mobile-dossier-only로 전체화면 오버레이된
+// 상태라 showEmptyRightPanel()만 부르면 "빈 dossier 화면"만 남고 채팅으로 못 돌아감
+// (rp-back-btn은 이미 mobileShowHistory()를 불러 정상). X도 동일하게 모바일에서는
+// mobileShowHistory()로 채팅 화면 복귀 + 최신 메시지로 스크롤. 데스크톱은 기존 동작 유지.
+function _handleRpClose() {
+  if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
+    if (typeof mobileShowHistory === "function") mobileShowHistory();
+    if (typeof _mhomeScrollToLatest === "function") _mhomeScrollToLatest();
+  } else {
+    showEmptyRightPanel();
+  }
+}
+
 function showEmptyRightPanel() {
   var el = document.getElementById("right-panel");
   el.innerHTML =
@@ -242,7 +268,7 @@ function showErrorInRightPanel(claim, errKo, errEn) {
       '<div class="rp-error">' + escapeHtml(errKo) + (errEn ? '<br><span class="rp-error-en">' + escapeHtml(errEn) + '</span>' : '') + '</div>' +
     '</div></div>';
   var closeBtn = document.getElementById("rp-close-btn");
-  if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  if (closeBtn) closeBtn.addEventListener("click", _handleRpClose);
   var backBtn = document.getElementById("rp-back-btn");
   if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
   if (typeof mobileShowResult === "function") mobileShowResult();
@@ -490,7 +516,7 @@ function renderRightPanel(entry) {
     '</div></div>';
 
   var closeBtn = document.getElementById("rp-close-btn");
-  if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  if (closeBtn) closeBtn.addEventListener("click", _handleRpClose);
   var backBtn = document.getElementById("rp-back-btn");
   if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
   if (typeof mobileShowResult === "function") mobileShowResult();

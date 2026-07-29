@@ -23,10 +23,8 @@
 //     impression field exists on discussPosts today (checked worker/routes/v4/discuss.js), so
 //     it's rendered only when `viewCount` is actually present on the item (forward-compatible,
 //     not fabricated) — currently always absent, so it never renders.
-//   - Discussions mockup has a floating "+" (add_comment) FAB for starting a new thread — kept
-//     visually (#mdiscuss-fab), but there's no thread-creation endpoint and this app has no
-//     Firestore write path (auth-only, per app/auth.js), so it opens annverify.ai's general
-//     discuss list instead of a fabricated "new thread" flow.
+//   - Discussions mockup's floating "+" (add_comment) FAB now opens the real create-discussion
+//     screen (app/discuss-detail.js, Firestore direct writes, same architecture as annverify.ai).
 
 var MOBILE_LIVE_REFRESH_MS = 30000;
 var _mobileLiveTimer = null;
@@ -192,7 +190,7 @@ async function loadMobileDiscussions() {
       var viewCountHtml = (typeof it.viewCount === "number")
         ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
         : '';
-      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden">' +
+      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
           '<div class="p-md flex gap-4">' +
             '<div class="flex flex-col items-center gap-1"><span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span></div>' +
             '<div class="flex-1">' +
@@ -206,6 +204,11 @@ async function loadMobileDiscussions() {
           '</div>' +
         '</div>';
     }).join("");
+    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        if (typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
+      });
+    });
   } catch (e) {
     console.warn("[mobile discussions] failed:", e.message);
     el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
@@ -314,11 +317,178 @@ async function _loadMobileMyRank() {
   }
 }
 
+// ── Mobile chat bubbles (Home page) ─────────────────────────────────────
+// 데스크톱 .um/.am(app/render.js)과 별개 — 이 작업의 정확한 색상/border-radius 스펙이
+// 데스크톱 버블 스타일과 다르게 지정돼 있어(예: user bubble #005235 + 18px/18px/4px/18px,
+// 데스크톱은 var(--c) + 12px/12px/3px/12px) 재사용하지 않고 목업 paper-card 톤에 맞춘
+// 모바일 전용 버블을 새로 만듦. 검증 로딩/결과도 마찬가지로 "AI 말풍선" 스타일로 그려야
+// 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
+function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
+
+// scrollIntoView({block:'end'})는 요소의 아래쪽 끝을 "뷰포트 하단"에 맞추는데, 그 뷰포트
+// 하단이 fixed 탭바+입력창에 가려진 영역이라는 걸 모름 — 실측 결과 말풍선이 그 뒤에 가려진
+// 채로 남는 경우가 있어(#mpage-home에 이미 pb-56로 여유 패딩을 둔 것과 별개로, scrollIntoView
+// 자체의 "뷰포트 하단 = 문서 하단"이라는 가정이 fixed 오버레이 앞에서 깨짐), 대신 항상 문서
+// 전체 스크롤 하단(document.body.scrollHeight)으로 이동 — pb-56 패딩이 이미 fixed 입력창
+// 높이만큼 여유를 확보해두고 있어 전체 바닥까지 스크롤하면 마지막 말풍선이 그 여유 공간
+// 위쪽에 위치해 fixed 오버레이에 가려지지 않음. setTimeout 150ms(100ms보다 여유 있게).
+function _mhomeScrollToLatest() {
+  setTimeout(function () {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }, 150);
+}
+
+// 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
+// 탭 재클릭"을 그 트리거로 씀 — 단순히 다른 탭에서 Home으로 이동하는 것만으로는 대화가
+// 지워지지 않음, 그건 일반적인 탭 전환일 뿐 "새로 시작"의도가 아니므로).
+function _mhomeResetChat() {
+  var log = _mhomeChatLog();
+  if (log) log.innerHTML = "";
+  var dash = document.getElementById("mhome-dashboard");
+  if (dash && dash.scrollIntoView) dash.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function mobileAppendUserBubble(text) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-end";
+  var bubble = document.createElement("div");
+  bubble.className = "text-white px-4 py-3";
+  bubble.style.cssText = "background:#005235;border-radius:18px 18px 4px 18px;max-width:80%";
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  log.appendChild(row);
+  _mhomeScrollToLatest();
+  return row;
+}
+
+// AI 대화 응답 버블. shouldVerify=true면 인라인 "Verify this claim" 버튼 포함.
+function mobileAppendAiBubble(text, shouldVerify, extractedClaim) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<p class="font-body-md text-on-surface">' + escapeHtml(text) + '</p>' +
+      (shouldVerify && extractedClaim
+        ? '<button class="mhome-verify-btn w-full mt-2 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps" data-claim="' + escapeHtml(extractedClaim) + '">Verify this claim</button>'
+        : '') +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest();
+  var verifyBtn = row.querySelector(".mhome-verify-btn");
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", function () {
+      verifyBtn.disabled = true;
+      mobileTriggerVerify(extractedClaim, { showUserBubble: false });
+    });
+  }
+  return row;
+}
+
+function mobileAppendTypingBubble(id) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.id = "mhome-typing-" + id;
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px">' +
+      '<span class="mhome-loading-dots"><span></span><span></span><span></span></span>' +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest();
+  return row;
+}
+
+function mobileAppendLoadingBubble(id) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.id = "mhome-pending-" + id;
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<div class="flex items-center gap-2"><span class="mhome-loading-dots"><span></span><span></span><span></span></span>' +
+        '<span class="font-body-md text-on-surface">Verifying claim...</span></div>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">ANN 7-LAYER ENGINE</p>' +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest();
+  return row;
+}
+
+// HTML 문자열 빌더만 분리 — mobileReplaceLoadingWithResult(라이브 검증)와 히스토리 재생
+// (renderMobileMenuHistory → 과거 세션 재구성) 양쪽에서 공유. 버튼 클릭 리스너는 각 호출부가
+// 자기 DOM에 붙임(빌더는 순수 문자열만 반환).
+function _mhomeErrorBubbleHtml(errorKo) {
+  return '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%;border-color:#ba1a1a">' +
+      '<p class="font-body-md text-error">' + escapeHtml(errorKo || "Verification failed") + '</p>' +
+    '</div>';
+}
+
+function _mhomeResultBubbleHtml(entry) {
+  var info = verdictInfo(entry.verdictClass);
+  var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+  var pct = Math.round((entry.confidence || 0) * 100);
+  return '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<div class="flex items-center gap-2 mb-2">' +
+        '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
+        '<span class="font-body-sm font-bold text-primary">' + pct + '%</span>' +
+      '</div>' +
+      '<p class="font-body-md text-on-surface mb-2">' + escapeHtml((entry.claim || "").toString().slice(0, 120)) + '</p>' +
+      '<button class="mhome-report-btn w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">View full report</button>' +
+    '</div>';
+}
+
+function mobileReplaceLoadingWithResult(id, entry, isError) {
+  var row = document.getElementById("mhome-pending-" + id);
+  if (!row) return;
+  if (isError) {
+    row.innerHTML = _mhomeErrorBubbleHtml(entry.errorKo);
+    _mhomeScrollToLatest();
+    return;
+  }
+  row.innerHTML = _mhomeResultBubbleHtml(entry);
+  var reportBtn = row.querySelector(".mhome-report-btn");
+  if (reportBtn) reportBtn.addEventListener("click", function () { renderRightPanel(entry); });
+  _mhomeScrollToLatest();
+}
+
+// 과거 세션(history.js selectSession()의 모바일 버전) — desktop의 appendUserBubble/
+// appendAiBubble(.um/.am 스타일)을 그대로 쓰면 mobile paper-card UI에 안 맞는 데스크톱
+// 버블이 섞여 보이므로, 같은 mobileAppend*/빌더로 #mhome-chat-log를 다시 그림.
+function mobileSelectSession(session) {
+  if (typeof _currentSession !== "undefined") _currentSession = session;
+  var log = _mhomeChatLog();
+  if (log) log.innerHTML = "";
+  session.messages.forEach(function (m) {
+    if (m.role === "user") {
+      mobileAppendUserBubble(m.content);
+    } else if (m.role === "assistant") {
+      mobileAppendAiBubble(m.content, m.shouldVerify, m.extractedClaim);
+    } else if (m.role === "verify") {
+      var row = document.createElement("div");
+      row.className = "flex justify-start";
+      row.innerHTML = _mhomeResultBubbleHtml(m.entry);
+      log.appendChild(row);
+      var reportBtn = row.querySelector(".mhome-report-btn");
+      if (reportBtn) reportBtn.addEventListener("click", function () { renderRightPanel(m.entry); });
+    } else if (m.role === "verify-error") {
+      var errRow = document.createElement("div");
+      errRow.className = "flex justify-start";
+      errRow.innerHTML = _mhomeErrorBubbleHtml(m.errKo);
+      log.appendChild(errRow);
+    }
+  });
+  _mhomeScrollToLatest();
+}
+
 // ── Input router (Home page) ──────────────────────────────────────────────
-// 버그: mobileSubmitVerify()가 모든 입력(일반 대화 포함)을 곧바로 /api/verify로 보내서
-// "안녕" 같은 비검증성 텍스트가 "검증할 수 없는 입력" 에러로 이어졌음. URL/명확한 검증
-// 의도는 여전히 /api/verify로 바로 보내되, 그 외 일반 대화는 데스크톱과 동일하게
-// /api/v4/chat을 먼저 거치도록 라우팅을 분리.
+// URL/명확한 검증 의도는 곧바로 /api/verify, 그 외 일반 대화는 /api/v4/chat을 먼저 거침
+// (데스크톱 submitChatMessage()와 동일 원칙).
 var MOBILE_URL_RE = /^(https?:\/\/|www\.)\S+/i;
 
 function _looksLikeUrl(text) {
@@ -328,19 +498,11 @@ function _looksLikeUrl(text) {
 async function mobileSubmitInput(text) {
   text = (text || "").trim();
   if (!text) return;
-  _hideMobileChatReply();
   if (_looksLikeUrl(text)) {
-    await mobileSubmitVerify(text);
+    await mobileTriggerVerify(text, { showUserBubble: true });
   } else {
     await mobileSubmitChat(text);
   }
-}
-
-function _hideMobileChatReply() {
-  var box = document.getElementById("mobile-chat-reply");
-  if (box) box.classList.add("hidden");
-  var verifyBtn = document.getElementById("mobile-chat-verify-btn");
-  if (verifyBtn) verifyBtn.classList.add("hidden");
 }
 
 // 일반 대화 텍스트 — /api/v4/chat만 거치고, shouldVerify:true일 때만 "Verify this
@@ -361,8 +523,9 @@ async function mobileSubmitChat(text) {
     return;
   }
 
-  var btn = document.getElementById("mobile-verify-btn");
-  if (btn) btn.disabled = true;
+  mobileAppendUserBubble(text);
+  var typingId = uid();
+  var typingRow = mobileAppendTypingBubble(typingId);
   try {
     var res = await fetch(API_URL + "/api/v4/chat", {
       method: "POST",
@@ -370,41 +533,23 @@ async function mobileSubmitChat(text) {
       body: JSON.stringify({ message: text, history: [] }),
     });
     var data = await res.json();
+    if (typingRow) typingRow.remove();
     if (!res.ok) throw new Error("HTTP " + res.status);
     if (typeof incrementChatUsage === "function") incrementChatUsage();
-
-    var box = document.getElementById("mobile-chat-reply");
-    var replyText = document.getElementById("mobile-chat-reply-text");
-    var verifyBtn = document.getElementById("mobile-chat-verify-btn");
-    if (replyText) replyText.textContent = data.reply || "...";
-    if (box) box.classList.remove("hidden");
-    if (verifyBtn) {
-      if (data.shouldVerify === true && data.extractedClaim) {
-        verifyBtn.classList.remove("hidden");
-        verifyBtn.onclick = function () {
-          _hideMobileChatReply();
-          mobileSubmitVerify(data.extractedClaim);
-        };
-      } else {
-        verifyBtn.classList.add("hidden");
-      }
-    }
+    mobileAppendAiBubble(data.reply || "...", data.shouldVerify === true, data.extractedClaim || null);
   } catch (e) {
     console.warn("[mobile chat] failed:", e.message);
-    if (errEl) {
-      errEl.textContent = "Failed to reach the assistant. Please try again.";
-      errEl.classList.remove("hidden");
-    }
-  } finally {
-    if (btn) btn.disabled = false;
+    if (typingRow) typingRow.remove();
+    mobileAppendAiBubble("Failed to reach the assistant. Please try again.", false, null);
   }
 }
 
-// URL/명확한 검증 의도 — 곧바로 /api/verify. canVerify() 여기서 먼저 확인하는 이유는
-// triggerVerifyFromSuggestion() 자체의 한도초과 메시지(appendUsageLimitMessage)가 데스크톱의
-// #chat-log에 쓰여 모바일에선 보이지 않기 때문 — 실제 fetch/네트워크 에러는
-// showErrorInRightPanel()이 mobileShowResult()를 직접 호출해 dossier로 노출되므로 문제 없음.
-async function mobileSubmitVerify(claimText) {
+// URL/명확한 검증 의도, 또는 AI 말풍선의 "Verify this claim" 버튼 — 곧바로 /api/verify.
+// 데스크톱의 core verify 로직(triggerVerifyFromSuggestion, main.js)과 같은 fetch/파싱/에러
+// 매핑을 쓰되, 렌더링은 이 파일의 모바일 전용 말풍선 함수로 — desktop의 appendPendingRow/
+// replacePendingWithCard(다른 스타일)를 그대로 쓰면 스펙에 맞지 않아 별도로 둠.
+async function mobileTriggerVerify(claimText, opts) {
+  opts = opts || {};
   claimText = (claimText || "").trim();
   if (!claimText) return;
   var errEl = document.getElementById("mobile-verify-error");
@@ -421,16 +566,134 @@ async function mobileSubmitVerify(claimText) {
     return;
   }
 
-  var btn = document.getElementById("mobile-verify-btn");
-  if (btn) btn.disabled = true;
+  if (opts.showUserBubble) mobileAppendUserBubble(claimText);
+  var id = uid();
+  mobileAppendLoadingBubble(id);
 
-  if (typeof triggerVerifyFromSuggestion === "function") {
-    // 세션/채팅 기록 없이 곧바로 검증 — 데스크톱의 core verify 로직(fetch+parse+에러 매핑+
-    // 결과 렌더)을 그대로 재사용. appendMessageToSession 내부에서 _currentSession이 없으면
-    // 조용히 no-op되므로(세션 미시작 상태) 안전.
-    await triggerVerifyFromSuggestion(claimText);
+  var startedAt = Date.now();
+  var idToken = await getIdTokenOrNull();
+  var headers = { "Content-Type": "application/json" };
+  if (idToken) headers["Authorization"] = "Bearer " + idToken;
+
+  var res = null, networkErr = false, data = null;
+  try {
+    res = await fetch(API_URL + "/api/verify", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ claim: claimText, depth: "standard" }),
+    });
+    data = await res.json();
+  } catch (err) {
+    networkErr = err instanceof TypeError;
   }
-  if (btn) btn.disabled = false;
+
+  if (!res || !res.ok || (data && data.error)) {
+    var msg = mapErrorToMessage(res, data, networkErr || !res);
+    mobileReplaceLoadingWithResult(id, { errorKo: msg.ko, errorEn: msg.en }, true);
+    return;
+  }
+
+  var parsed = extractParsedResult(data);
+  if (!parsed) {
+    var parseMsg = mapErrorToMessage(null, null, false);
+    mobileReplaceLoadingWithResult(id, { errorKo: parseMsg.ko, errorEn: parseMsg.en }, true);
+    return;
+  }
+
+  if (typeof incrementVerifyUsage === "function") incrementVerifyUsage();
+  var realHash = await computeIntegrityHash(claimText, parsed);
+  var entry = {
+    id: id,
+    claim: claimText,
+    verdictClass: parsed.verdict_class || null,
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+    bislHash: realHash,
+    model: data.model || null,
+    ts: Date.now(),
+    elapsedMs: Date.now() - startedAt,
+    parsed: parsed,
+  };
+  mobileReplaceLoadingWithResult(id, entry, false);
+}
+
+// mobileSubmitVerify(claimText) — News "새 팩트체크" 등 기존 호출부와의 하위호환 시그니처.
+function mobileSubmitVerify(claimText) {
+  return mobileTriggerVerify(claimText, { showUserBubble: true });
+}
+
+// ── Profile page ──────────────────────────────────────────────────────────
+// "Firestore users 컬렉션" 직접 조회는 필드명/보안규칙을 확인하지 못해(discuss-detail.js의
+// discussPosts처럼 검증된 스키마가 아님) 대신 이미 검증되고 실제 쓰이고 있는
+// GET /api/v4/points/me(모바일 My Rank 바, app/mobile-app.js _loadMobileMyRank 참고)를
+// 재사용 — annPoints/rank/history(최대 20건 활동 로그)는 전부 실제 서버 필드. 이름/이메일/
+// 가입일은 Firebase Auth currentUser에서(전부 실제 값, 서버 조회 불필요).
+// "검증 횟수"는 /me가 직접 주지 않음(worker 확인됨 — verifyCount는 leaderboard 로우에만
+// 있고 /me엔 없음) — 대신 history 배열 길이를 "최근 활동(최대 20건)"으로 정직하게 표기.
+function openMobileProfile() {
+  var overlay = document.getElementById("mprofile-page");
+  if (overlay) overlay.classList.remove("hidden");
+  _loadMobileProfile();
+}
+
+function closeMobileProfile() {
+  var overlay = document.getElementById("mprofile-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+async function _loadMobileProfile() {
+  var body = document.getElementById("mprofile-body");
+  if (!body || typeof currentUser === "undefined" || !currentUser) return;
+
+  var joinDate = (currentUser.metadata && currentUser.metadata.creationTime)
+    ? new Date(currentUser.metadata.creationTime).toLocaleDateString()
+    : "--";
+  body.innerHTML =
+    '<div class="paper-card p-md mb-md text-center">' +
+      '<div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-bold mx-auto mb-2">' +
+        escapeHtml((currentUser.displayName || "V").charAt(0).toUpperCase()) +
+      '</div>' +
+      '<p class="font-headline-sm text-headline-sm">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
+      '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+    '</div>' +
+    '<div class="grid grid-cols-2 gap-base mb-md">' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">AP Points</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-ap">--</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Rank</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-rank">--</div></div>' +
+    '</div>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2">Recent Activity</h3>' +
+    '<div id="mprofile-history"><div class="paper-card h-16 animate-pulse"></div></div>';
+
+  try {
+    var idToken = await getIdTokenOrNull();
+    if (!idToken) throw new Error("no id token");
+    var res = await fetch(API_URL + "/api/v4/points/me", { headers: { Authorization: "Bearer " + idToken } });
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    var apEl = document.getElementById("mprofile-ap");
+    var rankEl = document.getElementById("mprofile-rank");
+    if (apEl) apEl.textContent = data.annPoints || 0;
+    if (rankEl) rankEl.textContent = (data.rank != null) ? ("#" + data.rank) : "--";
+
+    var histEl = document.getElementById("mprofile-history");
+    if (!histEl) return;
+    var history = Array.isArray(data.history) ? data.history : [];
+    if (!history.length) {
+      histEl.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
+      return;
+    }
+    histEl.innerHTML = history.map(function (h) {
+      return '<div class="paper-card p-sm mb-2 flex items-center justify-between gap-2">' +
+          '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(h.action || "Activity") + '</p>' +
+          '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(h.timestamp)) + '</p></div>' +
+          '<span class="font-body-sm font-bold text-primary shrink-0">+' + (h.points || 0) + '</span>' +
+        '</div>';
+    }).join("");
+  } catch (e) {
+    console.warn("[mobile profile] failed:", e.message);
+    var histEl2 = document.getElementById("mprofile-history");
+    if (histEl2) histEl2.innerHTML = '<p class="text-error font-body-sm text-center py-md">Failed to load activity.</p>';
+  }
 }
 
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
@@ -442,6 +705,7 @@ function openMobileMenu() {
   var backdrop = document.getElementById("mmenu-backdrop");
   if (backdrop) backdrop.classList.remove("hidden");
   if (drawer) drawer.classList.remove("translate-x-full");
+  renderMobileMenuHistory(); // 매번 열 때 최신 세션 목록 반영
 }
 
 function closeMobileMenu() {
@@ -472,6 +736,47 @@ function renderMobileMenuHeader() {
     var signinBtn = document.getElementById("mmenu-signin-btn");
     if (signinBtn) signinBtn.addEventListener("click", function () { closeMobileMenu(); if (typeof doSignIn === "function") doSignIn(); });
   }
+  renderMobileMenuHistory();
+}
+
+// MY HISTORY — 데스크톱 사이드바 renderHistorySidebar()(app/history.js)와 동일한 데이터
+// 소스(loadSessions, localStorage). 순수 로컬 저장이라 실제로는 로그인 여부와 무관하게 항상
+// 조회 가능하지만(history.js 헤더 주석 참고), 스펙이 "로그인하면 볼 수 있음" 안내를 명시해
+// 로그인 유도 UX로 그대로 따름 — 로그인 안내가 기술적 제약이 아니라 UX 선택이라는 점 기록.
+function renderMobileMenuHistory() {
+  var el = document.getElementById("mmenu-history-list");
+  if (!el) return;
+  if (typeof currentUser === "undefined" || !currentUser) {
+    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">로그인하면 대화 기록을 볼 수 있습니다</p>';
+    return;
+  }
+  var list = (typeof loadSessions === "function") ? loadSessions() : [];
+  if (!list.length) {
+    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">No conversations yet</p>';
+    return;
+  }
+  var html = "";
+  var lastLabel = null;
+  list.forEach(function (s) {
+    var label = (typeof dayLabel === "function") ? dayLabel(s.lastActivityTs || s.ts) : "";
+    if (label !== lastLabel) {
+      html += '<div class="font-label-caps text-label-caps text-on-surface-variant mt-2 mb-1">' + escapeHtml(label) + '</div>';
+      lastLabel = label;
+    }
+    html += '<button class="mmenu-history-item w-full text-left py-2 font-body-sm text-on-surface" data-session-id="' + escapeHtml(s.id) + '" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' +
+      escapeHtml(s.title || "(untitled)") + '</button>';
+  });
+  el.innerHTML = html;
+  el.querySelectorAll("[data-session-id]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-session-id");
+      var found = (typeof loadSessions === "function") ? loadSessions().filter(function (s) { return s.id === id; })[0] : null;
+      if (found) {
+        closeMobileMenu();
+        mobileSelectSession(found);
+      }
+    });
+  });
 }
 
 function _wireMobileMenu() {
@@ -480,12 +785,17 @@ function _wireMobileMenu() {
   if (menuBtn) menuBtn.addEventListener("click", openMobileMenu);
   if (backdrop) backdrop.addEventListener("click", closeMobileMenu);
 
-  // Profile 항목 — 별도 프로필 페이지가 없어(세션 내내 재확인됨), 유저 정보가 실제로
-  // 표시되는 Leaderboard(My Rank)로 이동. Settings/Help는 스펙에 동작이 명시되지 않아
-  // 드로어만 닫음(placeholder — 없는 기능을 만들어내지 않음).
-  document.querySelectorAll(".mmenu-item[data-mgoto]").forEach(function (btn) {
-    btn.addEventListener("click", function () { closeMobileMenu(); });
-  });
+  // Profile — 실제 Profile 페이지로 이동(이전엔 Leaderboard로 리다이렉트하던 임시 조치였음,
+  // openMobileProfile() 참고). Settings/Help는 스펙에 동작이 명시되지 않아 드로어만 닫음
+  // (placeholder — 없는 기능을 만들어내지 않음).
+  var profileBtn = document.getElementById("mmenu-profile");
+  if (profileBtn) {
+    profileBtn.addEventListener("click", function () {
+      closeMobileMenu();
+      if (typeof currentUser === "undefined" || !currentUser) { showMobileLoginModal(); return; }
+      openMobileProfile();
+    });
+  }
   var settingsBtn = document.getElementById("mmenu-settings");
   var helpBtn = document.getElementById("mmenu-help");
   if (settingsBtn) settingsBtn.addEventListener("click", closeMobileMenu);
@@ -730,17 +1040,32 @@ function _renderMobileLocalNews() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // 새 토론 시작 FAB — annverify-ui엔 Firestore 쓰기 로직이 없고 worker에도 생성
-  // 엔드포인트가 없어(확인됨), 실제 동작 가능한 유일한 대안인 일반 토론 목록으로 이동
+  var profileBackBtn = document.getElementById("mprofile-back");
+  if (profileBackBtn) profileBackBtn.addEventListener("click", closeMobileProfile);
+
+  // 새 토론 시작 FAB — app/discuss-detail.js가 Firestore 직접 쓰기로 실제 작성 화면을 염
+  // (openMobileDiscussCreate 자체가 미로그인 시 로그인 모달을 띄움)
   var discussFabBtn = document.getElementById("mdiscuss-fab");
   if (discussFabBtn) {
     discussFabBtn.addEventListener("click", function () {
-      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+      if (typeof openMobileDiscussCreate === "function") openMobileDiscussCreate();
     });
   }
 
   document.querySelectorAll(".mtab[data-mpage]").forEach(function (btn) {
-    btn.addEventListener("click", function () { showMobilePage(btn.getAttribute("data-mpage")); });
+    btn.addEventListener("click", function () {
+      var target = btn.getAttribute("data-mpage");
+      // 상태 4: 이미 Home인 상태에서 Home 탭을 "다시" 누르면 대화 초기화(모바일엔 데스크톱
+      // #new-verification-btn 상당의 별도 버튼이 없어 이 재클릭 제스처가 그 대체 트리거).
+      // 다른 탭에서 Home으로 처음 이동하는 것만으로는 대화가 보존됨(단순 탭 전환).
+      var homeEl = document.getElementById("mpage-home");
+      var alreadyOnHome = homeEl && !homeEl.classList.contains("hidden");
+      if (target === "home" && alreadyOnHome) {
+        _mhomeResetChat();
+        return;
+      }
+      showMobilePage(target);
+    });
   });
   document.querySelectorAll("[data-mgoto]").forEach(function (el) {
     el.addEventListener("click", function () { showMobilePage(el.getAttribute("data-mgoto")); });
@@ -753,6 +1078,8 @@ document.addEventListener("DOMContentLoaded", function () {
     verifyInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { mobileSubmitInput(verifyInput.value); verifyInput.value = ""; }
     });
+    // 키보드가 열리면서 뷰포트가 줄어들어 마지막 말풍선이 입력창 뒤로 가려지는 경우 대비
+    verifyInput.addEventListener("focus", function () { _mhomeScrollToLatest(); });
   }
 
   _wireMobileMenu();

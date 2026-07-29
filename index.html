@@ -58,6 +58,11 @@ tailwind.config = {
 #mobile-app .mmenu-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 8px; border-radius: 8px; background: transparent; border: none; cursor: pointer; }
 #mobile-app .mmenu-item:hover { background-color: #EDE7D9; }
 #mmenu-drawer { transition: transform 0.2s ease; }
+#mobile-app .mhome-loading-dots { display: inline-flex; gap: 3px; }
+#mobile-app .mhome-loading-dots span { width: 5px; height: 5px; border-radius: 50%; background: #005235; display: inline-block; animation: mhome-dot-bounce 1.2s infinite ease-in-out; }
+#mobile-app .mhome-loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+#mobile-app .mhome-loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes mhome-dot-bounce { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
 /* .shell 자체의 모바일 숨김/mobile-dossier-only 전환은 app/style.css에 이미 정의됨(단일 출처) */
 @media (max-width: 768px) {
   #mobile-app { display: block; min-height: 100dvh; }
@@ -85,6 +90,9 @@ tailwind.config = {
     </div>
     <div class="ni" data-page="livefeed">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Live Feed<span class="nb">Live</span>
+    </div>
+    <div class="ni" data-page="news">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a2 2 0 012 2v13a2 2 0 01-2 2H4z"/><path d="M18 8H4M18 8v11"/><path d="M8 4v4"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg>News Feed
     </div>
     <div class="ni" data-page="discussions">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Discussions<span class="nb g">Hot</span>
@@ -173,6 +181,22 @@ tailwind.config = {
       </div>
     </div>
 
+    <!-- NEWS FEED (모바일 News 탭과 동일 콘텐츠/엔드포인트 — worker/routes/v4/news.js, global.js.
+         카드 디자인은 모바일 paper-card 톤에 맞춤(app/style.css .news-*), 로컬 뉴스는
+         country=KR 파라미터 재사용(전용 엔드포인트 없음, 모바일 작업에서 확인됨)) -->
+    <div class="body page-container hidden" id="page-news">
+      <div class="pg-scroll">
+        <div class="news-tabs">
+          <button class="news-tab on" id="news-tab-ai" data-newstab="ai">AI News</button>
+          <button class="news-tab" id="news-tab-local" data-newstab="local">로컬 뉴스</button>
+          <button class="news-tab" id="news-tab-world" data-newstab="world">World News</button>
+        </div>
+        <div class="pg-list" id="news-ai-list"></div>
+        <div class="pg-list hidden" id="news-local-list"></div>
+        <div class="pg-list hidden" id="news-world-list"></div>
+      </div>
+    </div>
+
     <!-- DISCUSSIONS -->
     <div class="body page-container hidden" id="page-discussions">
       <div class="pg-scroll">
@@ -210,40 +234,50 @@ tailwind.config = {
 
   <!-- ── HOME (home.html 목업) ── -->
   <main class="mpage px-margin-mobile pt-sm pb-56 max-w-md mx-auto" id="mpage-home">
-    <div class="py-md">
-      <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Home Dashboard</h2>
-      <p class="text-on-surface-variant font-body-sm mt-1">Status Report: Verification Stream Active</p>
-    </div>
-    <div class="grid grid-cols-2 gap-base mb-md">
-      <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
-        <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Today's Verifications</span>
-        <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-verifications">--</span></div>
+    <!-- 대시보드 — 항상 DOM에 유지(숨김 X). 대화가 시작되면 #mhome-chat-log가 그 아래로
+         이어져서, 새 말풍선이 추가될 때마다 대시보드는 스크롤 상 위로 "밀려" 보이는 자연스러운
+         문서 흐름을 그대로 이용(별도 CSS 트릭 불필요) — 스크롤을 올리면 언제든 다시 보임.
+         스펙에 언급된 "Hot Discussions"/"Top Verifiers" 섹션은 데스크톱 home-sections
+         위젯(PR #12)에만 있고 모바일 대시보드엔 원래 없던 구성이라 새로 만들지 않음(시안 없음). -->
+    <div id="mhome-dashboard">
+      <div class="py-md">
+        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Home Dashboard</h2>
+        <p class="text-on-surface-variant font-body-sm mt-1">Status Report: Verification Stream Active</p>
       </div>
-      <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
-        <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Truth Rate</span>
-        <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-truthrate">--</span></div>
+      <div class="grid grid-cols-2 gap-base mb-md">
+        <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
+          <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Today's Verifications</span>
+          <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-verifications">--</span></div>
+        </div>
+        <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
+          <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Truth Rate</span>
+          <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-truthrate">--</span></div>
+        </div>
       </div>
-    </div>
-    <section class="mb-md">
-      <div class="flex justify-between items-end mb-sm">
-        <h3 class="font-headline-sm text-headline-sm text-on-surface">Live Verification Feed</h3>
-        <button class="text-primary font-label-caps text-label-caps border-b border-primary pb-0.5" data-mgoto="livefeed">VIEW ALL</button>
-      </div>
-      <div id="mhome-live-list">
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-      </div>
-    </section>
-    <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
-      <div class="flex gap-sm">
-        <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">science</span></div>
-        <div>
-          <h4 class="font-body-md font-bold text-on-surface mb-0.5">Methodology Update</h4>
-          <p class="font-body-sm text-on-surface-variant">The Bayesian Consensus engine has been updated to v4.2 for faster semantic cross-referencing.</p>
+      <section class="mb-md">
+        <div class="flex justify-between items-end mb-sm">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Live Verification Feed</h3>
+          <button class="text-primary font-label-caps text-label-caps border-b border-primary pb-0.5" data-mgoto="livefeed">VIEW ALL</button>
+        </div>
+        <div id="mhome-live-list">
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+        </div>
+      </section>
+      <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
+        <div class="flex gap-sm">
+          <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">science</span></div>
+          <div>
+            <h4 class="font-body-md font-bold text-on-surface mb-0.5">Methodology Update</h4>
+            <p class="font-body-sm text-on-surface-variant">The Bayesian Consensus engine has been updated to v4.2 for faster semantic cross-referencing.</p>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- 대화 말풍선 — 여기로 append. 비어있으면 아무것도 안 보임(대시보드만 표시). -->
+    <div id="mhome-chat-log" class="flex flex-col gap-3 pb-4"></div>
   </main>
 
   <!-- ── LIVE FEED (live-feed.html 목업) ── -->
@@ -380,13 +414,6 @@ tailwind.config = {
         <button id="mobile-verify-btn" class="absolute right-2 top-2 bottom-2 w-12 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors" aria-label="Verify"><span class="material-symbols-outlined">fact_check</span></button>
       </div>
       <p id="mobile-verify-error" class="hidden text-error font-body-sm text-body-sm mt-2 text-center"></p>
-      <!-- URL/명확한 검증 의도가 아닌 일반 대화 입력 시 /api/v4/chat 응답(reply, 필요하면
-           shouldVerify 제안 버튼)이 표시되는 자리 — 데스크톱 채팅 로그와 별개, 모바일엔
-           로그가 없어 최신 1턴만 보여줌 -->
-      <div id="mobile-chat-reply" class="hidden paper-card p-sm mt-2 text-body-sm text-on-surface">
-        <p id="mobile-chat-reply-text"></p>
-        <button id="mobile-chat-verify-btn" class="hidden mt-2 w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">Verify this claim</button>
-      </div>
     </div>
   </div>
 
@@ -417,8 +444,14 @@ tailwind.config = {
     <div class="bg-primary-container text-on-primary-container p-md" id="mmenu-header">
       <!-- JS(app/mobile-app.js)가 로그인 상태에 따라 이름/티어 또는 Sign In 버튼으로 채움 -->
     </div>
+    <div class="px-md pt-3 pb-1 border-b border-outline-variant">
+      <span class="font-label-caps text-label-caps text-on-surface-variant">MY HISTORY</span>
+      <div id="mmenu-history-list" class="max-h-60 overflow-y-auto pb-2">
+        <!-- JS(app/mobile-app.js renderMobileMenuHistory)가 세션 목록 또는 로그인 안내로 채움 -->
+      </div>
+    </div>
     <nav class="flex-1 flex flex-col py-2">
-      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" data-mgoto="leaderboard">
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
         <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md">Profile</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-settings">
@@ -433,10 +466,94 @@ tailwind.config = {
       </button>
     </nav>
   </aside>
+
+  <!-- 프로필 — 별도 Profile 페이지가 없어 햄버거 메뉴의 Profile이 Leaderboard(My Rank)로
+       리다이렉트되던 임시 조치를 대체. 실제 존재하는 GET /api/v4/points/me(이미 모바일 My
+       Rank 바에서 쓰던 Bearer-token 엔드포인트, annPoints/rank/history 반환)를 재사용 —
+       "Firestore users 컬렉션" 직접 읽기는 필드명/rules를 확인하지 못해 대신 이미 검증된
+       엔드포인트로 대체. 이름/이메일/가입일은 Firebase Auth currentUser에서(전부 실제 값). -->
+  <div id="mprofile-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mprofile-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Profile</h1>
+      <span class="w-10"></span>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mprofile-body">
+      <div class="paper-card h-32 animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- 토론 상세 — annverify.ai discuss.js의 _loadDiscussDetail/voteDiscuss/postCommunityComment를
+       Firestore 직접 호출로 포팅(worker에 상세/댓글/투표 엔드포인트 없음, 확인됨). Discussions
+       탭 카드 클릭으로만 진입 — 탭바에는 없는 drill-down 화면. -->
+  <div id="mdiscuss-detail" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mdd-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Discussion</h1>
+      <button id="mdd-share" class="p-2 -mr-2 rounded-full hover:bg-surface-container-high" aria-label="Share"><span class="material-symbols-outlined">share</span></button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mdd-body" style="padding-bottom:96px">
+      <div class="paper-card h-48 animate-pulse"></div>
+    </div>
+    <div class="shrink-0 bg-surface border-t border-outline-variant p-sm px-margin-mobile flex gap-2 items-center pb-safe">
+      <input id="mdd-comment-input" class="flex-1 h-11 px-4 bg-surface-container-lowest border border-outline-variant rounded-full text-body-md placeholder:text-on-surface-variant" placeholder="댓글을 입력하세요..." type="text" maxlength="500"/>
+      <button id="mdd-comment-send" class="w-11 h-11 shrink-0 bg-primary text-white rounded-full flex items-center justify-center" aria-label="Send"><span class="material-symbols-outlined text-[20px]">send</span></button>
+    </div>
+  </div>
+
+  <!-- 새 토론 작성 — annverify.ai submitDiscussCreate() 필드셋 포팅. 실제 앱은 항상 seed/직전
+       검증결과가 있어야만 작성 가능하지만(UX 제약), firestore.rules의 isQualityDiscussPost()는
+       title 15자 이상만으로도 통과시켜 클레임 연결을 선택사항으로 둠(스펙 그대로). -->
+  <div id="mdiscuss-create" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mdc-cancel" class="font-label-caps text-label-caps text-on-surface-variant px-2 py-1">취소</button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">새 토론</h1>
+      <button id="mdc-submit" class="font-label-caps text-label-caps text-white bg-primary rounded-full px-4 py-1.5" disabled>게시</button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md space-y-4" style="padding-bottom:32px">
+      <input id="mdc-title" class="w-full h-12 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant" placeholder="토론 제목을 입력하세요" type="text" maxlength="200"/>
+      <textarea id="mdc-content" class="w-full h-40 p-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant resize-none" placeholder="내용을 입력하세요 (20자 이상, 1000자 이하)"></textarea>
+      <p id="mdc-error" class="hidden text-error font-body-sm text-body-sm"></p>
+
+      <div>
+        <button id="mdc-claim-link-btn" class="w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">link</span>검증 결과 연결하기
+        </button>
+        <div id="mdc-claim-linked" class="hidden paper-card p-sm mt-2">
+          <div class="flex items-center justify-between gap-2">
+            <p class="font-body-sm font-bold flex-1" id="mdc-claim-linked-text"></p>
+            <button id="mdc-claim-unlink" class="p-1 text-on-surface-variant shrink-0" aria-label="Unlink"><span class="material-symbols-outlined text-[18px]">close</span></button>
+          </div>
+        </div>
+        <div id="mdc-claim-picker-list" class="hidden mt-2 space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div class="flex items-center justify-between paper-card p-sm">
+        <span class="font-body-sm text-on-surface">익명으로 게시</span>
+        <button id="mdc-anon-toggle" class="relative w-11 h-6 rounded-full bg-surface-container-high transition-colors shrink-0" data-on="false" aria-label="Post anonymously">
+          <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로그인 안내 모달 — 미로그인 상태로 투표/댓글/작성 시도 시 -->
+  <div id="mdiscuss-login-modal" class="hidden fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-margin-mobile">
+    <div class="paper-card p-md w-full max-w-xs text-center">
+      <p class="font-body-md text-on-surface mb-4">로그인이 필요합니다</p>
+      <div class="flex gap-2">
+        <button id="mdlm-cancel" class="flex-1 py-2 border border-outline-variant rounded-lg font-label-caps text-label-caps text-on-surface-variant">취소</button>
+        <button id="mdlm-signin" class="flex-1 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">로그인</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobile-toast" class="hidden fixed left-1/2 z-[99] bg-[#1c1b1b] text-white px-4 py-2.5 rounded-full font-body-sm text-body-sm shadow-lg max-w-[90%] text-center" style="bottom:calc(64px + env(safe-area-inset-bottom) + 16px);transform:translateX(-50%)"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="app/config.js"></script>
 <script src="app/usage.js"></script>
 <script src="app/auth.js"></script>
@@ -445,6 +562,7 @@ tailwind.config = {
 <script src="app/mobile.js"></script>
 <script src="app/pages.js"></script>
 <script src="app/mobile-app.js"></script>
+<script src="app/discuss-detail.js"></script>
 <script src="app/main.js"></script>
 </body>
 </html>

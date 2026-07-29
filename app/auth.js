@@ -1,9 +1,16 @@
 // annverify-ui — Firebase Auth (Google OAuth). Mirrors annverify.ai's proven signInWithPopup
-// + signInWithRedirect-fallback pattern. No Firestore access here — auth only, idToken is
-// forwarded to api.annverify.ai which does its own server-side Firestore reads/writes.
+// + signInWithRedirect-fallback pattern.
+//
+// Firestore: as of app/discuss-detail.js, this app also writes directly to Firestore for
+// discuss detail/comments/votes/create — mirroring annverify.ai's own architecture, where the
+// worker has no user auth context (Firebase Auth is client-only) so user-scoped writes happen
+// client-side, gated by firestore.rules, not by a worker endpoint (confirmed: no such worker
+// routes exist beyond GET /api/v4/discuss/ranking and POST /api/v5/discuss/summarize).
+// All other reads in this app still go through api.annverify.ai's worker.
 
 firebase.initializeApp(FIREBASE_CONFIG);
 var auth = firebase.auth();
+var db = firebase.firestore();
 
 var currentUser = null;
 
