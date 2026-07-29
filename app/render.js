@@ -226,6 +226,19 @@ function appendVerifyErrorCard(claim, errKo, errEn) {
 }
 
 // ── Right panel: Full Dossier ───────────────────────────────────────────
+// X 닫기 버튼 — 모바일에서는 dossier가 .shell.mobile-dossier-only로 전체화면 오버레이된
+// 상태라 showEmptyRightPanel()만 부르면 "빈 dossier 화면"만 남고 채팅으로 못 돌아감
+// (rp-back-btn은 이미 mobileShowHistory()를 불러 정상). X도 동일하게 모바일에서는
+// mobileShowHistory()로 채팅 화면 복귀 + 최신 메시지로 스크롤. 데스크톱은 기존 동작 유지.
+function _handleRpClose() {
+  if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
+    if (typeof mobileShowHistory === "function") mobileShowHistory();
+    if (typeof _mhomeScrollToLatest === "function") _mhomeScrollToLatest();
+  } else {
+    showEmptyRightPanel();
+  }
+}
+
 function showEmptyRightPanel() {
   var el = document.getElementById("right-panel");
   el.innerHTML =
@@ -255,7 +268,7 @@ function showErrorInRightPanel(claim, errKo, errEn) {
       '<div class="rp-error">' + escapeHtml(errKo) + (errEn ? '<br><span class="rp-error-en">' + escapeHtml(errEn) + '</span>' : '') + '</div>' +
     '</div></div>';
   var closeBtn = document.getElementById("rp-close-btn");
-  if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  if (closeBtn) closeBtn.addEventListener("click", _handleRpClose);
   var backBtn = document.getElementById("rp-back-btn");
   if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
   if (typeof mobileShowResult === "function") mobileShowResult();
@@ -503,7 +516,7 @@ function renderRightPanel(entry) {
     '</div></div>';
 
   var closeBtn = document.getElementById("rp-close-btn");
-  if (closeBtn) closeBtn.addEventListener("click", showEmptyRightPanel);
+  if (closeBtn) closeBtn.addEventListener("click", _handleRpClose);
   var backBtn = document.getElementById("rp-back-btn");
   if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
   if (typeof mobileShowResult === "function") mobileShowResult();

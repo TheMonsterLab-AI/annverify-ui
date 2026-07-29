@@ -87,6 +87,9 @@ tailwind.config = {
     <div class="ni" data-page="livefeed">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Live Feed<span class="nb">Live</span>
     </div>
+    <div class="ni" data-page="news">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a2 2 0 012 2v13a2 2 0 01-2 2H4z"/><path d="M18 8H4M18 8v11"/><path d="M8 4v4"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg>News Feed
+    </div>
     <div class="ni" data-page="discussions">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Discussions<span class="nb g">Hot</span>
     </div>
@@ -171,6 +174,20 @@ tailwind.config = {
     <div class="body page-container hidden" id="page-livefeed">
       <div class="pg-scroll">
         <div class="pg-list" id="livefeed-list"></div>
+      </div>
+    </div>
+
+    <!-- NEWS FEED (모바일 News 탭과 동일 콘텐츠 — worker/routes/v4/news.js, global.js. 데스크톱
+         .pg-card/.pg-badge 시스템으로 재구현, 모바일의 Tailwind 카테고리 컬러 팔레트는
+         데스크톱 CSS 시스템과 달라 그대로 재사용 불가) -->
+    <div class="body page-container hidden" id="page-news">
+      <div class="pg-scroll">
+        <div class="lb-tabs">
+          <button class="lb-tab on" id="news-tab-ai" data-newstab="ai">AI News</button>
+          <button class="lb-tab" id="news-tab-world" data-newstab="world">World News</button>
+        </div>
+        <div class="pg-list" id="news-ai-list"></div>
+        <div class="pg-list hidden" id="news-world-list"></div>
       </div>
     </div>
 
@@ -420,6 +437,12 @@ tailwind.config = {
   <aside id="mmenu-drawer" class="fixed top-0 right-0 h-full w-72 max-w-[80%] bg-surface z-[70] transform translate-x-full transition-transform duration-200 flex flex-col">
     <div class="bg-primary-container text-on-primary-container p-md" id="mmenu-header">
       <!-- JS(app/mobile-app.js)가 로그인 상태에 따라 이름/티어 또는 Sign In 버튼으로 채움 -->
+    </div>
+    <div class="px-md pt-3 pb-1 border-b border-outline-variant">
+      <span class="font-label-caps text-label-caps text-on-surface-variant">MY HISTORY</span>
+      <div id="mmenu-history-list" class="max-h-60 overflow-y-auto pb-2">
+        <!-- JS(app/mobile-app.js renderMobileMenuHistory)가 세션 목록 또는 로그인 안내로 채움 -->
+      </div>
     </div>
     <nav class="flex-1 flex flex-col py-2">
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" data-mgoto="leaderboard">

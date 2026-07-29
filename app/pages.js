@@ -16,7 +16,7 @@ var _lbCache = { alltime: null, weekly: null };
 
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
-  ["dashboard", "livefeed", "discussions", "leaderboard"].forEach(function (p) {
+  ["dashboard", "livefeed", "news", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
   });
@@ -37,6 +37,7 @@ function showAppPage(name) {
   var titles = {
     dashboard:    ["Intelligence Dashboard", "Quick verification · ANN 7-Layer Engine"],
     livefeed:     ["Live Feed", "Recent public verification activity"],
+    news:         ["News Feed", "AI News · World News"],
     discussions:  ["Discussions", "Top discussion threads"],
     leaderboard:  ["Leaderboard", "Top verifiers by ANN Points"],
   };
@@ -46,10 +47,15 @@ function showAppPage(name) {
   if (name === "livefeed") {
     loadLiveFeed();
     _livefeedTimer = setInterval(loadLiveFeed, LIVEFEED_REFRESH_MS);
+  } else if (name === "news") {
+    loadDesktopNews(document.querySelector("#page-news .lb-tab.on").getAttribute("data-newstab"));
   } else if (name === "discussions") {
     loadDiscussions();
   } else if (name === "leaderboard") {
-    loadLeaderboard(document.querySelector(".lb-tab.on").getAttribute("data-period"));
+    // #page-leaderboard로 한정 — News 페이지도 같은 .lb-tab/.lb-tabs 클래스를 재사용해서(둘 다
+    // 원래 리더보드 전용이던 pill-tab 스타일) 스코프 없는 querySelector는 News의 탭을 먼저
+    // 집을 수 있음(문서 순서상 News가 Leaderboard보다 앞에 있음) — data-period가 없어 버그.
+    loadLeaderboard(document.querySelector("#page-leaderboard .lb-tab.on").getAttribute("data-period"));
   }
 }
 
@@ -212,12 +218,122 @@ function _renderLeaderboard(data, period) {
   document.getElementById(containerId).innerHTML = html;
 }
 
+// ── News Feed (desktop) — 모바일 News 탭(app/mobile-app.js)과 동일한 실제 엔드포인트를
+// 재사용. 카테고리 컬러 팔레트(AI_NEWS_TOPIC_CATEGORY 등)는 Tailwind 토큰 기반이라 데스크톱
+// 커스텀 CSS 시스템(.pg-badge)엔 안 맞아 재사용하지 않고, 기존 .pg-badge-neutral로 통일—
+// 데스크톱 다른 리스트 페이지(Live Feed/Discussions)도 카테고리별 컬러 구분 없이 동일 패턴.
+var _desktopNewsCache = { ai: null, world: null };
+
+function loadDesktopNews(tab) {
+  tab = tab || "ai";
+  var aiTabBtn = document.getElementById("news-tab-ai");
+  var worldTabBtn = document.getElementById("news-tab-world");
+  if (aiTabBtn) aiTabBtn.classList.toggle("on", tab === "ai");
+  if (worldTabBtn) worldTabBtn.classList.toggle("on", tab === "world");
+  var aiList = document.getElementById("news-ai-list");
+  var worldList = document.getElementById("news-world-list");
+  if (aiList) aiList.classList.toggle("hidden", tab !== "ai");
+  if (worldList) worldList.classList.toggle("hidden", tab !== "world");
+  if (tab === "ai") _loadDesktopNewsAi();
+  else _loadDesktopNewsWorld();
+}
+
+async function _loadDesktopNewsAi() {
+  var containerId = "news-ai-list";
+  if (_desktopNewsCache.ai) { _renderDesktopNewsAi(_desktopNewsCache.ai); return; }
+  _pgSkeleton(containerId, 6);
+  try {
+    var res = await fetch(API_URL + "/api/v4/news/feed?limit=20");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var articles = Array.isArray(data.articles) ? data.articles : [];
+    _desktopNewsCache.ai = articles;
+    _renderDesktopNewsAi(articles);
+  } catch (e) {
+    console.warn("[news:ai] load failed:", e.message);
+    _pgError(containerId, _loadDesktopNewsAi);
+  }
+}
+
+function _renderDesktopNewsAi(articles) {
+  var containerId = "news-ai-list";
+  if (!articles.length) { _pgEmpty(containerId, "No news available"); return; }
+  var html = articles.map(function (a) {
+    var cat = (typeof AI_NEWS_TOPIC_CATEGORY !== "undefined" ? AI_NEWS_TOPIC_CATEGORY[a.topicId] : null) || "World";
+    return (
+      '<div class="pg-card">' +
+        '<div class="pg-card-row">' +
+          '<span class="pg-badge pg-badge-neutral">' + escapeHtml(cat.toUpperCase()) + '</span>' +
+          (typeof a.trust_score === "number" ? '<span class="pg-meta-item">' + a.trust_score + '%</span>' : "") +
+          (a.trust_grade ? '<span class="pg-meta-item">' + escapeHtml(a.trust_grade) + '</span>' : "") +
+        '</div>' +
+        '<div class="pg-text">' + escapeHtml(a.title || "") + '</div>' +
+        (a.excerpt ? '<div class="pg-meta"><span class="pg-meta-item">' + escapeHtml(a.excerpt.toString().slice(0, 140)) + '</span></div>' : "") +
+      '</div>'
+    );
+  }).join("");
+  document.getElementById(containerId).innerHTML = html;
+}
+
+async function _loadDesktopNewsWorld() {
+  var containerId = "news-world-list";
+  if (_desktopNewsCache.world) { _renderDesktopNewsWorld(_desktopNewsCache.world); return; }
+  _pgSkeleton(containerId, 6);
+  try {
+    var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
+    _desktopNewsCache.world = items;
+    _renderDesktopNewsWorld(items);
+  } catch (e) {
+    console.warn("[news:world] load failed:", e.message);
+    _pgError(containerId, _loadDesktopNewsWorld);
+  }
+}
+
+function _renderDesktopNewsWorld(items) {
+  var containerId = "news-world-list";
+  var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
+  if (!filtered.length) { _pgEmpty(containerId, "No news available"); return; }
+  var html = filtered.map(function (it) {
+    return (
+      '<div class="pg-card clickable" data-url="' + escapeHtml(it.topUrl) + '">' +
+        '<div class="pg-card-row">' +
+          '<span class="pg-badge pg-badge-neutral">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
+          (it.topSource ? '<span class="pg-meta-item">' + escapeHtml(it.topSource) + '</span>' : "") +
+        '</div>' +
+        '<div class="pg-text">' + escapeHtml(it.topTitle) + '</div>' +
+        (it.topSnippet ? '<div class="pg-meta"><span class="pg-meta-item">' + escapeHtml(it.topSnippet.toString().slice(0, 140)) + '</span></div>' : "") +
+      '</div>'
+    );
+  }).join("");
+  var el = document.getElementById(containerId);
+  el.innerHTML = html;
+  // 클릭 = "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접
+  // verify 숏컷과 달리 여기도 그 원칙을 따름.
+  el.querySelectorAll("[data-url]").forEach(function (card) {
+    card.addEventListener("click", function () {
+      var url = card.getAttribute("data-url");
+      if (!url) return;
+      showAppPage("dashboard");
+      if (typeof submitChatMessage === "function") submitChatMessage(url);
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
-  document.querySelectorAll(".lb-tab").forEach(function (tab) {
+  // News 페이지도 같은 .lb-tab pill 스타일을 재사용해서(data-period 대신 data-newstab을 씀)
+  // 두 셀렉터를 분리 — 안 그러면 News 탭 클릭이 loadLeaderboard(null)을 부르고, News 자체
+  // 전환은 안 일어남.
+  document.querySelectorAll(".lb-tab[data-period]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
+  });
+  document.querySelectorAll(".lb-tab[data-newstab]").forEach(function (tab) {
+    tab.addEventListener("click", function () { loadDesktopNews(tab.getAttribute("data-newstab")); });
   });
 
   // Profile 탭 — 별도 페이지 없음(스펙: "로그인/로그아웃"만). 로그인 상태면 로그아웃,

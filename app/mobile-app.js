@@ -325,8 +325,20 @@ async function _loadMobileMyRank() {
 // 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
 function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
 
-function _mhomeScrollToLatest(el) {
-  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "end" });
+// setTimeout(100ms) — DOM 삽입 직후 곧바로 scrollIntoView를 호출하면 레이아웃이 아직
+// 확정 전이라 타겟이 화면 밖에 생성된 채로 남는 경우가 실측됨(레이아웃 안정화 대기 필요).
+// 매번 #mhome-chat-log의 실제 마지막 자식을 새로 조회 — mobileReplaceLoadingWithResult()가
+// 같은 wrapper의 innerHTML만 바꾸는 경우에도 항상 올바른 최신 요소를 잡음.
+function _mhomeScrollToLatest() {
+  setTimeout(function () {
+    var log = document.getElementById("mhome-chat-log");
+    var lastMsg = log && log.lastElementChild;
+    if (lastMsg && lastMsg.scrollIntoView) {
+      lastMsg.scrollIntoView({ behavior: "smooth", block: "end" });
+    } else {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+  }, 100);
 }
 
 // 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
@@ -350,7 +362,7 @@ function mobileAppendUserBubble(text) {
   bubble.textContent = text;
   row.appendChild(bubble);
   log.appendChild(row);
-  _mhomeScrollToLatest(row);
+  _mhomeScrollToLatest();
   return row;
 }
 
@@ -368,7 +380,7 @@ function mobileAppendAiBubble(text, shouldVerify, extractedClaim) {
         : '') +
     '</div>';
   log.appendChild(row);
-  _mhomeScrollToLatest(row);
+  _mhomeScrollToLatest();
   var verifyBtn = row.querySelector(".mhome-verify-btn");
   if (verifyBtn) {
     verifyBtn.addEventListener("click", function () {
@@ -390,7 +402,7 @@ function mobileAppendTypingBubble(id) {
       '<span class="mhome-loading-dots"><span></span><span></span><span></span></span>' +
     '</div>';
   log.appendChild(row);
-  _mhomeScrollToLatest(row);
+  _mhomeScrollToLatest();
   return row;
 }
 
@@ -407,25 +419,24 @@ function mobileAppendLoadingBubble(id) {
       '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">ANN 7-LAYER ENGINE</p>' +
     '</div>';
   log.appendChild(row);
-  _mhomeScrollToLatest(row);
+  _mhomeScrollToLatest();
   return row;
 }
 
-function mobileReplaceLoadingWithResult(id, entry, isError) {
-  var row = document.getElementById("mhome-pending-" + id);
-  if (!row) return;
-  if (isError) {
-    row.innerHTML =
-      '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%;border-color:#ba1a1a">' +
-        '<p class="font-body-md text-error">' + escapeHtml(entry.errorKo || "Verification failed") + '</p>' +
-      '</div>';
-    return;
-  }
+// HTML 문자열 빌더만 분리 — mobileReplaceLoadingWithResult(라이브 검증)와 히스토리 재생
+// (renderMobileMenuHistory → 과거 세션 재구성) 양쪽에서 공유. 버튼 클릭 리스너는 각 호출부가
+// 자기 DOM에 붙임(빌더는 순수 문자열만 반환).
+function _mhomeErrorBubbleHtml(errorKo) {
+  return '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%;border-color:#ba1a1a">' +
+      '<p class="font-body-md text-error">' + escapeHtml(errorKo || "Verification failed") + '</p>' +
+    '</div>';
+}
+
+function _mhomeResultBubbleHtml(entry) {
   var info = verdictInfo(entry.verdictClass);
   var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
   var pct = Math.round((entry.confidence || 0) * 100);
-  row.innerHTML =
-    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+  return '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
       '<div class="flex items-center gap-2 mb-2">' +
         '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
         '<span class="font-body-sm font-bold text-primary">' + pct + '%</span>' +
@@ -433,8 +444,49 @@ function mobileReplaceLoadingWithResult(id, entry, isError) {
       '<p class="font-body-md text-on-surface mb-2">' + escapeHtml((entry.claim || "").toString().slice(0, 120)) + '</p>' +
       '<button class="mhome-report-btn w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">View full report</button>' +
     '</div>';
+}
+
+function mobileReplaceLoadingWithResult(id, entry, isError) {
+  var row = document.getElementById("mhome-pending-" + id);
+  if (!row) return;
+  if (isError) {
+    row.innerHTML = _mhomeErrorBubbleHtml(entry.errorKo);
+    _mhomeScrollToLatest();
+    return;
+  }
+  row.innerHTML = _mhomeResultBubbleHtml(entry);
   var reportBtn = row.querySelector(".mhome-report-btn");
   if (reportBtn) reportBtn.addEventListener("click", function () { renderRightPanel(entry); });
+  _mhomeScrollToLatest();
+}
+
+// 과거 세션(history.js selectSession()의 모바일 버전) — desktop의 appendUserBubble/
+// appendAiBubble(.um/.am 스타일)을 그대로 쓰면 mobile paper-card UI에 안 맞는 데스크톱
+// 버블이 섞여 보이므로, 같은 mobileAppend*/빌더로 #mhome-chat-log를 다시 그림.
+function mobileSelectSession(session) {
+  if (typeof _currentSession !== "undefined") _currentSession = session;
+  var log = _mhomeChatLog();
+  if (log) log.innerHTML = "";
+  session.messages.forEach(function (m) {
+    if (m.role === "user") {
+      mobileAppendUserBubble(m.content);
+    } else if (m.role === "assistant") {
+      mobileAppendAiBubble(m.content, m.shouldVerify, m.extractedClaim);
+    } else if (m.role === "verify") {
+      var row = document.createElement("div");
+      row.className = "flex justify-start";
+      row.innerHTML = _mhomeResultBubbleHtml(m.entry);
+      log.appendChild(row);
+      var reportBtn = row.querySelector(".mhome-report-btn");
+      if (reportBtn) reportBtn.addEventListener("click", function () { renderRightPanel(m.entry); });
+    } else if (m.role === "verify-error") {
+      var errRow = document.createElement("div");
+      errRow.className = "flex justify-start";
+      errRow.innerHTML = _mhomeErrorBubbleHtml(m.errKo);
+      log.appendChild(errRow);
+    }
+  });
+  _mhomeScrollToLatest();
 }
 
 // ── Input router (Home page) ──────────────────────────────────────────────
@@ -581,6 +633,7 @@ function openMobileMenu() {
   var backdrop = document.getElementById("mmenu-backdrop");
   if (backdrop) backdrop.classList.remove("hidden");
   if (drawer) drawer.classList.remove("translate-x-full");
+  renderMobileMenuHistory(); // 매번 열 때 최신 세션 목록 반영
 }
 
 function closeMobileMenu() {
@@ -611,6 +664,47 @@ function renderMobileMenuHeader() {
     var signinBtn = document.getElementById("mmenu-signin-btn");
     if (signinBtn) signinBtn.addEventListener("click", function () { closeMobileMenu(); if (typeof doSignIn === "function") doSignIn(); });
   }
+  renderMobileMenuHistory();
+}
+
+// MY HISTORY — 데스크톱 사이드바 renderHistorySidebar()(app/history.js)와 동일한 데이터
+// 소스(loadSessions, localStorage). 순수 로컬 저장이라 실제로는 로그인 여부와 무관하게 항상
+// 조회 가능하지만(history.js 헤더 주석 참고), 스펙이 "로그인하면 볼 수 있음" 안내를 명시해
+// 로그인 유도 UX로 그대로 따름 — 로그인 안내가 기술적 제약이 아니라 UX 선택이라는 점 기록.
+function renderMobileMenuHistory() {
+  var el = document.getElementById("mmenu-history-list");
+  if (!el) return;
+  if (typeof currentUser === "undefined" || !currentUser) {
+    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">로그인하면 대화 기록을 볼 수 있습니다</p>';
+    return;
+  }
+  var list = (typeof loadSessions === "function") ? loadSessions() : [];
+  if (!list.length) {
+    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">No conversations yet</p>';
+    return;
+  }
+  var html = "";
+  var lastLabel = null;
+  list.forEach(function (s) {
+    var label = (typeof dayLabel === "function") ? dayLabel(s.lastActivityTs || s.ts) : "";
+    if (label !== lastLabel) {
+      html += '<div class="font-label-caps text-label-caps text-on-surface-variant mt-2 mb-1">' + escapeHtml(label) + '</div>';
+      lastLabel = label;
+    }
+    html += '<button class="mmenu-history-item w-full text-left py-2 font-body-sm text-on-surface" data-session-id="' + escapeHtml(s.id) + '" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' +
+      escapeHtml(s.title || "(untitled)") + '</button>';
+  });
+  el.innerHTML = html;
+  el.querySelectorAll("[data-session-id]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-session-id");
+      var found = (typeof loadSessions === "function") ? loadSessions().filter(function (s) { return s.id === id; })[0] : null;
+      if (found) {
+        closeMobileMenu();
+        mobileSelectSession(found);
+      }
+    });
+  });
 }
 
 function _wireMobileMenu() {
@@ -904,6 +998,8 @@ document.addEventListener("DOMContentLoaded", function () {
     verifyInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { mobileSubmitInput(verifyInput.value); verifyInput.value = ""; }
     });
+    // 키보드가 열리면서 뷰포트가 줄어들어 마지막 말풍선이 입력창 뒤로 가려지는 경우 대비
+    verifyInput.addEventListener("focus", function () { _mhomeScrollToLatest(); });
   }
 
   _wireMobileMenu();
