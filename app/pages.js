@@ -105,16 +105,22 @@ async function loadLiveFeed() {
 
     var html = items.map(function (it) {
       var info = verdictInfo(it.verdict);
+      var color = livefeedVerdictColor(it.verdict);
       var preview = (it.claimPreview || "").toString().slice(0, 80);
+      var hasScore = typeof it.trustScore === "number";
       return (
-        '<div class="pg-card">' +
-          '<div class="pg-card-row">' +
-            '<span class="' + _badgeClass(info.tone) + '">' + escapeHtml(info.label) + '</span>' +
-            (typeof it.trustScore === "number" ? '<span class="pg-meta-item">' + it.trustScore + '%</span>' : '') +
-            (it.country ? '<span class="pg-meta-item">' + escapeHtml(it.country) + '</span>' : '') +
+        '<div class="lf-card">' +
+          '<div class="lf-bar" style="background:' + color + '"></div>' +
+          '<div class="lf-body">' +
+            '<div class="lf-row">' +
+              '<span class="lf-badge" style="background:' + color + '1a;border:1px solid ' + color + '4d;color:' + color + '">' + escapeHtml(info.label) + '</span>' +
+              (hasScore ? '<span class="pg-meta-item">' + it.trustScore + '%</span>' : '') +
+              (it.country ? '<span class="pg-meta-item">' + escapeHtml(it.country) + '</span>' : '') +
+            '</div>' +
+            '<div class="lf-text">' + escapeHtml(preview) + '</div>' +
+            (hasScore ? '<div class="lf-confidence-track"><div class="lf-confidence-fill" style="width:' + Math.max(0, Math.min(100, it.trustScore)) + '%;background:' + color + '"></div></div>' : '') +
+            '<div class="pg-meta">' + escapeHtml(relativeTime(it.createdAt)) + '</div>' +
           '</div>' +
-          '<div class="pg-text">' + escapeHtml(preview) + '</div>' +
-          '<div class="pg-meta">' + escapeHtml(relativeTime(it.createdAt)) + '</div>' +
         '</div>'
       );
     }).join("");
@@ -136,19 +142,26 @@ async function loadDiscussions() {
     var items = Array.isArray(data.ranking) ? data.ranking : [];
     if (!items.length) { _pgEmpty(containerId, "No discussions yet"); return; }
 
-    var html = items.map(function (it) {
+    var html = items.map(function (it, i) {
       var title = (it.claimPreview || "").toString().slice(0, 100);
+      var commentCount = it.commentCount || 0;
       var badgeHtml = it.verdict
         ? '<span class="' + _badgeClass(verdictInfo(it.verdict).tone) + '">' + escapeHtml(verdictInfo(it.verdict).label) + '</span>'
         : '<span class="pg-badge pg-badge-neutral">Community</span>';
       return (
-        '<div class="pg-card clickable" data-discuss-id="' + escapeHtml(it.id) + '">' +
-          '<div class="pg-card-row">' + badgeHtml + '</div>' +
-          '<div class="pg-text">' + escapeHtml(title) + '</div>' +
-          '<div class="pg-meta">' +
-            '<span class="pg-meta-item">💬 ' + (it.commentCount || 0) + '</span>' +
-            '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
-            '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
+        '<div class="disc-card" data-discuss-id="' + escapeHtml(it.id) + '">' +
+          '<span class="disc-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
+          '<div class="disc-body">' +
+            '<div class="pg-card-row">' +
+              badgeHtml +
+              (commentCount >= 10 ? '<span class="disc-hot">HOT</span>' : '') +
+            '</div>' +
+            '<div class="pg-text">' + escapeHtml(title) + '</div>' +
+            '<div class="pg-meta">' +
+              '<span class="pg-meta-item">💬 ' + commentCount + '</span>' +
+              '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
+              '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
+            '</div>' +
           '</div>' +
         '</div>'
       );
@@ -238,10 +251,6 @@ function loadDesktopNews(tab) {
   else _loadDesktopNewsWorld();
 }
 
-function _newsDiscussBtnHtml() {
-  return '<button class="news-discuss-btn">토론</button>';
-}
-
 function _wireNewsDiscussButtons(el) {
   el.querySelectorAll(".news-discuss-btn").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -273,15 +282,26 @@ function _renderDesktopNewsAi(articles) {
   if (!articles.length) { _pgEmpty(containerId, "No news available"); return; }
   var html = articles.map(function (a) {
     var cat = (typeof AI_NEWS_TOPIC_CATEGORY !== "undefined" ? AI_NEWS_TOPIC_CATEGORY[a.topicId] : null) || AI_NEWS_TOPIC_CATEGORY_FALLBACK;
+    var thumbHtml = a.thumb ? '<img src="' + escapeHtml(a.thumb) + '" class="news-thumb" loading="lazy"/>' : "";
+    // AI News는 자체 trust_score/grade가 이미 있는 합성 기사라 topSource/topUrl이 없음 —
+    // "출처" 자리엔 source_label(예: "AI Synthesized · Source1, Source2")을 사용, "새 팩트체크"는
+    // 원문 URL 대신 제목 텍스트로 재검증(World/Local News의 topUrl과 대응되는 유일한 필드).
     return (
       '<div class="news-card">' +
-        '<span class="news-badge">' + escapeHtml(cat.toUpperCase()) + '</span>' +
-        '<div class="news-title">' + escapeHtml(a.title || "") + '</div>' +
-        (a.excerpt ? '<div class="news-summary">' + escapeHtml(a.excerpt.toString().slice(0, 160)) + '</div>' : "") +
-        '<div class="news-footer">' +
-          (typeof a.trust_score === "number" ? '<span class="news-score">' + a.trust_score + '%</span>' : "") +
-          (a.trust_grade ? '<span class="news-grade">' + escapeHtml(a.trust_grade) + '</span>' : "") +
-          _newsDiscussBtnHtml() +
+        thumbHtml +
+        '<div class="news-body">' +
+          '<span class="news-badge">' + escapeHtml(cat.toUpperCase()) + '</span>' +
+          '<div class="news-title">' + escapeHtml(a.title || "") + '</div>' +
+          (a.excerpt ? '<div class="news-summary">' + escapeHtml(a.excerpt.toString().slice(0, 160)) + '</div>' : "") +
+          '<div class="news-source-row">' +
+            (a.source_label ? '<span class="news-source">' + escapeHtml(a.source_label) + '</span>' : "") +
+            (typeof a.trust_score === "number" ? '<span class="news-score">' + a.trust_score + '%</span>' : "") +
+            (a.trust_grade ? '<span class="news-grade">' + escapeHtml(a.trust_grade) + '</span>' : "") +
+          '</div>' +
+          '<div class="news-actions">' +
+            '<button class="news-discuss-btn">토론</button>' +
+            '<button class="news-factcheck-btn" data-title="' + escapeHtml(a.title || "") + '">새 팩트체크</button>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );
@@ -289,6 +309,15 @@ function _renderDesktopNewsAi(articles) {
   var el = document.getElementById(containerId);
   el.innerHTML = html;
   _wireNewsDiscussButtons(el);
+  el.querySelectorAll(".news-factcheck-btn[data-title]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var title = btn.getAttribute("data-title");
+      if (!title) return;
+      showAppPage("dashboard");
+      if (typeof submitChatMessage === "function") submitChatMessage(title);
+    });
+  });
 }
 
 // 로컬 뉴스 — annverify.ai worker에 전용 엔드포인트 없음(모바일 작업에서 확인됨). 같은
@@ -346,15 +375,19 @@ function _renderDesktopNewsWorldLike(containerId, items) {
     return;
   }
   var html = filtered.map(function (it) {
+    var thumbHtml = it.thumb ? '<img src="' + escapeHtml(it.thumb) + '" class="news-thumb" loading="lazy"/>' : "";
     return (
       '<div class="news-card">' +
-        '<span class="news-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
-        '<div class="news-title">' + escapeHtml(it.topTitle) + '</div>' +
-        (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
-        '<div class="news-footer">' +
-          (it.topSource ? '<span class="news-score" style="color:var(--muted)">' + escapeHtml(it.topSource) + '</span>' : "") +
-          _newsDiscussBtnHtml() +
-          '<button class="news-discuss-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
+        thumbHtml +
+        '<div class="news-body">' +
+          '<span class="news-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
+          '<div class="news-title">' + escapeHtml(it.topTitle) + '</div>' +
+          (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
+          (it.topSource ? '<div class="news-source-row"><span class="news-source">' + escapeHtml(it.topSource) + '</span></div>' : "") +
+          '<div class="news-actions">' +
+            '<button class="news-discuss-btn">토론</button>' +
+            '<button class="news-factcheck-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );
@@ -364,7 +397,7 @@ function _renderDesktopNewsWorldLike(containerId, items) {
   _wireNewsDiscussButtons(el);
   // "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접 verify
   // 숏컷과 달리 여기도 그 원칙을 따름.
-  el.querySelectorAll("[data-url]").forEach(function (btn) {
+  el.querySelectorAll(".news-factcheck-btn[data-url]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
       var url = btn.getAttribute("data-url");
