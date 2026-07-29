@@ -214,17 +214,25 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 /* News Feed — 모바일 News 탭(paper-card 톤)과 맞춘 전용 스타일. 데스크톱 다른 리스트
    페이지(Live Feed/Discussions)의 흰 배경 .pg-card와 의도적으로 다름 — 스펙이 모바일과
    동일한 룩을 명시. 색상은 모바일 Tailwind 토큰(paper-base #F5F0E8/paper-card #FDFAF5/
-   paper-border #D4C9B0)과 정확히 일치하는 값을 그대로 사용. "primary" 강조색만은 모바일의
-   #005235 대신 데스크톱 기존 --c(#4A7A6A)를 써서 데스크톱 전체 톤(버튼/링크 등)과 통일. */
+   paper-border #D4C9B0)과 정확히 일치. accent color는 #005235로 통일(News 전용 클래스만 —
+   데스크톱 전역 --c(#4A7A6A)는 그대로 유지, 사이드바/다른 페이지 버튼까지 바꾸지 않음). */
 #page-news{background:#F5F0E8}
-.news-card{background:#FDFAF5;border:1px solid #D4C9B0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
-.news-badge{display:inline-flex;align-self:flex-start;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(74,122,106,.1);color:var(--c)}
-.news-title{font-family:'Source Serif 4',serif;font-size:20px;line-height:1.4;color:var(--dark)}
-.news-summary{font-family:'Libre Franklin',sans-serif;font-size:14px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.news-card{background:#FDFAF5;border:1px solid #D4C9B0;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.news-badge{display:inline-flex;align-self:flex-start;padding:3px 10px;border-radius:9999px;font-family:'Libre Franklin',sans-serif;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,82,53,.1);color:#005235}
+.news-title{font-family:'Source Serif 4',serif;font-size:20px;font-weight:500;line-height:1.4;color:#1c1b1b}
+.news-summary{font-family:'Libre Franklin',sans-serif;font-size:14px;color:#3f4943;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .news-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px}
-.news-score{color:var(--c);font-weight:700;font-size:14px;flex-shrink:0}
+.news-score{color:#005235;font-weight:700;font-size:14px;flex-shrink:0}
 .news-grade{padding:2px 8px;border-radius:4px;background:#F0EEEA;color:var(--muted);font-size:11px;font-weight:700;flex-shrink:0}
-.news-discuss-btn{color:var(--c);font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;padding:4px 8px;font-family:'Libre Franklin',sans-serif;margin-left:auto}
+.news-discuss-btn{color:#005235;font-size:13px;font-weight:700;background:none;border:1px solid #005235;border-radius:6px;cursor:pointer;padding:4px 10px;font-family:'Libre Franklin',sans-serif;margin-left:auto}
+
+/* News Feed 탭 버튼 — .lb-tab(Leaderboard 전용)과 분리된 독립 클래스. News/Leaderboard가
+   같은 .lb-tab을 공유하던 이전 구현은 셀렉터 충돌 버그(#24)를 한 번 냈고, 이제 시각 스펙도
+   서로 달라져(개별 rounded-full pill vs Leaderboard의 좌우만 둥근 세그먼트 그룹) 완전히
+   분리하는 편이 안전 — Leaderboard의 .lb-tab은 이 변경으로 전혀 건드리지 않음. */
+.news-tabs{display:flex;gap:8px;max-width:860px;margin:0 auto 24px}
+.news-tab{padding:8px 20px;background:transparent;border:1px solid #D4C9B0;border-radius:9999px;color:#3f4943;font-weight:500;font-size:14px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
+.news-tab.on{background:#005235;color:#fff;border-color:#005235}
 
 /* Leaderboard */
 .lb-tabs{display:flex;max-width:860px;margin:0 auto 16px}
