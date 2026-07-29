@@ -218,24 +218,38 @@ function _renderLeaderboard(data, period) {
   document.getElementById(containerId).innerHTML = html;
 }
 
-// ── News Feed (desktop) — 모바일 News 탭(app/mobile-app.js)과 동일한 실제 엔드포인트를
-// 재사용. 카테고리 컬러 팔레트(AI_NEWS_TOPIC_CATEGORY 등)는 Tailwind 토큰 기반이라 데스크톱
-// 커스텀 CSS 시스템(.pg-badge)엔 안 맞아 재사용하지 않고, 기존 .pg-badge-neutral로 통일—
-// 데스크톱 다른 리스트 페이지(Live Feed/Discussions)도 카테고리별 컬러 구분 없이 동일 패턴.
-var _desktopNewsCache = { ai: null, world: null };
+// ── News Feed (desktop) — 모바일 News 탭(app/mobile-app.js)과 동일한 실제 엔드포인트 재사용,
+// 카드 디자인도 모바일 paper-card 톤에 맞춤(app/style.css .news-* 참고, 데스크톱 다른 리스트
+// 페이지의 흰 .pg-card와 의도적으로 다름). 카테고리 컬러는 모바일처럼 카테고리별로 세분화하지
+// 않고 단일 강조색(var(--c)) 10% 배경으로 통일 — 데스크톱 다른 페이지도 verdict 톤 외엔
+// 카테고리별 색 구분이 없는 기존 패턴을 유지.
+var _desktopNewsCache = { ai: null, local: null, world: null };
+var AI_NEWS_TOPIC_CATEGORY_FALLBACK = "World"; // AI_NEWS_TOPIC_CATEGORY(app/mobile-app.js)의 기본값과 동일
 
 function loadDesktopNews(tab) {
   tab = tab || "ai";
-  var aiTabBtn = document.getElementById("news-tab-ai");
-  var worldTabBtn = document.getElementById("news-tab-world");
-  if (aiTabBtn) aiTabBtn.classList.toggle("on", tab === "ai");
-  if (worldTabBtn) worldTabBtn.classList.toggle("on", tab === "world");
-  var aiList = document.getElementById("news-ai-list");
-  var worldList = document.getElementById("news-world-list");
-  if (aiList) aiList.classList.toggle("hidden", tab !== "ai");
-  if (worldList) worldList.classList.toggle("hidden", tab !== "world");
+  ["ai", "local", "world"].forEach(function (t) {
+    var tabBtn = document.getElementById("news-tab-" + t);
+    var list = document.getElementById("news-" + t + "-list");
+    if (tabBtn) tabBtn.classList.toggle("on", t === tab);
+    if (list) list.classList.toggle("hidden", t !== tab);
+  });
   if (tab === "ai") _loadDesktopNewsAi();
+  else if (tab === "local") _loadDesktopNewsLocal();
   else _loadDesktopNewsWorld();
+}
+
+function _newsDiscussBtnHtml() {
+  return '<button class="news-discuss-btn">토론</button>';
+}
+
+function _wireNewsDiscussButtons(el) {
+  el.querySelectorAll(".news-discuss-btn").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+    });
+  });
 }
 
 async function _loadDesktopNewsAi() {
@@ -259,25 +273,47 @@ function _renderDesktopNewsAi(articles) {
   var containerId = "news-ai-list";
   if (!articles.length) { _pgEmpty(containerId, "No news available"); return; }
   var html = articles.map(function (a) {
-    var cat = (typeof AI_NEWS_TOPIC_CATEGORY !== "undefined" ? AI_NEWS_TOPIC_CATEGORY[a.topicId] : null) || "World";
+    var cat = (typeof AI_NEWS_TOPIC_CATEGORY !== "undefined" ? AI_NEWS_TOPIC_CATEGORY[a.topicId] : null) || AI_NEWS_TOPIC_CATEGORY_FALLBACK;
     return (
-      '<div class="pg-card">' +
-        '<div class="pg-card-row">' +
-          '<span class="pg-badge pg-badge-neutral">' + escapeHtml(cat.toUpperCase()) + '</span>' +
-          (typeof a.trust_score === "number" ? '<span class="pg-meta-item">' + a.trust_score + '%</span>' : "") +
-          (a.trust_grade ? '<span class="pg-meta-item">' + escapeHtml(a.trust_grade) + '</span>' : "") +
+      '<div class="news-card">' +
+        '<span class="news-badge">' + escapeHtml(cat.toUpperCase()) + '</span>' +
+        '<div class="news-title">' + escapeHtml(a.title || "") + '</div>' +
+        (a.excerpt ? '<div class="news-summary">' + escapeHtml(a.excerpt.toString().slice(0, 160)) + '</div>' : "") +
+        '<div class="news-footer">' +
+          (typeof a.trust_score === "number" ? '<span class="news-score">' + a.trust_score + '%</span>' : "") +
+          (a.trust_grade ? '<span class="news-grade">' + escapeHtml(a.trust_grade) + '</span>' : "") +
+          _newsDiscussBtnHtml() +
         '</div>' +
-        '<div class="pg-text">' + escapeHtml(a.title || "") + '</div>' +
-        (a.excerpt ? '<div class="pg-meta"><span class="pg-meta-item">' + escapeHtml(a.excerpt.toString().slice(0, 140)) + '</span></div>' : "") +
       '</div>'
     );
   }).join("");
-  document.getElementById(containerId).innerHTML = html;
+  var el = document.getElementById(containerId);
+  el.innerHTML = html;
+  _wireNewsDiscussButtons(el);
+}
+
+// 로컬 뉴스 — annverify.ai worker에 전용 엔드포인트 없음(모바일 작업에서 확인됨). 같은
+// /api/v4/partner/global을 country=KR로 호출(실제로는 한국 Google Trends 기반 트렌드).
+async function _loadDesktopNewsLocal() {
+  var containerId = "news-local-list";
+  if (_desktopNewsCache.local) { _renderDesktopNewsWorldLike(containerId, _desktopNewsCache.local); return; }
+  _pgSkeleton(containerId, 6);
+  try {
+    var res = await fetch(API_URL + "/api/v4/partner/global?country=KR&type=ranking");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
+    _desktopNewsCache.local = items;
+    _renderDesktopNewsWorldLike(containerId, items);
+  } catch (e) {
+    console.warn("[news:local] load failed:", e.message);
+    _pgError(containerId, _loadDesktopNewsLocal);
+  }
 }
 
 async function _loadDesktopNewsWorld() {
   var containerId = "news-world-list";
-  if (_desktopNewsCache.world) { _renderDesktopNewsWorld(_desktopNewsCache.world); return; }
+  if (_desktopNewsCache.world) { _renderDesktopNewsWorldLike(containerId, _desktopNewsCache.world); return; }
   _pgSkeleton(containerId, 6);
   try {
     var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
@@ -285,36 +321,40 @@ async function _loadDesktopNewsWorld() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
     _desktopNewsCache.world = items;
-    _renderDesktopNewsWorld(items);
+    _renderDesktopNewsWorldLike(containerId, items);
   } catch (e) {
     console.warn("[news:world] load failed:", e.message);
     _pgError(containerId, _loadDesktopNewsWorld);
   }
 }
 
-function _renderDesktopNewsWorld(items) {
-  var containerId = "news-world-list";
+// World News/로컬 뉴스 둘 다 같은 /api/v4/partner/global 응답 모양이라 렌더러 공유.
+function _renderDesktopNewsWorldLike(containerId, items) {
   var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
   if (!filtered.length) { _pgEmpty(containerId, "No news available"); return; }
   var html = filtered.map(function (it) {
     return (
-      '<div class="pg-card clickable" data-url="' + escapeHtml(it.topUrl) + '">' +
-        '<div class="pg-card-row">' +
-          '<span class="pg-badge pg-badge-neutral">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
-          (it.topSource ? '<span class="pg-meta-item">' + escapeHtml(it.topSource) + '</span>' : "") +
+      '<div class="news-card">' +
+        '<span class="news-badge">' + escapeHtml((it.category || "social").toString().toUpperCase()) + '</span>' +
+        '<div class="news-title">' + escapeHtml(it.topTitle) + '</div>' +
+        (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
+        '<div class="news-footer">' +
+          (it.topSource ? '<span class="news-score" style="color:var(--muted)">' + escapeHtml(it.topSource) + '</span>' : "") +
+          _newsDiscussBtnHtml() +
+          '<button class="news-discuss-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
         '</div>' +
-        '<div class="pg-text">' + escapeHtml(it.topTitle) + '</div>' +
-        (it.topSnippet ? '<div class="pg-meta"><span class="pg-meta-item">' + escapeHtml(it.topSnippet.toString().slice(0, 140)) + '</span></div>' : "") +
       '</div>'
     );
   }).join("");
   var el = document.getElementById(containerId);
   el.innerHTML = html;
-  // 클릭 = "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접
-  // verify 숏컷과 달리 여기도 그 원칙을 따름.
-  el.querySelectorAll("[data-url]").forEach(function (card) {
-    card.addEventListener("click", function () {
-      var url = card.getAttribute("data-url");
+  _wireNewsDiscussButtons(el);
+  // "새 팩트체크" — 데스크톱은 항상 채팅 우선(submitChatMessage)이라 mobile의 직접 verify
+  // 숏컷과 달리 여기도 그 원칙을 따름.
+  el.querySelectorAll("[data-url]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var url = btn.getAttribute("data-url");
       if (!url) return;
       showAppPage("dashboard");
       if (typeof submitChatMessage === "function") submitChatMessage(url);
