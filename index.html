@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ANN Verify — Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,700;1,8..60,400;1,8..60,500&family=Libre+Franklin:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="app/style.css"/>
 
@@ -12,7 +14,9 @@
      verdict-*/paper-* 7개 컬러 토큰을 추가했다. 데스크톱(app/style.css, --c 등 커스텀
      변수 기반)과는 완전히 별개 디자인 시스템 — 의도적으로 섞지 않음. ════ -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<!-- font-display:block(swap 대신) — 폰트 로드 전 폴백 글리프가 잠깐 그려지는 창을 없애기 위함.
+     실기기 Android Chrome에서 workspace_premium 아이콘이 별 모양으로 렌더링되는 문제 대응(#19) -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet"/>
 <script id="tailwind-config">
 tailwind.config = {
   darkMode: "class",
@@ -263,7 +267,7 @@ tailwind.config = {
       </section>
       <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
         <div class="flex gap-sm">
-          <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">science</span></div>
+          <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">science</span></div>
           <div>
             <h4 class="font-body-md font-bold text-on-surface mb-0.5">Methodology Update</h4>
             <p class="font-body-sm text-on-surface-variant">The Bayesian Consensus engine has been updated to v4.2 for faster semantic cross-referencing.</p>
