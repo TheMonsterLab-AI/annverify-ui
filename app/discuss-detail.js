@@ -229,7 +229,7 @@ function _renderDiscussDetailHtml(post, myVote) {
 function _renderDiscussComments(comments) {
   var el = document.getElementById("dd-comments-list");
   if (!el) return;
-  if (!comments.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">No comments yet</p>'; return; }
+  if (!comments.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">댓글이 없습니다. 첫 댓글을 남겨보세요.</p>'; return; }
   el.innerHTML = comments.map(function (c) {
     return '<div class="paper-card p-sm">' +
         '<div class="flex items-center justify-between mb-1">' +

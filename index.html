@@ -60,6 +60,9 @@ tailwind.config = {
 #mobile-app .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 #mobile-app .mnews-pill, #mobile-app .mnews-filter-pill { color: #3f4943; background-color: #EDE7D9; border-radius: 9999px; padding: 6px 16px; font-weight: 600; }
 #mobile-app .mnews-pill.on, #mobile-app .mnews-filter-pill.on { background-color: #1a6b4a; color: #fff; }
+/* AI News/로컬 뉴스/World News 3개 메인 탭만 대상 — 하단 카테고리 필터 칩(.mnews-filter-pill,
+   전체/정치/경제/사회/국제)은 더 조밀한 보조 UI라 별도 유지, 이 크기 규칙에서 제외. */
+#mobile-app .mnews-pill { font-size: 15px; padding: 10px 20px; min-height: 44px; }
 /* News 카드 "토론"/"새 팩트체크" 버튼 — 인라인 Tailwind 유틸(py-2 등, font-label-caps=9px)이
    너무 작아서(터치 타겟 44px 미달) #mobile-app 프리픽스로 우선순위를 올려 덮어씀. */
 #mobile-app .mnews-discuss-btn, #mobile-app .mnews-factcheck-btn { font-size: 15px; padding: 12px 20px; min-height: 44px; }

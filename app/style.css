@@ -259,7 +259,7 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
    서로 달라져(개별 rounded-full pill vs Leaderboard의 좌우만 둥근 세그먼트 그룹) 완전히
    분리하는 편이 안전 — Leaderboard의 .lb-tab은 이 변경으로 전혀 건드리지 않음. */
 .news-tabs{display:flex;gap:8px;max-width:860px;margin:0 auto 24px}
-.news-tab{padding:8px 20px;background:transparent;border:1px solid #D4C9B0;border-radius:9999px;color:#3f4943;font-weight:500;font-size:14px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
+.news-tab{padding:10px 20px;min-height:44px;background:transparent;border:1px solid #D4C9B0;border-radius:9999px;color:#3f4943;font-weight:500;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
 .news-tab.on{background:#005235;color:#fff;border-color:#005235}
 
 /* Leaderboard */
