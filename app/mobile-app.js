@@ -13,15 +13,16 @@
 //     shown as "50+" if it hits the cap rather than presenting a capped count as exact.
 //   - Discussions mockup shows participant avatar stacks (A1/A2/+8) — no participant data
 //     exists in discuss/ranking, so that's omitted rather than fabricated.
-//   - Discussions mockup alternates HOT badge vs. a category label (FINANCE/GEO-POLITICS) —
-//     there's no category field in the real data, so every card either gets HOT or nothing.
-//     Threshold: commentCount >= 3, chosen from the actual observed data range this session
-//     (most threads run 0-3 comments) since the mockup gives no numeric criteria.
-//   - "CLAIM ID" on Home's preview cards uses the real item id (first 6 chars, uppercased) —
-//     not a fabricated code.
+//   - Discussions mockup alternates a HOT fire badge vs. a category label (FINANCE/GEO-POLITICS)
+//     — discuss/ranking has no category field, but it does have `verdict` (nullable) and
+//     `sourceType`, matching desktop's existing badge logic (pages.js loadDiscussions()): when
+//     `verdict` is set, show it (VERIFIED/FALSE/...); otherwise show "Community" (sourceType
+//     'user' threads with no fact-check verdict yet). Mirrored here instead of the earlier
+//     commentCount-based HOT heuristic, since this uses real fields.
 //   - Discussions mockup cards also show a `visibility` (view count) icon+number — no view/
-//     impression field exists on discussPosts (checked worker/routes/v4/discuss.js), so it's
-//     omitted rather than fabricated; only the real `forum` (comment count) icon is kept.
+//     impression field exists on discussPosts today (checked worker/routes/v4/discuss.js), so
+//     it's rendered only when `viewCount` is actually present on the item (forward-compatible,
+//     not fabricated) — currently always absent, so it never renders.
 //   - Discussions mockup has a floating "+" (add_comment) FAB for starting a new thread — kept
 //     visually (#mdiscuss-fab), but there's no thread-creation endpoint and this app has no
 //     Firestore write path (auth-only, per app/auth.js), so it opens annverify.ai's general
@@ -31,9 +32,9 @@ var MOBILE_LIVE_REFRESH_MS = 30000;
 var _mobileLiveTimer = null;
 
 var VERDICT_TONE_CLASSES = {
-  ok:  { line: "bg-verdict-verified", textBorder: "text-verdict-verified border-verdict-verified/20", bg10: "bg-verdict-verified/10", pillBorder: "border-primary bg-primary-container text-on-primary-container" },
-  mid: { line: "bg-verdict-disputed", textBorder: "text-verdict-disputed border-verdict-disputed/20", bg10: "bg-verdict-disputed/10", pillBorder: "border-tertiary bg-tertiary-container text-on-tertiary-container" },
-  err: { line: "bg-verdict-false",    textBorder: "text-verdict-false border-verdict-false/20",       bg10: "bg-verdict-false/10",    pillBorder: "border-error bg-error-container text-on-error-container" },
+  ok:  { line: "bg-verdict-verified", textBorder: "text-verdict-verified border-verdict-verified/20", bg10: "bg-verdict-verified/10" },
+  mid: { line: "bg-verdict-disputed", textBorder: "text-verdict-disputed border-verdict-disputed/20", bg10: "bg-verdict-disputed/10" },
+  err: { line: "bg-verdict-false",    textBorder: "text-verdict-false border-verdict-false/20",       bg10: "bg-verdict-false/10" },
 };
 
 // ── Mobile page router ───────────────────────────────────────────────────
@@ -110,11 +111,11 @@ async function _loadMobileHomeLive() {
       var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
       var pct = typeof it.trustScore === "number" ? it.trustScore : 0;
       var lineBg = tone.line;
-      return '<div class="paper-card mb-sm overflow-hidden transition-all">' +
+      return '<div class="paper-card relative mb-sm overflow-hidden transition-all">' +
+          '<div class="verdict-line ' + lineBg + '"></div>' +
           '<div class="p-sm">' +
-            '<div class="flex justify-between items-start mb-base">' +
-              '<span class="font-label-caps text-label-caps text-on-surface-variant">CLAIM ID: #' + escapeHtml((it.id || "").toString().slice(0, 6).toUpperCase()) + '</span>' +
-              '<div class="flex items-center px-2 py-0.5 rounded-full border ' + tone.pillBorder + ' font-label-caps text-label-caps">' + escapeHtml(info.label.toUpperCase()) + '</div>' +
+            '<div class="flex justify-end items-start mb-base">' +
+              '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
             '</div>' +
             '<p class="font-headline-sm text-headline-sm leading-tight mb-sm">' + escapeHtml((it.claimPreview || "").toString().slice(0, 140)) + '</p>' +
             '<div class="flex items-center gap-sm pt-sm border-t border-outline-variant">' +
@@ -155,7 +156,7 @@ async function loadMobileLiveFeed() {
             '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
             '<span class="text-on-surface-variant font-body-sm text-body-sm italic">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
           '</div>' +
-          '<p class="font-headline-sm text-headline-sm text-on-surface mb-md leading-snug">&quot;' + escapeHtml((it.claimPreview || "").toString().slice(0, 160)) + '&quot;</p>' +
+          '<p class="font-headline-sm text-headline-sm text-on-surface mb-md leading-snug">' + escapeHtml((it.claimPreview || "").toString().slice(0, 160)) + '</p>' +
           '<div class="space-y-base"><div class="flex justify-between font-label-caps text-label-caps text-on-surface-variant"><span>CONFIDENCE</span><span>' + pct + '%</span></div><div class="h-1 w-full bg-surface-container rounded-full overflow-hidden"><div class="h-full ' + tone.line + '" style="width:' + pct + '%"></div></div></div>' +
         '</article>';
     }).join("");
@@ -169,8 +170,6 @@ async function loadMobileLiveFeed() {
 // ── Discussions ──────────────────────────────────────────────────────────
 // discuss/ranking only ever returns the top 5 (worker-side RANKING_LIMIT), same limitation
 // already noted for the desktop Discussions page — not a browsable/paginated list.
-var HOT_COMMENT_THRESHOLD = 3;
-
 async function loadMobileDiscussions() {
   var el = document.getElementById("mdiscuss-list");
   if (!el) return;
@@ -181,18 +180,26 @@ async function loadMobileDiscussions() {
     var items = Array.isArray(data.ranking) ? data.ranking : [];
     if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No discussions yet</p>'; return; }
     el.innerHTML = items.map(function (it, i) {
-      var isHot = (it.commentCount || 0) >= HOT_COMMENT_THRESHOLD;
-      var numColor = isHot ? "text-secondary" : "text-on-surface-variant opacity-60";
-      var badgeHtml = isHot
-        ? '<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-caps text-label-caps border border-error"><span class="material-symbols-outlined text-[12px]" style="font-variation-settings: \'FILL\' 1;">local_fire_department</span>HOT</span>'
+      var hasVerdict = !!it.verdict;
+      var numColor = hasVerdict ? "text-secondary" : "text-on-surface-variant opacity-60";
+      var badgeHtml = hasVerdict
+        ? (function () {
+            var info = verdictInfo(it.verdict);
+            var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+            return '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>';
+          })()
+        : '<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-caps text-label-caps border border-outline-variant">COMMUNITY</span>';
+      var viewCountHtml = (typeof it.viewCount === "number")
+        ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
         : '';
       return '<div class="bg-paper border border-brand rounded-xl overflow-hidden">' +
           '<div class="p-md flex gap-4">' +
             '<div class="flex flex-col items-center gap-1"><span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span></div>' +
             '<div class="flex-1">' +
-              '<div class="flex items-center justify-between mb-2">' + (badgeHtml || '<span></span>') + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
+              '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
               '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
-              '<div class="flex items-center justify-end text-on-surface-variant">' +
+              '<div class="flex items-center justify-end gap-3 text-on-surface-variant">' +
+                viewCountHtml +
                 '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">forum</span><span class="font-body-sm text-body-sm">' + (it.commentCount || 0) + '</span></div>' +
               '</div>' +
             '</div>' +
