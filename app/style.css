@@ -5,7 +5,7 @@
   --err:#BA1A1A;--gold:#C9A84C;--brn:#8B7355;
   --pad:24px;
 }
-html,body{height:100%}
+html,body{height:100%;overflow-x:hidden;max-width:100vw}
 body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--dark);font-size:18px;line-height:1.6;letter-spacing:.01em}
 .shell{display:flex;width:100vw;height:100vh;height:100dvh;background:var(--bg);overflow:hidden;color:var(--dark)}
 
@@ -143,7 +143,7 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .rp-body::-webkit-scrollbar-thumb{background:#E0D8CC}
 /* 결과 내용이 넓은 화면에서 끝까지 늘어나지 않도록 제한 — 스크롤 컨테이너(.rp-body)는
    패널 전체 너비를 유지하되(스크롤바가 우측 끝에 붙도록), 실제 콘텐츠만 가운데 정렬 */
-.rp-content{max-width:860px;margin:0 auto;padding:40px 48px;display:flex;flex-direction:column;gap:20px;position:relative}
+.rp-content{max-width:860px;margin:0 auto;padding:40px 48px;display:flex;flex-direction:column;gap:20px;position:relative;word-break:break-word;overflow-wrap:break-word}
 .rp-section{background:var(--bg);border:1px solid #E8E0CF;border-radius:12px;padding:20px 24px}
 .rp-vbadge{padding:4px 14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#EAF4EF;color:var(--c);display:inline-block;margin-bottom:8px}
 .rp-vbadge.err{background:#FDEAEA;color:var(--err)}
@@ -154,8 +154,8 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .rp-bar{height:5px;background:#EDE8DF;margin-bottom:4px}
 .rp-fill{height:100%}
 .rp-pct{font-size:12px;text-align:right;margin-bottom:12px;font-weight:700}
-.src-row{display:flex;align-items:flex-start;gap:6px;font-size:16px;color:var(--c);padding:3px 0}
-.src-row a{color:inherit;text-decoration:none}
+.src-row{display:flex;align-items:flex-start;gap:6px;font-size:16px;color:var(--c);padding:3px 0;min-width:0}
+.src-row a{color:inherit;text-decoration:none;overflow-wrap:anywhere;word-break:break-all}
 .src-row a:hover{text-decoration:underline}
 .src-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:4px}
 .src-meta{font-size:13px;color:var(--out)}
@@ -228,8 +228,8 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .news-score{color:#005235;font-weight:700;font-size:14px;flex-shrink:0}
 .news-grade{padding:2px 8px;border-radius:4px;background:#F0EEEA;color:var(--muted);font-size:11px;font-weight:700;flex-shrink:0}
 .news-actions{display:flex;gap:8px;margin-top:4px}
-.news-discuss-btn{flex:1;color:#3f4943;font-size:13px;font-weight:700;background:none;border:1px solid #D4C9B0;border-radius:6px;cursor:pointer;padding:8px 10px;font-family:'Libre Franklin',sans-serif}
-.news-factcheck-btn{flex:1;color:#fff;font-size:13px;font-weight:700;background:#005235;border:1px solid #005235;border-radius:6px;cursor:pointer;padding:8px 10px;font-family:'Libre Franklin',sans-serif}
+.news-discuss-btn{flex:1;color:#3f4943;font-size:15px;font-weight:700;background:none;border:1px solid #D4C9B0;border-radius:6px;cursor:pointer;padding:12px 20px;min-height:44px;font-family:'Libre Franklin',sans-serif}
+.news-factcheck-btn{flex:1;color:#fff;font-size:15px;font-weight:700;background:#005235;border:1px solid #005235;border-radius:6px;cursor:pointer;padding:12px 20px;min-height:44px;font-family:'Libre Franklin',sans-serif}
 
 /* Live Feed — 좌측 6px verdict 컬러바 + confidence bar. verdict_class는 9개 값이 있지만
    (verify.js 스펙 기준) task 스펙은 4개 대표색만 명시 — 기존 VERDICT_MAP의 ok/mid/err 3-tone
