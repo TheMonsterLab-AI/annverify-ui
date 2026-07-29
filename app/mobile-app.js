@@ -47,7 +47,7 @@ function showMobilePage(name) {
     var isOn = btn.getAttribute("data-mpage") === name;
     btn.classList.toggle("on", isOn);
     var icon = btn.querySelector(".mtab-icon");
-    if (icon) icon.style.fontVariationSettings = isOn ? "'FILL' 1" : "'FILL' 0";
+    if (icon) icon.style.fontVariationSettings = "'FILL' " + (isOn ? "1" : "0") + ", 'wght' 400, 'GRAD' 0, 'opsz' 24";
   });
 
   var inputBar = document.getElementById("mhome-inputbar");
@@ -242,7 +242,7 @@ async function loadMobileLeaderboard() {
     var firstHtml = first ? (
       '<div class="col-span-1 row-span-2 bg-surface-container-lowest editorial-border rounded-xl p-md flex flex-col justify-between items-center text-center relative overflow-hidden">' +
         '<div class="absolute top-0 left-0 w-full h-1" style="background-color:#c9a84c"></div>' +
-        '<span class="material-symbols-outlined medal-gold text-4xl" style="font-variation-settings: \'FILL\' 1;">workspace_premium</span>' +
+        '<span class="material-symbols-outlined medal-gold text-4xl" style="font-variation-settings: \'FILL\' 1, \'wght\' 400, \'GRAD\' 0, \'opsz\' 24;">emoji_events</span>' +
         '<div class="flex flex-col items-center">' +
           '<div class="w-16 h-16 rounded-full editorial-border mb-3 bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold">' + escapeHtml((first.displayName || "V").slice(0, 2).toUpperCase()) + '</div>' +
           '<h3 class="font-headline-sm text-headline-sm text-primary leading-tight">' + escapeHtml(first.displayName || "Verifier") + '</h3>' +
@@ -259,7 +259,7 @@ async function loadMobileLeaderboard() {
       if (!r) return "";
       var m = MOBILE_MEDALS[idx + 1];
       return '<div class="bg-surface-container-lowest editorial-border rounded-xl p-sm flex flex-col justify-between items-center text-center">' +
-          '<span class="material-symbols-outlined ' + m.icon + ' ' + m.size + '" style="font-variation-settings: \'FILL\' 1;">workspace_premium</span>' +
+          '<span class="material-symbols-outlined ' + m.icon + ' ' + m.size + '" style="font-variation-settings: \'FILL\' 1, \'wght\' 400, \'GRAD\' 0, \'opsz\' 24;">emoji_events</span>' +
           '<div class="flex flex-col items-center">' +
             '<div class="w-10 h-10 rounded-full editorial-border mb-2 bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold text-sm">' + escapeHtml((r.displayName || "V").slice(0, 2).toUpperCase()) + '</div>' +
             '<h4 class="font-body-md text-body-md font-bold text-primary">' + escapeHtml(r.displayName || "Verifier") + '</h4>' +
