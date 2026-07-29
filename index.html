@@ -102,6 +102,9 @@ tailwind.config = {
     <div class="ni" data-page="livefeed">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Live Feed<span class="nb">Live</span>
     </div>
+    <div class="ni" data-page="trends">
+      <span class="material-symbols-outlined" style="font-size:13px;width:13px;height:13px">trending_up</span>Trends
+    </div>
     <div class="ni" data-page="news">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a2 2 0 012 2v13a2 2 0 01-2 2H4z"/><path d="M18 8H4M18 8v11"/><path d="M8 4v4"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg>News Feed
     </div>
@@ -192,6 +195,15 @@ tailwind.config = {
       </div>
     </div>
 
+    <!-- TRENDS (/api/v4/trends/claims — live_activity 최근 7일 claimPreview 단어 빈도 상위8,
+         verdict별 분포 데이터는 API에 없음(word/count만 반환) — 컬러 분포바 대신 최다빈도
+         대비 상대 빈도 단일색 바로 대체, 아래 _renderDesktopTrends 주석 참고) -->
+    <div class="body page-container hidden" id="page-trends">
+      <div class="pg-scroll">
+        <div class="pg-list" id="trends-list"></div>
+      </div>
+    </div>
+
     <!-- NEWS FEED (모바일 News 탭과 동일 콘텐츠/엔드포인트 — worker/routes/v4/news.js, global.js.
          카드 디자인은 모바일 paper-card 톤에 맞춤(app/style.css .news-*), 로컬 뉴스는
          country=KR 파라미터 재사용(전용 엔드포인트 없음, 모바일 작업에서 확인됨)) -->
@@ -274,6 +286,19 @@ tailwind.config = {
           <div class="paper-card mb-sm h-24 animate-pulse"></div>
           <div class="paper-card mb-sm h-24 animate-pulse"></div>
           <div class="paper-card mb-sm h-24 animate-pulse"></div>
+        </div>
+      </section>
+      <!-- "Hot Discussions" 섹션 위(task 스펙)는 모바일 대시보드에 원래 없는 구성이라(위 주석
+           참고) 배치 불가 — 대신 "Live Feed 아래" 조건은 그대로 만족하도록 바로 다음 위치. -->
+      <section class="mb-md">
+        <div class="flex justify-between items-end mb-sm">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Trending Topics</h3>
+          <button class="text-primary font-label-caps text-label-caps border-b border-primary pb-0.5" id="mhome-trends-viewall">VIEW ALL</button>
+        </div>
+        <div id="mhome-trends-list" class="flex flex-col gap-sm">
+          <div class="paper-card h-20 animate-pulse"></div>
+          <div class="paper-card h-20 animate-pulse"></div>
+          <div class="paper-card h-20 animate-pulse"></div>
         </div>
       </section>
       <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
@@ -494,6 +519,21 @@ tailwind.config = {
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mprofile-body">
       <div class="paper-card h-32 animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- Trending Topics 전체 목록 — Home 섹션의 VIEW ALL로만 진입, 탭바에는 없는 drill-down
+       화면(토론 상세와 동일 패턴). /api/v4/trends/claims는 word/count만 반환 -->
+  <div id="mtrends-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mtrends-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Trending Topics</h1>
+      <div class="w-9"></div>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md flex flex-col gap-sm" id="mtrends-list" style="padding-bottom:32px">
+      <div class="paper-card h-20 animate-pulse"></div>
+      <div class="paper-card h-20 animate-pulse"></div>
+      <div class="paper-card h-20 animate-pulse"></div>
     </div>
   </div>
 

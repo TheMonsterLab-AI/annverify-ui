@@ -76,6 +76,62 @@ function showMobilePage(name) {
 async function loadMobileHome() {
   _loadMobileHomeStats();
   _loadMobileHomeLive();
+  _loadMobileHomeTrends();
+}
+
+// ── Trending Topics (worker/routes/v4/trends.js — word/count only, no per-keyword verdict
+// data; see app/pages.js _renderTrendsList for the shared card renderer + relative-frequency
+// bar rationale, reused here for both the 3-card home preview and the full drill-down page). ──
+async function _loadMobileHomeTrends() {
+  var el = document.getElementById("mhome-trends-list");
+  if (!el) return;
+  try {
+    var res = await fetch(API_URL + "/api/v4/trends/claims");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var keywords = Array.isArray(data.keywords) ? data.keywords : [];
+    _renderTrendsList("mhome-trends-list", keywords, false, 3);
+  } catch (e) {
+    console.warn("[mobile home] trends failed:", e.message);
+    el.innerHTML = '<p class="text-error font-body-sm text-center py-md cursor-pointer">Failed to load. Tap to retry.</p>';
+    el.onclick = function () { el.onclick = null; _loadMobileHomeTrends(); };
+  }
+}
+
+async function loadMobileTrendsFull() {
+  var el = document.getElementById("mtrends-list");
+  if (!el) return;
+  try {
+    var res = await fetch(API_URL + "/api/v4/trends/claims");
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var keywords = Array.isArray(data.keywords) ? data.keywords : [];
+    _renderTrendsList("mtrends-list", keywords, false);
+  } catch (e) {
+    console.warn("[mobile trends] failed:", e.message);
+    el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
+    el.onclick = function () { el.onclick = null; loadMobileTrendsFull(); };
+  }
+}
+
+function openMobileTrends() {
+  var overlay = document.getElementById("mtrends-page");
+  if (overlay) overlay.classList.remove("hidden");
+  loadMobileTrendsFull();
+}
+
+function closeMobileTrends() {
+  var overlay = document.getElementById("mtrends-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+// Trends 카드 클릭 — "검증 입력창 자동 채움"(task 스펙): 자동 제출은 아님, Home으로 이동해
+// 입력만 채워서 사용자가 직접 확인 후 제출하도록 함.
+function _fillMobileClaimInput(word) {
+  closeMobileTrends();
+  showMobilePage("home");
+  var input = document.getElementById("mobile-claim-input");
+  if (input) { input.value = word; input.focus(); }
 }
 
 async function _loadMobileHomeStats() {
@@ -1053,6 +1109,11 @@ function _renderMobileLocalNews() {
 document.addEventListener("DOMContentLoaded", function () {
   var profileBackBtn = document.getElementById("mprofile-back");
   if (profileBackBtn) profileBackBtn.addEventListener("click", closeMobileProfile);
+
+  var trendsViewAllBtn = document.getElementById("mhome-trends-viewall");
+  if (trendsViewAllBtn) trendsViewAllBtn.addEventListener("click", openMobileTrends);
+  var trendsBackBtn = document.getElementById("mtrends-back");
+  if (trendsBackBtn) trendsBackBtn.addEventListener("click", closeMobileTrends);
 
   // 새 토론 시작 FAB — app/discuss-detail.js가 Firestore 직접 쓰기로 실제 작성 화면을 염
   // (openMobileDiscussCreate 자체가 미로그인 시 로그인 모달을 띄움)
