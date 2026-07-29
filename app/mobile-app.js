@@ -317,11 +317,129 @@ async function _loadMobileMyRank() {
   }
 }
 
+// ── Mobile chat bubbles (Home page) ─────────────────────────────────────
+// 데스크톱 .um/.am(app/render.js)과 별개 — 이 작업의 정확한 색상/border-radius 스펙이
+// 데스크톱 버블 스타일과 다르게 지정돼 있어(예: user bubble #005235 + 18px/18px/4px/18px,
+// 데스크톱은 var(--c) + 12px/12px/3px/12px) 재사용하지 않고 목업 paper-card 톤에 맞춘
+// 모바일 전용 버블을 새로 만듦. 검증 로딩/결과도 마찬가지로 "AI 말풍선" 스타일로 그려야
+// 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
+function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
+
+function _mhomeScrollToLatest(el) {
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+// 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
+// 탭 재클릭"을 그 트리거로 씀 — 단순히 다른 탭에서 Home으로 이동하는 것만으로는 대화가
+// 지워지지 않음, 그건 일반적인 탭 전환일 뿐 "새로 시작"의도가 아니므로).
+function _mhomeResetChat() {
+  var log = _mhomeChatLog();
+  if (log) log.innerHTML = "";
+  var dash = document.getElementById("mhome-dashboard");
+  if (dash && dash.scrollIntoView) dash.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function mobileAppendUserBubble(text) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-end";
+  var bubble = document.createElement("div");
+  bubble.className = "text-white px-4 py-3";
+  bubble.style.cssText = "background:#005235;border-radius:18px 18px 4px 18px;max-width:80%";
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  log.appendChild(row);
+  _mhomeScrollToLatest(row);
+  return row;
+}
+
+// AI 대화 응답 버블. shouldVerify=true면 인라인 "Verify this claim" 버튼 포함.
+function mobileAppendAiBubble(text, shouldVerify, extractedClaim) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<p class="font-body-md text-on-surface">' + escapeHtml(text) + '</p>' +
+      (shouldVerify && extractedClaim
+        ? '<button class="mhome-verify-btn w-full mt-2 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps" data-claim="' + escapeHtml(extractedClaim) + '">Verify this claim</button>'
+        : '') +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest(row);
+  var verifyBtn = row.querySelector(".mhome-verify-btn");
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", function () {
+      verifyBtn.disabled = true;
+      mobileTriggerVerify(extractedClaim, { showUserBubble: false });
+    });
+  }
+  return row;
+}
+
+function mobileAppendTypingBubble(id) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.id = "mhome-typing-" + id;
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px">' +
+      '<span class="mhome-loading-dots"><span></span><span></span><span></span></span>' +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest(row);
+  return row;
+}
+
+function mobileAppendLoadingBubble(id) {
+  var log = _mhomeChatLog();
+  if (!log) return null;
+  var row = document.createElement("div");
+  row.className = "flex justify-start";
+  row.id = "mhome-pending-" + id;
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<div class="flex items-center gap-2"><span class="mhome-loading-dots"><span></span><span></span><span></span></span>' +
+        '<span class="font-body-md text-on-surface">Verifying claim...</span></div>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">ANN 7-LAYER ENGINE</p>' +
+    '</div>';
+  log.appendChild(row);
+  _mhomeScrollToLatest(row);
+  return row;
+}
+
+function mobileReplaceLoadingWithResult(id, entry, isError) {
+  var row = document.getElementById("mhome-pending-" + id);
+  if (!row) return;
+  if (isError) {
+    row.innerHTML =
+      '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%;border-color:#ba1a1a">' +
+        '<p class="font-body-md text-error">' + escapeHtml(entry.errorKo || "Verification failed") + '</p>' +
+      '</div>';
+    return;
+  }
+  var info = verdictInfo(entry.verdictClass);
+  var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+  var pct = Math.round((entry.confidence || 0) * 100);
+  row.innerHTML =
+    '<div class="paper-card px-4 py-3" style="border-radius:18px 18px 18px 4px;max-width:85%">' +
+      '<div class="flex items-center gap-2 mb-2">' +
+        '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
+        '<span class="font-body-sm font-bold text-primary">' + pct + '%</span>' +
+      '</div>' +
+      '<p class="font-body-md text-on-surface mb-2">' + escapeHtml((entry.claim || "").toString().slice(0, 120)) + '</p>' +
+      '<button class="mhome-report-btn w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">View full report</button>' +
+    '</div>';
+  var reportBtn = row.querySelector(".mhome-report-btn");
+  if (reportBtn) reportBtn.addEventListener("click", function () { renderRightPanel(entry); });
+}
+
 // ── Input router (Home page) ──────────────────────────────────────────────
-// 버그: mobileSubmitVerify()가 모든 입력(일반 대화 포함)을 곧바로 /api/verify로 보내서
-// "안녕" 같은 비검증성 텍스트가 "검증할 수 없는 입력" 에러로 이어졌음. URL/명확한 검증
-// 의도는 여전히 /api/verify로 바로 보내되, 그 외 일반 대화는 데스크톱과 동일하게
-// /api/v4/chat을 먼저 거치도록 라우팅을 분리.
+// URL/명확한 검증 의도는 곧바로 /api/verify, 그 외 일반 대화는 /api/v4/chat을 먼저 거침
+// (데스크톱 submitChatMessage()와 동일 원칙).
 var MOBILE_URL_RE = /^(https?:\/\/|www\.)\S+/i;
 
 function _looksLikeUrl(text) {
@@ -331,19 +449,11 @@ function _looksLikeUrl(text) {
 async function mobileSubmitInput(text) {
   text = (text || "").trim();
   if (!text) return;
-  _hideMobileChatReply();
   if (_looksLikeUrl(text)) {
-    await mobileSubmitVerify(text);
+    await mobileTriggerVerify(text, { showUserBubble: true });
   } else {
     await mobileSubmitChat(text);
   }
-}
-
-function _hideMobileChatReply() {
-  var box = document.getElementById("mobile-chat-reply");
-  if (box) box.classList.add("hidden");
-  var verifyBtn = document.getElementById("mobile-chat-verify-btn");
-  if (verifyBtn) verifyBtn.classList.add("hidden");
 }
 
 // 일반 대화 텍스트 — /api/v4/chat만 거치고, shouldVerify:true일 때만 "Verify this
@@ -364,8 +474,9 @@ async function mobileSubmitChat(text) {
     return;
   }
 
-  var btn = document.getElementById("mobile-verify-btn");
-  if (btn) btn.disabled = true;
+  mobileAppendUserBubble(text);
+  var typingId = uid();
+  var typingRow = mobileAppendTypingBubble(typingId);
   try {
     var res = await fetch(API_URL + "/api/v4/chat", {
       method: "POST",
@@ -373,41 +484,23 @@ async function mobileSubmitChat(text) {
       body: JSON.stringify({ message: text, history: [] }),
     });
     var data = await res.json();
+    if (typingRow) typingRow.remove();
     if (!res.ok) throw new Error("HTTP " + res.status);
     if (typeof incrementChatUsage === "function") incrementChatUsage();
-
-    var box = document.getElementById("mobile-chat-reply");
-    var replyText = document.getElementById("mobile-chat-reply-text");
-    var verifyBtn = document.getElementById("mobile-chat-verify-btn");
-    if (replyText) replyText.textContent = data.reply || "...";
-    if (box) box.classList.remove("hidden");
-    if (verifyBtn) {
-      if (data.shouldVerify === true && data.extractedClaim) {
-        verifyBtn.classList.remove("hidden");
-        verifyBtn.onclick = function () {
-          _hideMobileChatReply();
-          mobileSubmitVerify(data.extractedClaim);
-        };
-      } else {
-        verifyBtn.classList.add("hidden");
-      }
-    }
+    mobileAppendAiBubble(data.reply || "...", data.shouldVerify === true, data.extractedClaim || null);
   } catch (e) {
     console.warn("[mobile chat] failed:", e.message);
-    if (errEl) {
-      errEl.textContent = "Failed to reach the assistant. Please try again.";
-      errEl.classList.remove("hidden");
-    }
-  } finally {
-    if (btn) btn.disabled = false;
+    if (typingRow) typingRow.remove();
+    mobileAppendAiBubble("Failed to reach the assistant. Please try again.", false, null);
   }
 }
 
-// URL/명확한 검증 의도 — 곧바로 /api/verify. canVerify() 여기서 먼저 확인하는 이유는
-// triggerVerifyFromSuggestion() 자체의 한도초과 메시지(appendUsageLimitMessage)가 데스크톱의
-// #chat-log에 쓰여 모바일에선 보이지 않기 때문 — 실제 fetch/네트워크 에러는
-// showErrorInRightPanel()이 mobileShowResult()를 직접 호출해 dossier로 노출되므로 문제 없음.
-async function mobileSubmitVerify(claimText) {
+// URL/명확한 검증 의도, 또는 AI 말풍선의 "Verify this claim" 버튼 — 곧바로 /api/verify.
+// 데스크톱의 core verify 로직(triggerVerifyFromSuggestion, main.js)과 같은 fetch/파싱/에러
+// 매핑을 쓰되, 렌더링은 이 파일의 모바일 전용 말풍선 함수로 — desktop의 appendPendingRow/
+// replacePendingWithCard(다른 스타일)를 그대로 쓰면 스펙에 맞지 않아 별도로 둠.
+async function mobileTriggerVerify(claimText, opts) {
+  opts = opts || {};
   claimText = (claimText || "").trim();
   if (!claimText) return;
   var errEl = document.getElementById("mobile-verify-error");
@@ -424,16 +517,59 @@ async function mobileSubmitVerify(claimText) {
     return;
   }
 
-  var btn = document.getElementById("mobile-verify-btn");
-  if (btn) btn.disabled = true;
+  if (opts.showUserBubble) mobileAppendUserBubble(claimText);
+  var id = uid();
+  mobileAppendLoadingBubble(id);
 
-  if (typeof triggerVerifyFromSuggestion === "function") {
-    // 세션/채팅 기록 없이 곧바로 검증 — 데스크톱의 core verify 로직(fetch+parse+에러 매핑+
-    // 결과 렌더)을 그대로 재사용. appendMessageToSession 내부에서 _currentSession이 없으면
-    // 조용히 no-op되므로(세션 미시작 상태) 안전.
-    await triggerVerifyFromSuggestion(claimText);
+  var startedAt = Date.now();
+  var idToken = await getIdTokenOrNull();
+  var headers = { "Content-Type": "application/json" };
+  if (idToken) headers["Authorization"] = "Bearer " + idToken;
+
+  var res = null, networkErr = false, data = null;
+  try {
+    res = await fetch(API_URL + "/api/verify", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ claim: claimText, depth: "standard" }),
+    });
+    data = await res.json();
+  } catch (err) {
+    networkErr = err instanceof TypeError;
   }
-  if (btn) btn.disabled = false;
+
+  if (!res || !res.ok || (data && data.error)) {
+    var msg = mapErrorToMessage(res, data, networkErr || !res);
+    mobileReplaceLoadingWithResult(id, { errorKo: msg.ko, errorEn: msg.en }, true);
+    return;
+  }
+
+  var parsed = extractParsedResult(data);
+  if (!parsed) {
+    var parseMsg = mapErrorToMessage(null, null, false);
+    mobileReplaceLoadingWithResult(id, { errorKo: parseMsg.ko, errorEn: parseMsg.en }, true);
+    return;
+  }
+
+  if (typeof incrementVerifyUsage === "function") incrementVerifyUsage();
+  var realHash = await computeIntegrityHash(claimText, parsed);
+  var entry = {
+    id: id,
+    claim: claimText,
+    verdictClass: parsed.verdict_class || null,
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+    bislHash: realHash,
+    model: data.model || null,
+    ts: Date.now(),
+    elapsedMs: Date.now() - startedAt,
+    parsed: parsed,
+  };
+  mobileReplaceLoadingWithResult(id, entry, false);
+}
+
+// mobileSubmitVerify(claimText) — News "새 팩트체크" 등 기존 호출부와의 하위호환 시그니처.
+function mobileSubmitVerify(claimText) {
+  return mobileTriggerVerify(claimText, { showUserBubble: true });
 }
 
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
@@ -743,7 +879,19 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document.querySelectorAll(".mtab[data-mpage]").forEach(function (btn) {
-    btn.addEventListener("click", function () { showMobilePage(btn.getAttribute("data-mpage")); });
+    btn.addEventListener("click", function () {
+      var target = btn.getAttribute("data-mpage");
+      // 상태 4: 이미 Home인 상태에서 Home 탭을 "다시" 누르면 대화 초기화(모바일엔 데스크톱
+      // #new-verification-btn 상당의 별도 버튼이 없어 이 재클릭 제스처가 그 대체 트리거).
+      // 다른 탭에서 Home으로 처음 이동하는 것만으로는 대화가 보존됨(단순 탭 전환).
+      var homeEl = document.getElementById("mpage-home");
+      var alreadyOnHome = homeEl && !homeEl.classList.contains("hidden");
+      if (target === "home" && alreadyOnHome) {
+        _mhomeResetChat();
+        return;
+      }
+      showMobilePage(target);
+    });
   });
   document.querySelectorAll("[data-mgoto]").forEach(function (el) {
     el.addEventListener("click", function () { showMobilePage(el.getAttribute("data-mgoto")); });

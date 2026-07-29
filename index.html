@@ -54,6 +54,11 @@ tailwind.config = {
 #mobile-app .mmenu-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 8px; border-radius: 8px; background: transparent; border: none; cursor: pointer; }
 #mobile-app .mmenu-item:hover { background-color: #EDE7D9; }
 #mmenu-drawer { transition: transform 0.2s ease; }
+#mobile-app .mhome-loading-dots { display: inline-flex; gap: 3px; }
+#mobile-app .mhome-loading-dots span { width: 5px; height: 5px; border-radius: 50%; background: #005235; display: inline-block; animation: mhome-dot-bounce 1.2s infinite ease-in-out; }
+#mobile-app .mhome-loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+#mobile-app .mhome-loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes mhome-dot-bounce { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
 /* .shell 자체의 모바일 숨김/mobile-dossier-only 전환은 app/style.css에 이미 정의됨(단일 출처) */
 @media (max-width: 768px) {
   #mobile-app { display: block; min-height: 100dvh; }
@@ -206,40 +211,50 @@ tailwind.config = {
 
   <!-- ── HOME (home.html 목업) ── -->
   <main class="mpage px-margin-mobile pt-sm pb-56 max-w-md mx-auto" id="mpage-home">
-    <div class="py-md">
-      <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Home Dashboard</h2>
-      <p class="text-on-surface-variant font-body-sm mt-1">Status Report: Verification Stream Active</p>
-    </div>
-    <div class="grid grid-cols-2 gap-base mb-md">
-      <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
-        <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Today's Verifications</span>
-        <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-verifications">--</span></div>
+    <!-- 대시보드 — 항상 DOM에 유지(숨김 X). 대화가 시작되면 #mhome-chat-log가 그 아래로
+         이어져서, 새 말풍선이 추가될 때마다 대시보드는 스크롤 상 위로 "밀려" 보이는 자연스러운
+         문서 흐름을 그대로 이용(별도 CSS 트릭 불필요) — 스크롤을 올리면 언제든 다시 보임.
+         스펙에 언급된 "Hot Discussions"/"Top Verifiers" 섹션은 데스크톱 home-sections
+         위젯(PR #12)에만 있고 모바일 대시보드엔 원래 없던 구성이라 새로 만들지 않음(시안 없음). -->
+    <div id="mhome-dashboard">
+      <div class="py-md">
+        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Home Dashboard</h2>
+        <p class="text-on-surface-variant font-body-sm mt-1">Status Report: Verification Stream Active</p>
       </div>
-      <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
-        <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Truth Rate</span>
-        <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-truthrate">--</span></div>
+      <div class="grid grid-cols-2 gap-base mb-md">
+        <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
+          <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Today's Verifications</span>
+          <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-verifications">--</span></div>
+        </div>
+        <div class="paper-card p-sm flex flex-col justify-between min-h-[120px]">
+          <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Truth Rate</span>
+          <div class="mt-2"><span class="font-headline-md text-headline-md text-primary" id="mhome-stat-truthrate">--</span></div>
+        </div>
       </div>
-    </div>
-    <section class="mb-md">
-      <div class="flex justify-between items-end mb-sm">
-        <h3 class="font-headline-sm text-headline-sm text-on-surface">Live Verification Feed</h3>
-        <button class="text-primary font-label-caps text-label-caps border-b border-primary pb-0.5" data-mgoto="livefeed">VIEW ALL</button>
-      </div>
-      <div id="mhome-live-list">
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-        <div class="paper-card mb-sm h-24 animate-pulse"></div>
-      </div>
-    </section>
-    <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
-      <div class="flex gap-sm">
-        <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">science</span></div>
-        <div>
-          <h4 class="font-body-md font-bold text-on-surface mb-0.5">Methodology Update</h4>
-          <p class="font-body-sm text-on-surface-variant">The Bayesian Consensus engine has been updated to v4.2 for faster semantic cross-referencing.</p>
+      <section class="mb-md">
+        <div class="flex justify-between items-end mb-sm">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Live Verification Feed</h3>
+          <button class="text-primary font-label-caps text-label-caps border-b border-primary pb-0.5" data-mgoto="livefeed">VIEW ALL</button>
+        </div>
+        <div id="mhome-live-list">
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+          <div class="paper-card mb-sm h-24 animate-pulse"></div>
+        </div>
+      </section>
+      <div class="sidebar-tone p-sm rounded-xl editorial-border mb-lg">
+        <div class="flex gap-sm">
+          <div class="text-tertiary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">science</span></div>
+          <div>
+            <h4 class="font-body-md font-bold text-on-surface mb-0.5">Methodology Update</h4>
+            <p class="font-body-sm text-on-surface-variant">The Bayesian Consensus engine has been updated to v4.2 for faster semantic cross-referencing.</p>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- 대화 말풍선 — 여기로 append. 비어있으면 아무것도 안 보임(대시보드만 표시). -->
+    <div id="mhome-chat-log" class="flex flex-col gap-3 pb-4"></div>
   </main>
 
   <!-- ── LIVE FEED (live-feed.html 목업) ── -->
@@ -376,13 +391,6 @@ tailwind.config = {
         <button id="mobile-verify-btn" class="absolute right-2 top-2 bottom-2 w-12 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors" aria-label="Verify"><span class="material-symbols-outlined">fact_check</span></button>
       </div>
       <p id="mobile-verify-error" class="hidden text-error font-body-sm text-body-sm mt-2 text-center"></p>
-      <!-- URL/명확한 검증 의도가 아닌 일반 대화 입력 시 /api/v4/chat 응답(reply, 필요하면
-           shouldVerify 제안 버튼)이 표시되는 자리 — 데스크톱 채팅 로그와 별개, 모바일엔
-           로그가 없어 최신 1턴만 보여줌 -->
-      <div id="mobile-chat-reply" class="hidden paper-card p-sm mt-2 text-body-sm text-on-surface">
-        <p id="mobile-chat-reply-text"></p>
-        <button id="mobile-chat-verify-btn" class="hidden mt-2 w-full py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">Verify this claim</button>
-      </div>
     </div>
   </div>
 
