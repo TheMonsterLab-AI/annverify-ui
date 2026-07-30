@@ -107,6 +107,8 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .mvf{background:#FDEAEA;color:var(--err)}
 .mc{font-size:16px;color:var(--dark);font-family:'Source Serif 4',serif}
 .ms{font-size:11px;color:var(--out);margin-top:2px}
+.mc-share-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--out);padding:4px;border-radius:9999px;margin-top:1px}
+.mc-share-btn:hover{background:#E8E0CF;color:var(--dark)}
 .pd{display:flex;align-items:center;gap:8px;padding:10px 12px}
 .sp{width:13px;height:13px;border:2px solid #E0D8CC;border-top-color:var(--c);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -354,10 +356,26 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .dp-stat-label{font-family:'Libre Franklin',sans-serif;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#6f7a72}
 .dp-stat-value{font-family:'Source Serif 4',serif;font-size:28px;font-weight:700;color:#005235;margin-top:4px}
 .dp-section-title{font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;color:#1c1b1b;margin:24px 0 10px}
-.dp-verify-item{width:100%;text-align:left;background:#FDFAF5;border:1px solid #D4C9B0;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'Libre Franklin',sans-serif}
-.dp-verify-item:hover{background:#F5F1EA}
+.dp-verify-item{width:100%;text-align:left;background:#FDFAF5;border:1px solid #D4C9B0;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-family:'Libre Franklin',sans-serif}
+.dp-verify-open:hover .dp-verify-claim{text-decoration:underline}
 .dp-verify-claim{font-size:14px;color:#1c1b1b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dp-verify-date{font-size:12px;color:#6f7a72;margin-top:2px}
+.dp-icon-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:#6f7a72;padding:6px;border-radius:9999px}
+.dp-icon-btn:hover{background:#F0EEEA;color:#1c1b1b}
 .dp-points-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FDFAF5;border:1px solid #D4C9B0;border-radius:10px;padding:12px 14px;margin-bottom:8px;font-family:'Libre Franklin',sans-serif}
 .dp-points-ap{font-weight:700;color:#005235;flex-shrink:0}
 .dp-empty{text-align:center;color:#6f7a72;font-size:14px;padding:20px}
+
+/* 공용 토스트(데스크톱+모바일) — 하단 중앙, 2초 자동 사라짐(app/render.js showAppToast) */
+.app-toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);z-index:110;background:#1c1b1b;color:#fff;padding:10px 20px;border-radius:9999px;font-family:'Libre Franklin',sans-serif;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:90%;text-align:center}
+
+/* PDF 다운로드 — 서버 PDF 엔드포인트 없음(확인됨, worker/routes/ 전체 검색 결과 0건) + 새
+   라이브러리(jsPDF 등) 도입은 더 큰 의존성 결정이라 임의로 추가하지 않음 — 브라우저 네이티브
+   Print → Save as PDF를 사용(window.print() + 아래 @media print로 리포트 콘텐츠만 인쇄).
+   실제 PDF 파일이 생성되는 정직한 방법(가짜 다운로드 아님). */
+@media print{
+  body *{visibility:hidden}
+  .rp-content, .rp-content *{visibility:visible}
+  .rp-content{position:absolute;left:0;top:0;width:100%;max-width:none}
+  .rp-top, .app-toast, #mmenu-drawer, #mmenu-backdrop{display:none!important}
+}
