@@ -49,9 +49,12 @@ function _v5Grade(score) {
 
 // ── Standard/Deep tier selection — one app-wide value; both the desktop and mobile
 // pill toggles read/write this (wired in main.js / mobile-app.js DOMContentLoaded). ──
+// fix/mobile-scroll-and-routing: dropped the fixed "~25s"/"~40s" — real-traffic measurement
+// showed Standard averaging 32.7s (worst case 79.8s on a complex 5-claim input) and Deep 47.5s,
+// both well past the labels, which read as a broken promise rather than a rough guide.
 var TIER_INFO = {
-  standard: { label: "Standard", shortEn: "~25s", captionKo: "약 25초 · 빠른 검증", captionEn: "~25s · fast check" },
-  deep: { label: "Deep", shortEn: "~40s", captionKo: "약 40초 · 심층 교차검증", captionEn: "~40s · deep cross-check" },
+  standard: { label: "Standard", shortEn: "fast check", captionKo: "빠른 검증", captionEn: "fast check" },
+  deep: { label: "Deep", shortEn: "deep cross-check", captionKo: "심층 교차검증", captionEn: "deep cross-check" },
 };
 var _selectedTier = "standard";
 

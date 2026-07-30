@@ -433,16 +433,38 @@ async function _loadMobileMyRank() {
 // 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
 function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
 
+// #mpage-home의 정적 pb-56(224px)은 PR #37이 #mhome-inputbar에 Standard/Deep 토글 행 +
+// 캡션을 추가하면서 더 이상 안 맞음 — headless Chrome 실측 결과 고정 하단 영역(입력창+탭바)
+// 실제 높이가 246.5px(뷰포트 844px 기준)로, 정적값(224px)보다 22.5px 커져 마지막 말풍선이
+// 가려지는 원인이 됨. 하드코딩된 숫자를 또 추측하는 대신 매번 실제 DOM에서 측정 — 토글
+// 캡션 줄바꿈 등으로 입력창 높이가 달라져도(기기별 안전영역 포함) 항상 정확함.
+function _syncMobileHomeBottomPadding() {
+  var page = document.getElementById("mpage-home");
+  var inputbar = document.getElementById("mhome-inputbar");
+  if (!page || !inputbar) return;
+  var occupied = window.innerHeight - inputbar.getBoundingClientRect().top;
+  if (occupied > 0) page.style.paddingBottom = (occupied + 16) + "px"; // +16px 여유
+}
+
 // scrollIntoView({block:'end'})는 요소의 아래쪽 끝을 "뷰포트 하단"에 맞추는데, 그 뷰포트
 // 하단이 fixed 탭바+입력창에 가려진 영역이라는 걸 모름 — 실측 결과 말풍선이 그 뒤에 가려진
 // 채로 남는 경우가 있어(#mpage-home에 이미 pb-56로 여유 패딩을 둔 것과 별개로, scrollIntoView
 // 자체의 "뷰포트 하단 = 문서 하단"이라는 가정이 fixed 오버레이 앞에서 깨짐), 대신 항상 문서
-// 전체 스크롤 하단(document.body.scrollHeight)으로 이동 — pb-56 패딩이 이미 fixed 입력창
-// 높이만큼 여유를 확보해두고 있어 전체 바닥까지 스크롤하면 마지막 말풍선이 그 여유 공간
-// 위쪽에 위치해 fixed 오버레이에 가려지지 않음. setTimeout 150ms(100ms보다 여유 있게).
+// 전체 스크롤 하단으로 이동 — _syncMobileHomeBottomPadding()이 실측 기반으로 유지하는 여유
+// 패딩 덕분에 전체 바닥까지 스크롤해도 마지막 말풍선이 그 여유 공간 위쪽에 위치해 fixed
+// 오버레이에 가려지지 않음. setTimeout 150ms(100ms보다 여유 있게).
+//
+// window.scrollTo()가 아니라 document.body.scrollTo() — 실측 확인: 이 페이지는
+// html,body{height:100%}로 둘 다 뷰포트 높이에 고정되고 body에 overflow-y:auto가 걸려
+// 실제 스크롤은 body 자신의 내부에서 일어남(document.documentElement.scrollHeight는 항상
+// 뷰포트 높이와 같아 스크롤할 게 없음). document.scrollingElement는 standards mode라
+// <html>을 가리키지만 실제로 스크롤되는 건 body라 window.scrollTo()는 아무 효과가 없었음
+// (헤드리스 Chrome 실측: window.scrollTo 후 window.scrollY 항상 0, document.body.scrollTo
+// 후 body.scrollTop은 정상 반영).
 function _mhomeScrollToLatest() {
+  _syncMobileHomeBottomPadding();
   setTimeout(function () {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    document.body.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }, 150);
 }
 
@@ -1272,6 +1294,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   _wireMobileMenu();
   _wireMobileNews();
+
+  // 초기 로드 시(메시지 전송 전) 및 뷰포트/입력창 크기 변화 시에도 항상 실측값으로 동기화 —
+  // 회전, 키보드 열림/닫힘, 토글 캡션 줄바꿈 등으로 #mhome-inputbar 높이가 바뀌는 모든 경우를
+  // 개별적으로 호출부를 추가하는 대신 ResizeObserver로 자동 대응.
+  _syncMobileHomeBottomPadding();
+  window.addEventListener("resize", _syncMobileHomeBottomPadding);
+  if (typeof ResizeObserver !== "undefined") {
+    var _mhomeInputbarEl = document.getElementById("mhome-inputbar");
+    if (_mhomeInputbarEl) {
+      new ResizeObserver(_syncMobileHomeBottomPadding).observe(_mhomeInputbarEl);
+    }
+  }
 
   // 데스크톱 뷰포트에서는 #mobile-app이 CSS로 숨겨져 있으므로 초기 데이터 호출을 건너뛴다
   // (pages.js의 loadHomeSections()에 대칭되는 가드 — 보이지 않는 쪽이 API를 중복 호출하지
