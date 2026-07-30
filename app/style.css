@@ -122,8 +122,11 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .iw input::placeholder{color:var(--out)}
 .sb2{width:28px;height:28px;background:var(--c);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sb2:disabled{background:var(--out);cursor:default}
-.if2{display:flex;align-items:center;gap:6px;margin-top:5px}
-.it{font-size:10px;color:var(--out);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.if2{display:flex;align-items:center;gap:6px;margin-top:5px;justify-content:space-between}
+.it{font-size:10px;color:var(--out);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tier-toggle{display:flex;gap:4px;flex-shrink:0}
+.tier-pill{font-size:10px;font-weight:600;padding:3px 8px;border-radius:12px;border:1px solid #E8E0CF;background:#fff;color:var(--out);cursor:pointer;white-space:nowrap;font-family:'Libre Franklin',sans-serif}
+.tier-pill.active{background:var(--c);color:#fff;border-color:var(--c)}
 
 /* RIGHT — result panel */
 .right{flex:1;display:flex;flex-direction:column;background:var(--card);overflow:hidden}
@@ -151,6 +154,9 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .rp-vbadge.err{background:#FDEAEA;color:var(--err)}
 .rp-claim{font-family:'Source Serif 4',serif;font-size:22px;color:var(--dark);margin-bottom:4px}
 .rp-sub{font-size:16px;color:var(--muted);font-style:italic}
+.rp-banner{font-size:13px;line-height:1.5;padding:10px 12px;border-radius:8px;margin-bottom:12px}
+.rp-banner-info{background:#EAF1F4;color:#2B5468;border:1px solid #C9DEE6}
+.rp-banner-warn{background:#FFF4E0;color:#7A5300;border:1px solid #F0D9A0}
 .rp-sec{font-size:18px;color:var(--brn);letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px;font-weight:700}
 .rp-conf-lbl{font-size:14px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
 .rp-bar{height:5px;background:#EDE8DF;margin-bottom:4px}
