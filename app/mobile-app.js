@@ -433,39 +433,57 @@ async function _loadMobileMyRank() {
 // 해서 desktop의 appendPendingRow/replacePendingWithCard 대신 여기 전용 함수를 씀.
 function _mhomeChatLog() { return document.getElementById("mhome-chat-log"); }
 
+// feat/mobile-home-chat-first — #mhome-empty-state(칩 3개)는 채팅 로그가 비어있을 때만 노출.
+// 이전 대시보드 클리어 로직(app/render.js _clearChatEmptyState → _showMobileHomeChat)은
+// 실제로는 _showMobileHomeChat이 어디에도 정의돼 있지 않은 죽은 참조였고, 그마저도 모바일
+// 말풍선 함수들(mobileAppend*, 이 파일)은 그 헬퍼를 아예 호출하지 않아 이중으로 무동작이었음
+// — 대시보드는 이제 CSS로 항상 숨김이라 이 문제 자체가 없어졌고, 여기서는 새 empty-state만
+// 관리하면 됨. 각 mobileAppend*/리셋 지점에서 직접 호출(호출부 놓칠 일 없도록 자체 포함).
+function _mhomeSyncEmptyState() {
+  var el = document.getElementById("mhome-empty-state");
+  var log = _mhomeChatLog();
+  if (!el || !log) return;
+  el.classList.toggle("hidden", log.children.length > 0);
+}
+
 // #mpage-home의 정적 pb-56(224px)은 PR #37이 #mhome-inputbar에 Standard/Deep 토글 행 +
 // 캡션을 추가하면서 더 이상 안 맞음 — headless Chrome 실측 결과 고정 하단 영역(입력창+탭바)
 // 실제 높이가 246.5px(뷰포트 844px 기준)로, 정적값(224px)보다 22.5px 커져 마지막 말풍선이
 // 가려지는 원인이 됨. 하드코딩된 숫자를 또 추측하는 대신 매번 실제 DOM에서 측정 — 토글
 // 캡션 줄바꿈 등으로 입력창 높이가 달라져도(기기별 안전영역 포함) 항상 정확함.
+// scroll-padding-bottom도 여기서 같이 갱신 — 실측 확인(puppeteer): scrollIntoView({block:'end'})
+// 단독으로는 말풍선 "아래쪽 끝 = 뷰포트 하단"으로만 정렬해서, 그 뷰포트 하단이 fixed
+// 탭바+입력창에 가려진 영역이라는 걸 몰라 말풍선이 그 뒤에 그대로 가려짐(#mpage-home의
+// padding-bottom은 문서 스크롤 여유일 뿐 scrollIntoView의 정렬 기준에는 영향 없음). 실제
+// 스크롤 컨테이너인 body에 scroll-padding-bottom을 걸어두면 scrollIntoView가 그만큼 앞에서
+// 멈춰 fixed 오버레이를 자연히 피함(브라우저가 이 값을 존중 — CSS Scroll Snap 스펙 일부,
+// 컨테이너를 몰라도 동작해야 한다는 요구사항과 충돌 없음).
 function _syncMobileHomeBottomPadding() {
   var page = document.getElementById("mpage-home");
   var inputbar = document.getElementById("mhome-inputbar");
   if (!page || !inputbar) return;
   var occupied = window.innerHeight - inputbar.getBoundingClientRect().top;
-  if (occupied > 0) page.style.paddingBottom = (occupied + 16) + "px"; // +16px 여유
+  if (occupied > 0) {
+    page.style.paddingBottom = (occupied + 16) + "px"; // +16px 여유
+    document.body.style.scrollPaddingBottom = (occupied + 16) + "px";
+  }
 }
 
-// scrollIntoView({block:'end'})는 요소의 아래쪽 끝을 "뷰포트 하단"에 맞추는데, 그 뷰포트
-// 하단이 fixed 탭바+입력창에 가려진 영역이라는 걸 모름 — 실측 결과 말풍선이 그 뒤에 가려진
-// 채로 남는 경우가 있어(#mpage-home에 이미 pb-56로 여유 패딩을 둔 것과 별개로, scrollIntoView
-// 자체의 "뷰포트 하단 = 문서 하단"이라는 가정이 fixed 오버레이 앞에서 깨짐), 대신 항상 문서
-// 전체 스크롤 하단으로 이동 — _syncMobileHomeBottomPadding()이 실측 기반으로 유지하는 여유
-// 패딩 덕분에 전체 바닥까지 스크롤해도 마지막 말풍선이 그 여유 공간 위쪽에 위치해 fixed
-// 오버레이에 가려지지 않음. setTimeout 150ms(100ms보다 여유 있게).
-//
-// window.scrollTo()가 아니라 document.body.scrollTo() — 실측 확인: 이 페이지는
-// html,body{height:100%}로 둘 다 뷰포트 높이에 고정되고 body에 overflow-y:auto가 걸려
-// 실제 스크롤은 body 자신의 내부에서 일어남(document.documentElement.scrollHeight는 항상
-// 뷰포트 높이와 같아 스크롤할 게 없음). document.scrollingElement는 standards mode라
-// <html>을 가리키지만 실제로 스크롤되는 건 body라 window.scrollTo()는 아무 효과가 없었음
-// (헤드리스 Chrome 실측: window.scrollTo 후 window.scrollY 항상 0, document.body.scrollTo
-// 후 body.scrollTop은 정상 반영).
+// feat/mobile-home-chat-first — document.body.scrollTo()는 실기기에서 효과 없음이 재확인됨
+// (window.scrollTo도 마찬가지) — 어느 조상이 실제 스크롤 컨테이너인지 추정하는 대신, 마지막
+// 말풍선 자신에게 scrollIntoView({block:'end'})를 시켜 컨테이너를 몰라도 항상 동작하게 함.
+// 대시보드 제거로 스크롤 거리 자체가 크게 줄어든 것과 별개로 안전망으로 유지.
+// requestAnimationFrame으로 DOM 반영(말풍선 append) 이후 실행 보장.
 function _mhomeScrollToLatest() {
   _syncMobileHomeBottomPadding();
-  setTimeout(function () {
-    document.body.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  }, 150);
+  _mhomeSyncEmptyState();
+  requestAnimationFrame(function () {
+    var log = _mhomeChatLog();
+    var lastMsg = log && log.lastElementChild;
+    if (lastMsg && lastMsg.scrollIntoView) {
+      lastMsg.scrollIntoView({ block: "end", behavior: "smooth" });
+    }
+  });
 }
 
 // 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
@@ -474,8 +492,8 @@ function _mhomeScrollToLatest() {
 function _mhomeResetChat() {
   var log = _mhomeChatLog();
   if (log) log.innerHTML = "";
-  var dash = document.getElementById("mhome-dashboard");
-  if (dash && dash.scrollIntoView) dash.scrollIntoView({ behavior: "smooth", block: "start" });
+  _mhomeSyncEmptyState();
+  window.scrollTo(0, 0);
 }
 
 function mobileAppendUserBubble(text) {
@@ -1286,6 +1304,15 @@ document.addEventListener("DOMContentLoaded", function () {
     // 키보드가 열리면서 뷰포트가 줄어들어 마지막 말풍선이 입력창 뒤로 가려지는 경우 대비
     verifyInput.addEventListener("focus", function () { _mhomeScrollToLatest(); });
   }
+
+  // feat/mobile-home-chat-first — empty-state 예시 칩: 입력창만 채우고 자동 전송하지 않음
+  // (Trending Topics 칩의 _fillMobileClaimInput과 동일 원칙, 클릭 자체는 검증 요청이 아님).
+  document.querySelectorAll(".mhome-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var input = document.getElementById("mobile-claim-input");
+      if (input) { input.value = chip.getAttribute("data-chip-text"); input.focus(); }
+    });
+  });
 
   var mtierStandardBtn = document.getElementById("mtier-standard-btn");
   var mtierDeepBtn = document.getElementById("mtier-deep-btn");
