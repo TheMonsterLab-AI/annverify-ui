@@ -19,6 +19,24 @@ function initials(nameOrEmail) {
   return s.charAt(0).toUpperCase();
 }
 
+// Sign Out 확인 모달 — 데스크톱(사이드바 하단 유저 위젯)/모바일(햄버거 메뉴) 공용.
+// 이전: 데스크톱은 확인 절차 자체가 없이 클릭 즉시 signOut(더 시급한 문제였음), 모바일은
+// 브라우저 기본 confirm(). 둘 다 이 모달로 통일.
+function openSignOutModal() {
+  var el = document.getElementById("signout-modal");
+  if (el) el.classList.remove("hidden");
+}
+function closeSignOutModal() {
+  var el = document.getElementById("signout-modal");
+  if (el) el.classList.add("hidden");
+}
+document.addEventListener("DOMContentLoaded", function () {
+  var cancelBtn = document.getElementById("signout-cancel");
+  var confirmBtn = document.getElementById("signout-confirm");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeSignOutModal);
+  if (confirmBtn) confirmBtn.addEventListener("click", function () { closeSignOutModal(); auth.signOut(); });
+});
+
 function renderSidebarUser() {
   var el = document.getElementById("sidebar-user-area");
   if (!el) return;
@@ -34,7 +52,7 @@ function renderSidebarUser() {
         '<div class="up" id="sign-out-btn">Sign out</div></div>' +
       '</div>';
     var signOutBtn = document.getElementById("sign-out-btn");
-    if (signOutBtn) signOutBtn.addEventListener("click", function () { auth.signOut(); });
+    if (signOutBtn) signOutBtn.addEventListener("click", openSignOutModal);
   } else {
     el.innerHTML =
       '<button class="signin-btn" id="sign-in-btn">' +

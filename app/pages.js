@@ -557,7 +557,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (profileTab) {
     profileTab.addEventListener("click", function () {
       if (typeof currentUser !== "undefined" && currentUser) {
-        if (confirm("Sign out?")) auth.signOut();
+        openSignOutModal();
       } else if (typeof doSignIn === "function") {
         doSignIn();
       }
