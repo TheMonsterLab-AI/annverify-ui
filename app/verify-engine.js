@@ -76,8 +76,16 @@ function setSelectedTier(tier) {
 
 // Railway V5 응답 → render.js 호환 리포트 shape. annverify.ai's normalizeResponse() 그대로 이식.
 function normalizeV5Response(data, tier) {
-  var score = data.overall_score || 50;
-  var g = _v5Grade(score);
+  // fix/remove-fake-score-defaults: `|| 50` can't tell a real score of 0 (the most damning
+  // possible verdict) apart from an honest null (L6 adjudicator unavailable — see
+  // annverify-py fix/l6-retry-and-honesty) — both silently became a fake "50". Preserve null
+  // so render.js can show "—" instead of fabricating a score.
+  var score = (typeof data.overall_score === "number") ? data.overall_score : null;
+  // _v5Grade() only feeds the verified_status fallback and the overall_grade/verdict_class
+  // last-resort defaults (moot now — the backend always sends real strings, "UNAVAILABLE"/
+  // "unavailable" included). It never needs a fake score to do that, so it gets its own 50
+  // fallback that stays internal to this grade lookup and never leaks into overall_score.
+  var g = _v5Grade(score != null ? score : 50);
 
   var claims = (data.claims || []).map(function (c) {
     var rawStatus = (c.status || c.verdict || "").toUpperCase();
@@ -102,7 +110,7 @@ function normalizeV5Response(data, tier) {
     overall_score: score,
     overall_grade: data.overall_grade || g.grade,
     verdict_class: data.verdict_class || g.cls,
-    confidence: data.confidence || 0.5,
+    confidence: (typeof data.confidence === "number") ? data.confidence : null,
     executive_summary: data.executive_summary || "",
     metrics: data.metrics || { factual: 50, logic: 50, source_quality: 50, cross_validation: 50, recency: 70 },
     layer_analysis: data.layer_analysis || [],
