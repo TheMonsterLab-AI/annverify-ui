@@ -35,7 +35,107 @@ document.addEventListener("DOMContentLoaded", function () {
   var confirmBtn = document.getElementById("signout-confirm");
   if (cancelBtn) cancelBtn.addEventListener("click", closeSignOutModal);
   if (confirmBtn) confirmBtn.addEventListener("click", function () { closeSignOutModal(); auth.signOut(); });
+
+  var dpBackBtn = document.getElementById("dp-back");
+  if (dpBackBtn) dpBackBtn.addEventListener("click", closeDesktopProfile);
 });
+
+// ── 데스크톱 Profile — 사이드바 하단 유저 위젯 클릭으로 진입. 데이터 소스는 모바일
+// #mprofile-page(app/mobile-app.js)와 동일 — GET /api/v4/points/me(annPoints/rank/포인트
+// history) + Firebase Auth currentUser(이름/이메일/가입일) + 로컬 세션 기록(history.js
+// computeLocalVerifyStats — 총 검증 수/진실 판정 비율/최근 검증 기록, 이 기기 한정). "플랜"
+// 필드는 이 앱에 구독/티어 개념이 없어 생략(모바일과 동일 이유).
+function openDesktopProfile() {
+  var overlay = document.getElementById("desktop-profile-page");
+  if (overlay) overlay.classList.remove("hidden");
+  _loadDesktopProfile();
+}
+
+function closeDesktopProfile() {
+  var overlay = document.getElementById("desktop-profile-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+function _dpVerifyItemHtml(entry) {
+  var info = verdictInfo(entry.verdictClass);
+  var claimText = (entry.claim || "").toString().slice(0, 40);
+  return '<button class="dp-verify-item" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
+      '<span class="' + _badgeClass(info.tone) + '">' + escapeHtml(info.label) + '</span>' +
+      '<div style="min-width:0;flex:1">' +
+        '<div class="dp-verify-claim">' + escapeHtml(claimText) + '</div>' +
+        '<div class="dp-verify-date">' + escapeHtml(relativeTime(entry.ts)) + '</div>' +
+      '</div>' +
+    '</button>';
+}
+
+async function _loadDesktopProfile() {
+  var body = document.getElementById("dp-body");
+  if (!body || !currentUser) return;
+
+  var joinDate = (currentUser.metadata && currentUser.metadata.creationTime)
+    ? new Date(currentUser.metadata.creationTime).toLocaleDateString()
+    : "--";
+  var localStats = (typeof computeLocalVerifyStats === "function") ? computeLocalVerifyStats() : { total: 0, truthRatePct: null, recent: [] };
+  var name = currentUser.displayName || "Verifier";
+
+  body.innerHTML =
+    '<div class="dp-card">' +
+      '<div class="dp-avatar">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>' +
+      '<div class="dp-name">' + escapeHtml(name) + '</div>' +
+      '<div class="dp-email">' + escapeHtml(currentUser.email || "") + '</div>' +
+      '<div class="dp-joined">Joined ' + escapeHtml(joinDate) + '</div>' +
+      '<div class="dp-ap-total" id="dp-ap-total">-- AP</div>' +
+    '</div>' +
+    '<div class="dp-stats">' +
+      '<div class="dp-stat-card"><div class="dp-stat-label">총 검증 수</div><div class="dp-stat-value">' + localStats.total + '</div></div>' +
+      '<div class="dp-stat-card"><div class="dp-stat-label">진실 판정 비율</div><div class="dp-stat-value">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
+    '</div>' +
+    '<div class="dp-section-title">최근 검증 기록</div>' +
+    '<div id="dp-verify-history">' +
+      (localStats.recent.length ? localStats.recent.map(_dpVerifyItemHtml).join("") : '<div class="dp-empty">최근 검증 기록이 없습니다.</div>') +
+    '</div>' +
+    '<div class="dp-section-title">ANN Points 기록</div>' +
+    '<div id="dp-points-history"><div class="dp-empty">Loading…</div></div>';
+
+  document.querySelectorAll(".dp-verify-item[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-entry-id");
+      var entry = localStats.recent.filter(function (e) { return e.id === id; })[0];
+      if (!entry) return;
+      closeDesktopProfile();
+      if (typeof showAppPage === "function") showAppPage("dashboard");
+      if (typeof renderRightPanel === "function") renderRightPanel(entry);
+    });
+  });
+
+  try {
+    var idToken = await getIdTokenOrNull();
+    if (!idToken) throw new Error("no id token");
+    var res = await fetch(API_URL + "/api/v4/points/me", { headers: { Authorization: "Bearer " + idToken } });
+    var data = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    var apTotalEl = document.getElementById("dp-ap-total");
+    if (apTotalEl) apTotalEl.textContent = (data.annPoints || 0) + " AP";
+
+    var histEl = document.getElementById("dp-points-history");
+    if (!histEl) return;
+    var history = Array.isArray(data.history) ? data.history : [];
+    histEl.innerHTML = history.length
+      ? history.map(function (h) {
+          return '<div class="dp-points-item">' +
+              '<div><div style="font-size:14px;color:#1c1b1b">' + escapeHtml(h.action || "Activity") + '</div>' +
+              '<div class="dp-verify-date">' + escapeHtml(relativeTime(h.timestamp)) + '</div></div>' +
+              '<span class="dp-points-ap">+' + (h.points || 0) + '</span>' +
+            '</div>';
+        }).join("")
+      : '<div class="dp-empty">No activity yet</div>';
+  } catch (e) {
+    console.warn("[desktop profile] failed:", e.message);
+    var histEl2 = document.getElementById("dp-points-history");
+    if (histEl2) histEl2.innerHTML = '<div class="dp-empty">Failed to load activity.</div>';
+  }
+}
 
 function renderSidebarUser() {
   var el = document.getElementById("sidebar-user-area");
@@ -46,13 +146,20 @@ function renderSidebarUser() {
       ? '<img src="' + currentUser.photoURL + '" alt=""/>'
       : initials(name);
     el.innerHTML =
-      '<div class="urow">' +
+      '<div class="urow" id="sidebar-profile-open" style="cursor:pointer">' +
         '<div class="av">' + avatarHtml + '</div>' +
         '<div><div class="un">' + escapeHtml(name) + '</div>' +
         '<div class="up" id="sign-out-btn">Sign out</div></div>' +
       '</div>';
+    var profileOpenEl = document.getElementById("sidebar-profile-open");
+    if (profileOpenEl) profileOpenEl.addEventListener("click", function () { if (typeof openDesktopProfile === "function") openDesktopProfile(); });
     var signOutBtn = document.getElementById("sign-out-btn");
-    if (signOutBtn) signOutBtn.addEventListener("click", openSignOutModal);
+    if (signOutBtn) {
+      signOutBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openSignOutModal();
+      });
+    }
   } else {
     el.innerHTML =
       '<button class="signin-btn" id="sign-in-btn">' +
