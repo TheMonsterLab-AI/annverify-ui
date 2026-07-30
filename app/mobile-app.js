@@ -679,35 +679,16 @@ async function mobileTriggerVerify(claimText, opts) {
   mobileAppendLoadingBubble(id);
 
   var startedAt = Date.now();
-  var idToken = await getIdTokenOrNull();
-  var headers = { "Content-Type": "application/json" };
-  if (idToken) headers["Authorization"] = "Bearer " + idToken;
-
-  var res = null, networkErr = false, data = null;
+  var result;
   try {
-    res = await fetch(API_URL + "/api/verify", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ claim: claimText, depth: "standard" }),
-    });
-    data = await res.json();
+    result = await runVerification(claimText);
   } catch (err) {
-    networkErr = err instanceof TypeError;
-  }
-
-  if (!res || !res.ok || (data && data.error)) {
-    var msg = mapErrorToMessage(res, data, networkErr || !res);
+    var msg = mapErrorToMessage(err.v1Res || null, err.v1Data || null, err.v1NetworkErr !== undefined ? err.v1NetworkErr : true);
     mobileReplaceLoadingWithResult(id, { errorKo: msg.ko, errorEn: msg.en }, true);
     return;
   }
 
-  var parsed = extractParsedResult(data);
-  if (!parsed) {
-    var parseMsg = mapErrorToMessage(null, null, false);
-    mobileReplaceLoadingWithResult(id, { errorKo: parseMsg.ko, errorEn: parseMsg.en }, true);
-    return;
-  }
-
+  var parsed = result.parsed;
   if (typeof incrementVerifyUsage === "function") incrementVerifyUsage();
   var realHash = await computeIntegrityHash(claimText, parsed);
   var entry = {
@@ -716,7 +697,10 @@ async function mobileTriggerVerify(claimText, opts) {
     verdictClass: parsed.verdict_class || null,
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
     bislHash: realHash,
-    model: data.model || null,
+    model: result.model || null,
+    engine: result.engine,
+    tier: result.tier,
+    fallback: result.fallback,
     ts: Date.now(),
     elapsedMs: Date.now() - startedAt,
     parsed: parsed,
@@ -1278,6 +1262,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // 키보드가 열리면서 뷰포트가 줄어들어 마지막 말풍선이 입력창 뒤로 가려지는 경우 대비
     verifyInput.addEventListener("focus", function () { _mhomeScrollToLatest(); });
   }
+
+  var mtierStandardBtn = document.getElementById("mtier-standard-btn");
+  var mtierDeepBtn = document.getElementById("mtier-deep-btn");
+  if (mtierStandardBtn) mtierStandardBtn.addEventListener("click", function () { setSelectedTier("standard"); });
+  if (mtierDeepBtn) mtierDeepBtn.addEventListener("click", function () { setSelectedTier("deep"); });
 
   _wireMobileMenu();
   _wireMobileNews();

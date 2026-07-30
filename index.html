@@ -60,6 +60,10 @@ tailwind.config = {
 #mobile-app .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 #mobile-app .mnews-pill, #mobile-app .mnews-filter-pill { color: #3f4943; background-color: #EDE7D9; border-radius: 9999px; padding: 6px 16px; font-weight: 600; }
 #mobile-app .mnews-pill.on, #mobile-app .mnews-filter-pill.on { background-color: #1a6b4a; color: #fff; }
+/* Standard/Deep verification-tier pills above the mobile input bar — same pill convention as
+   .mnews-pill/.on above, just its own class so tier state and news-filter state never collide. */
+#mobile-app .mtier-pill { color: #3f4943; background-color: #EDE7D9; border-radius: 9999px; padding: 6px 16px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; }
+#mobile-app .mtier-pill.on { background-color: #1a6b4a; color: #fff; }
 /* AI News/로컬 뉴스/World News 3개 메인 탭만 대상 — 하단 카테고리 필터 칩(.mnews-filter-pill,
    전체/정치/경제/사회/국제)은 더 조밀한 보조 UI라 별도 유지, 이 크기 규칙에서 제외. */
 #mobile-app .mnews-pill { font-size: 15px; padding: 10px 20px; min-height: 44px; }
@@ -174,7 +178,11 @@ tailwind.config = {
             </button>
           </div>
           <div class="if2">
-            <span class="it" id="input-hint">Standard tier</span>
+            <span class="it" id="input-hint">Standard · ~25s</span>
+            <div class="tier-toggle" id="tier-toggle" role="group" aria-label="Verification tier">
+              <button class="tier-pill active" id="tier-standard-btn" data-tier="standard" type="button">Standard</button>
+              <button class="tier-pill" id="tier-deep-btn" data-tier="deep" type="button">Deep</button>
+            </div>
           </div>
         </div>
       </div>
@@ -471,6 +479,11 @@ tailwind.config = {
   <!-- 입력창 — Home 페이지에서만 표시(탭바 위 고정) -->
   <div class="fixed bottom-20 left-0 w-full px-margin-mobile z-30 bg-gradient-to-t from-surface to-transparent pt-8 pb-4" id="mhome-inputbar">
     <div class="max-w-md mx-auto">
+      <div class="flex gap-2 justify-center mb-2" id="mobile-tier-toggle" role="group" aria-label="Verification tier">
+        <button class="mtier-pill active" id="mtier-standard-btn" data-tier="standard" type="button">Standard</button>
+        <button class="mtier-pill" id="mtier-deep-btn" data-tier="deep" type="button">Deep</button>
+      </div>
+      <p id="mobile-tier-hint" class="text-center font-label-caps text-[10px] uppercase tracking-wide mb-2" style="color:var(--out,#9AA09C)">Standard · ~25s · fast check</p>
       <div class="relative group">
         <input id="mobile-claim-input" class="w-full h-14 pl-4 pr-16 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm focus:ring-0 focus:border-primary transition-all text-body-md placeholder:text-on-surface-variant" placeholder="Paste claim or source URL for verification..." type="text"/>
         <button id="mobile-verify-btn" class="absolute right-2 top-2 bottom-2 w-12 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors" aria-label="Verify"><span class="material-symbols-outlined">fact_check</span></button>
@@ -694,6 +707,7 @@ tailwind.config = {
 <script src="app/usage.js"></script>
 <script src="app/auth.js"></script>
 <script src="app/history.js"></script>
+<script src="app/verify-engine.js"></script>
 <script src="app/render.js"></script>
 <script src="app/pdf.js"></script>
 <script src="app/mobile.js"></script>

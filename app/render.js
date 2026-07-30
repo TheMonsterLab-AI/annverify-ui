@@ -350,13 +350,31 @@ function _secExecutiveSummary(p, entry, info) {
     '<div class="pg-text">' + escapeHtml(text) + '</div></div>';
 }
 
+// V5 (entry.engine === "v5") genuinely runs a 7-stage L1-L7 pipeline (Railway ann-engine-py) —
+// its layer_analysis array length is real. V1 (/api/verify) is a single Claude call that's
+// prompted to *describe itself* in a 7-item layer_analysis array as part of its one-shot JSON
+// output — the array exists but doesn't correspond to 7 real analysis stages, so showing its
+// .length here would misrepresent a single-pass fallback as a multi-layer pipeline. Hardcode 1
+// for V1 instead of trusting that count.
+function _engineTierLabels(entry, p) {
+  if (entry.engine === "v5") {
+    var layerCount = Array.isArray(p.layer_analysis) ? p.layer_analysis.length : 7;
+    return {
+      engine: "ANN Verify (V5)",
+      tier: entry.tier === "deep" ? "Deep" : "Standard",
+      layers: String(layerCount || 7),
+    };
+  }
+  return { engine: "ANN Verify (V1 · fallback)", tier: "Standard", layers: "1" };
+}
+
 function _secMethodology(entry, p) {
-  var layerCount = Array.isArray(p.layer_analysis) ? p.layer_analysis.length : 0;
+  var lbl = _engineTierLabels(entry, p);
   var rows = [
-    ["Engine", "ANN Verify (V1)"],
-    ["Tier", "Standard"],
+    ["Engine", lbl.engine],
+    ["Tier", lbl.tier],
     ["Model", entry.model || "—"],
-    ["Layers analyzed", String(layerCount)],
+    ["Layers analyzed", lbl.layers],
     ["Processing time", entry.elapsedMs != null ? (entry.elapsedMs / 1000).toFixed(1) + "s" : "—"],
     ["Analyzed at", new Date(entry.ts).toLocaleString()],
   ];
@@ -459,12 +477,13 @@ function _secTemporal(p) {
 }
 
 function _secVerificationRecord(entry, p) {
+  var lbl = _engineTierLabels(entry, p);
   return '<div class="rp-section"><div class="rp-sec">§9 Verification Record</div>' +
     '<div class="mono">' +
       "SHA-256: " + escapeHtml(entry.bislHash || "n/a") + "<br>" +
       "Claim ID: " + escapeHtml(p.claimId || "n/a") + "<br>" +
       "Claim Hash: " + escapeHtml(p.claimHash || "n/a") + "<br>" +
-      "Engine: ANN Verify V1 · Tier: Standard<br>" +
+      "Engine: " + escapeHtml(lbl.engine) + " · Tier: " + escapeHtml(lbl.tier) + "<br>" +
       "Document No: AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" + (entry.bislHash || "").replace(/^ann-/, "").slice(0, 8) +
     "</div></div>";
 }
@@ -491,6 +510,23 @@ function _secReferences(p) {
     body = '<div class="src-meta" style="padding:8px 0">No external sources returned.</div>';
   }
   return '<div class="rp-section" style="margin-bottom:80px"><div class="rp-sec">§11 References</div>' + body + '</div>';
+}
+
+// STEP 5 정직성 요구사항: V1 폴백과 engine_status:"degraded"를 조용히 넘기지 않고 리포트
+// 상단에 명시. 배너 없음 = V5가 정상(ok) 응답했다는 뜻으로 읽힐 수 있어야 하므로, 두 조건
+// 다 해당 없을 때는 아무것도 렌더링하지 않는다(과시적 "정상" 배너는 추가하지 않음).
+function _secEngineBanners(entry, p) {
+  var html = "";
+  if (entry.fallback) {
+    html += '<div class="rp-banner rp-banner-info">V5 engine unavailable — this result used the V1 fallback engine (single-pass, not the full 7-layer pipeline).' +
+      '<br><span style="font-size:11px">V5 엔진에 연결할 수 없어 V1(단일 패스) 폴백 결과입니다.</span></div>';
+  }
+  if (p.engine_status === "degraded") {
+    html += '<div class="rp-banner rp-banner-warn">This result was generated in degraded mode — one or more analysis layers used a fallback method' +
+      (p.degraded_reason ? ' (' + escapeHtml(p.degraded_reason) + ')' : '') + '.' +
+      '<br><span style="font-size:11px">일부 분석 레이어가 축소 모드로 처리되었습니다.</span></div>';
+  }
+  return html;
 }
 
 function renderRightPanel(entry) {
@@ -531,6 +567,7 @@ function renderRightPanel(entry) {
         '<div class="rp-claim">' + escapeHtml(entry.claim) + '</div>' +
         '<div class="rp-sub">Engine ANN · Processing time: ' + (entry.elapsedMs != null ? (entry.elapsedMs / 1000).toFixed(1) + 's' : '—') + '</div>' +
       '</div>' +
+      _secEngineBanners(entry, p) +
       _secExecutiveSummary(p, entry, info) +
       '<div class="rp-section">' +
         '<div class="rp-sec">§2 Confidence &amp; Consensus</div>' +

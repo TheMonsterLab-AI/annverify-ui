@@ -2,21 +2,9 @@
 // /api/verify directly. It now always goes through /api/v4/chat first (general conversation);
 // verification only happens when the user clicks the inline "Verify this" suggestion button
 // that appears when the assistant detects a fact-checkable claim (shouldVerify:true).
-
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-
-function safeParseJSON(text) {
-  try { return JSON.parse(text); } catch (e) { return null; }
-}
-
-function extractParsedResult(data) {
-  var txt = (data && Array.isArray(data.content))
-    ? data.content.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("")
-    : "";
-  var clean = txt.replace(/```json|```/g, "").trim();
-  if (!clean) return null;
-  return safeParseJSON(clean);
-}
+// uid()/safeParseJSON()/extractParsedResult() moved to app/verify-engine.js — used by the V1
+// fallback path there too. runVerification() (same file) is the actual engine call: V5 first,
+// V1 fallback on failure.
 
 // ── Chat turn ────────────────────────────────────────────────────────────
 async function submitChatMessage(text) {
@@ -91,40 +79,19 @@ async function triggerVerifyFromSuggestion(claimText) {
   appendPendingRow(id);
 
   var startedAt = Date.now();
-  var idToken = await getIdTokenOrNull();
-  var headers = { "Content-Type": "application/json" };
-  if (idToken) headers["Authorization"] = "Bearer " + idToken;
-
-  var res = null, networkErr = false, data = null;
+  var result;
   try {
-    res = await fetch(API_URL + "/api/verify", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ claim: claimText, depth: "standard" }),
-    });
-    data = await res.json();
+    result = await runVerification(claimText);
   } catch (err) {
-    networkErr = err instanceof TypeError;
-  }
-
-  if (!res || !res.ok || (data && data.error)) {
-    var msg = mapErrorToMessage(res, data, networkErr || !res);
-    console.warn("[verify] failed:", msg.en);
+    var msg = mapErrorToMessage(err.v1Res || null, err.v1Data || null, err.v1NetworkErr !== undefined ? err.v1NetworkErr : true);
+    console.warn("[verify] failed:", err.message);
     appendMessageToSession({ role: "verify-error", claim: claimText, errKo: msg.ko, errEn: msg.en, ts: Date.now() });
     replacePendingWithCard(id, { claim: claimText, errorKo: msg.ko, errorEn: msg.en }, true);
     showErrorInRightPanel(claimText, msg.ko, msg.en);
     return;
   }
 
-  var parsed = extractParsedResult(data);
-  if (!parsed) {
-    var parseMsg = mapErrorToMessage(null, null, false);
-    appendMessageToSession({ role: "verify-error", claim: claimText, errKo: parseMsg.ko, errEn: parseMsg.en, ts: Date.now() });
-    replacePendingWithCard(id, { claim: claimText, errorKo: parseMsg.ko, errorEn: parseMsg.en }, true);
-    showErrorInRightPanel(claimText, parseMsg.ko, parseMsg.en);
-    return;
-  }
-
+  var parsed = result.parsed;
   incrementVerifyUsage();
   var realHash = await computeIntegrityHash(claimText, parsed);
   var entry = {
@@ -133,7 +100,10 @@ async function triggerVerifyFromSuggestion(claimText) {
     verdictClass: parsed.verdict_class || null,
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
     bislHash: realHash, // real client-computed SHA-256 — NOT parsed.bisl_hash (server's is not a real digest, see computeIntegrityHash)
-    model: data.model || null, // raw envelope field, e.g. "claude-sonnet-4-6" — not present inside `parsed`
+    model: result.model || null, // raw envelope field, e.g. "claude-sonnet-4-6" — V1 only, V5 has no single-model concept
+    engine: result.engine,       // "v5" | "v1"
+    tier: result.tier,           // "standard" | "deep" ("standard" always for v1 fallback)
+    fallback: result.fallback,   // true when V5 failed and this is the V1 fallback result
     ts: Date.now(),
     elapsedMs: Date.now() - startedAt,
     parsed: parsed,
@@ -161,4 +131,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (typeof showAppPage === "function") showAppPage("dashboard");
     if (typeof closeSidebar === "function") closeSidebar();
   });
+
+  var tierStandardBtn = document.getElementById("tier-standard-btn");
+  var tierDeepBtn = document.getElementById("tier-deep-btn");
+  if (tierStandardBtn) tierStandardBtn.addEventListener("click", function () { setSelectedTier("standard"); });
+  if (tierDeepBtn) tierDeepBtn.addEventListener("click", function () { setSelectedTier("deep"); });
 });
