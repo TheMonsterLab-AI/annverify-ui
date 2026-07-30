@@ -59,13 +59,18 @@ function closeDesktopProfile() {
 function _dpVerifyItemHtml(entry) {
   var info = verdictInfo(entry.verdictClass);
   var claimText = (entry.claim || "").toString().slice(0, 40);
-  return '<button class="dp-verify-item" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
-      '<span class="' + _badgeClass(info.tone) + '">' + escapeHtml(info.label) + '</span>' +
-      '<div style="min-width:0;flex:1">' +
-        '<div class="dp-verify-claim">' + escapeHtml(claimText) + '</div>' +
-        '<div class="dp-verify-date">' + escapeHtml(relativeTime(entry.ts)) + '</div>' +
-      '</div>' +
-    '</button>';
+  var id = escapeHtml(entry.id || "");
+  return '<div class="dp-verify-item" style="cursor:default">' +
+      '<button class="dp-verify-open" data-entry-id="' + id + '" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;flex:1;min-width:0">' +
+        '<span class="' + _badgeClass(info.tone) + '">' + escapeHtml(info.label) + '</span>' +
+        '<div style="min-width:0;flex:1">' +
+          '<div class="dp-verify-claim">' + escapeHtml(claimText) + '</div>' +
+          '<div class="dp-verify-date">' + escapeHtml(relativeTime(entry.ts)) + '</div>' +
+        '</div>' +
+      '</button>' +
+      '<button class="dp-icon-btn dp-dl-btn" data-entry-id="' + id + '" aria-label="Download PDF" title="Download PDF"><span class="material-symbols-outlined" style="font-size:18px">download</span></button>' +
+      '<button class="dp-icon-btn dp-share-btn" data-entry-id="' + id + '" aria-label="Share" title="Share"><span class="material-symbols-outlined" style="font-size:18px">share</span></button>' +
+    '</div>';
 }
 
 async function _loadDesktopProfile() {
@@ -97,14 +102,33 @@ async function _loadDesktopProfile() {
     '<div class="dp-section-title">ANN Points 기록</div>' +
     '<div id="dp-points-history"><div class="dp-empty">Loading…</div></div>';
 
-  document.querySelectorAll(".dp-verify-item[data-entry-id]").forEach(function (btn) {
+  function _findLocalEntryDp(id) {
+    return localStats.recent.filter(function (e) { return e.id === id; })[0];
+  }
+  document.querySelectorAll(".dp-verify-open[data-entry-id]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-entry-id");
-      var entry = localStats.recent.filter(function (e) { return e.id === id; })[0];
+      var entry = _findLocalEntryDp(btn.getAttribute("data-entry-id"));
       if (!entry) return;
       closeDesktopProfile();
       if (typeof showAppPage === "function") showAppPage("dashboard");
       if (typeof renderRightPanel === "function") renderRightPanel(entry);
+    });
+  });
+  document.querySelectorAll(".dp-dl-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var entry = _findLocalEntryDp(btn.getAttribute("data-entry-id"));
+      if (!entry) return;
+      closeDesktopProfile();
+      if (typeof downloadReportPdf === "function") downloadReportPdf(entry);
+    });
+  });
+  document.querySelectorAll(".dp-share-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var entry = _findLocalEntryDp(btn.getAttribute("data-entry-id"));
+      if (!entry) return;
+      if (typeof shareEntry === "function") shareEntry(entry);
     });
   });
 

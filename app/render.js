@@ -12,6 +12,54 @@
 //   - "Sources" list → mockup shows title+domain+date per source; the API's web_citations is a
 //     flat array of URL strings only, so title/date are derived from the URL itself, not fabricated.
 
+// ── 공용 토스트 (#mobile-toast/showMobileToast는 #mobile-app 안에 있어 데스크톱에서 안 보임 —
+// 리포트 공유/PDF는 양쪽 다 쓰여서 별도) ──────────────────────────────────────────
+var _appToastTimer = null;
+function showAppToast(msg) {
+  var el = document.getElementById("app-toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  clearTimeout(_appToastTimer);
+  _appToastTimer = setTimeout(function () { el.classList.add("hidden"); }, 2000);
+}
+
+// ── 리포트 공유 — annverify.ai는 SPA 해시라우팅이라 팩트체크별 고유 URL이 없음
+// (app/discuss-detail.js 헤더 주석에 이미 문서화된 것과 동일한 제약, 리포트도 마찬가지 —
+// 없는 딥링크를 지어내는 대신 이 앱 자체 URL을 공유). ──────────────────────────────
+function shareEntry(entry) {
+  var info = verdictInfo(entry.verdictClass);
+  var claimSnippet = (entry.claim || "").toString().slice(0, 50);
+  var title = "ANN Verify — " + info.label + " " + claimSnippet;
+  var url = window.location.origin;
+  if (navigator.share) {
+    navigator.share({ title: title, url: url }).catch(function () {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function () {
+      showAppToast("링크가 복사되었습니다");
+    }).catch(function () {});
+  } else {
+    showAppToast("공유가 지원되지 않는 환경입니다");
+  }
+}
+
+// ── PDF 다운로드 — worker/routes/ 전체 확인 결과 PDF 생성 엔드포인트 없음(0건). 새 클라이언트
+// 라이브러리(jsPDF 등, annverify.ai frontend/app/utils.js가 쓰는 방식) 도입은 더 큰 의존성
+// 결정이라 이 task 범위에서 임의로 추가하지 않음 — 브라우저 네이티브 인쇄(Print → Save as PDF)
+// 로 실제 PDF 파일을 생성(app/style.css @media print가 리포트 콘텐츠만 남기고 나머지를 숨김).
+// entry가 주어지면(Profile/결과카드에서 호출 시 아직 리포트 뷰가 아닐 수 있음) 먼저 렌더+표시.
+function downloadReportPdf(entry) {
+  if (entry) {
+    renderRightPanel(entry);
+    if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
+      if (typeof mobileShowResult === "function") mobileShowResult();
+    } else if (typeof showAppPage === "function") {
+      showAppPage("dashboard");
+    }
+  }
+  setTimeout(function () { window.print(); }, 100);
+}
+
 // annverify.ai's own render.js explicitly does NOT trust the server's bisl_hash field —
 // comment there reads: "The v5 model returns a bisl_hash field that is NOT a real digest;
 // we never display it." It computes a genuine client-side SHA-256 instead (Web Crypto) and
@@ -192,9 +240,17 @@ function _verifyCardNode(entry) {
   card.setAttribute("data-verify-id", entry.id);
   card.innerHTML =
     '<span class="mv ' + (info.tone === "err" ? "mvf" : "mvv") + '">' + escapeHtml(info.label) + '</span>' +
-    '<div><div class="mc">' + escapeHtml(entry.claim.slice(0, 120)) + '</div>' +
-    '<div class="ms">Confidence ' + Math.round((entry.confidence || 0) * 100) + '% — click to view full dossier</div></div>';
+    '<div style="flex:1;min-width:0"><div class="mc">' + escapeHtml(entry.claim.slice(0, 120)) + '</div>' +
+    '<div class="ms">Confidence ' + Math.round((entry.confidence || 0) * 100) + '% — click to view full dossier</div></div>' +
+    '<button class="mc-share-btn" aria-label="Share" title="Share"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg></button>';
   card.addEventListener("click", function () { renderRightPanel(entry); });
+  var shareBtn = card.querySelector(".mc-share-btn");
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      shareEntry(entry);
+    });
+  }
   return card;
 }
 
@@ -470,10 +526,10 @@ function renderRightPanel(entry) {
         '<div class="rp-title">' + escapeHtml(entry.claim.slice(0, 60)) + ' — Full Dossier</div>' +
       '</div>' +
       '<div class="rp-actions">' +
-        '<button class="rp-btn rp-sh" id="rp-share-btn" title="Coming soon">' +
+        '<button class="rp-btn rp-sh" id="rp-share-btn">' +
           '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>Share' +
         '</button>' +
-        '<button class="rp-btn rp-dl" id="rp-dl-btn" title="Coming soon">' +
+        '<button class="rp-btn rp-dl" id="rp-dl-btn">' +
           '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download PDF' +
         '</button>' +
         '<button class="rp-close" id="rp-close-btn" aria-label="Close">' +
@@ -519,6 +575,10 @@ function renderRightPanel(entry) {
   if (closeBtn) closeBtn.addEventListener("click", _handleRpClose);
   var backBtn = document.getElementById("rp-back-btn");
   if (backBtn) backBtn.addEventListener("click", function () { mobileShowHistory(); });
+  var shareBtn = document.getElementById("rp-share-btn");
+  if (shareBtn) shareBtn.addEventListener("click", function () { shareEntry(entry); });
+  var dlBtn = document.getElementById("rp-dl-btn");
+  if (dlBtn) dlBtn.addEventListener("click", function () { downloadReportPdf(); });
   if (typeof mobileShowResult === "function") mobileShowResult();
 }
 

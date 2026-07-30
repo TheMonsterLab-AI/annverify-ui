@@ -680,6 +680,11 @@ tailwind.config = {
   <div class="dp-body" id="dp-body"></div>
 </div>
 
+<!-- 공용 토스트 — #mobile-toast(app/discuss-detail.js showMobileToast)는 #mobile-app 안에
+     있어 데스크톱 폭에서 안 보임. 리포트 공유/PDF는 데스크톱·모바일 둘 다에서 쓰여서 별도로
+     #mobile-app 밖에 둠(showAppToast, app/render.js). -->
+<div id="app-toast" class="app-toast hidden"></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>

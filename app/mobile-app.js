@@ -755,11 +755,15 @@ function _profileVerifyHistoryCardHtml(entry) {
   var info = verdictInfo(entry.verdictClass);
   var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
   var claimText = (entry.claim || "").toString().slice(0, 40);
-  return '<button class="mprofile-verify-item w-full text-left paper-card p-sm mb-2 flex items-center gap-2" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
-      '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border shrink-0">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
-      '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(claimText) + '</p>' +
-      '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p></div>' +
-    '</button>';
+  return '<div class="paper-card p-sm mb-2 flex items-center gap-2">' +
+      '<button class="mprofile-verify-item flex-1 min-w-0 text-left flex items-center gap-2" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
+        '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border shrink-0">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
+        '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(claimText) + '</p>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p></div>' +
+      '</button>' +
+      '<button class="mprofile-dl-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Download PDF" title="Download PDF"><span class="material-symbols-outlined text-[18px]">download</span></button>' +
+      '<button class="mprofile-share-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Share" title="Share"><span class="material-symbols-outlined text-[18px]">share</span></button>' +
+    '</div>';
 }
 
 async function _loadMobileProfile() {
@@ -794,14 +798,33 @@ async function _loadMobileProfile() {
     '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">ANN Points 기록</h3>' +
     '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
 
+  function _findLocalEntry(id) {
+    return localStats.recent.filter(function (e) { return e.id === id; })[0];
+  }
   document.querySelectorAll(".mprofile-verify-item[data-entry-id]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-entry-id");
-      var entry = localStats.recent.filter(function (e) { return e.id === id; })[0];
+      var entry = _findLocalEntry(btn.getAttribute("data-entry-id"));
       if (!entry) return;
       closeMobileProfile();
       if (typeof renderRightPanel === "function") renderRightPanel(entry);
       if (typeof mobileShowResult === "function") mobileShowResult();
+    });
+  });
+  document.querySelectorAll(".mprofile-dl-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var entry = _findLocalEntry(btn.getAttribute("data-entry-id"));
+      if (!entry) return;
+      closeMobileProfile();
+      if (typeof downloadReportPdf === "function") downloadReportPdf(entry);
+    });
+  });
+  document.querySelectorAll(".mprofile-share-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var entry = _findLocalEntry(btn.getAttribute("data-entry-id"));
+      if (!entry) return;
+      if (typeof shareEntry === "function") shareEntry(entry);
     });
   });
 
