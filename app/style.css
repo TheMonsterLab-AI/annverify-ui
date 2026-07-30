@@ -369,13 +369,6 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 /* 공용 토스트(데스크톱+모바일) — 하단 중앙, 2초 자동 사라짐(app/render.js showAppToast) */
 .app-toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);z-index:110;background:#1c1b1b;color:#fff;padding:10px 20px;border-radius:9999px;font-family:'Libre Franklin',sans-serif;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:90%;text-align:center}
 
-/* PDF 다운로드 — 서버 PDF 엔드포인트 없음(확인됨, worker/routes/ 전체 검색 결과 0건) + 새
-   라이브러리(jsPDF 등) 도입은 더 큰 의존성 결정이라 임의로 추가하지 않음 — 브라우저 네이티브
-   Print → Save as PDF를 사용(window.print() + 아래 @media print로 리포트 콘텐츠만 인쇄).
-   실제 PDF 파일이 생성되는 정직한 방법(가짜 다운로드 아님). */
-@media print{
-  body *{visibility:hidden}
-  .rp-content, .rp-content *{visibility:visible}
-  .rp-content{position:absolute;left:0;top:0;width:100%;max-width:none}
-  .rp-top, .app-toast, #mmenu-drawer, #mmenu-backdrop{display:none!important}
-}
+/* PDF 다운로드 — 이전엔 서버/라이브러리 없이 window.print() @media print로 대체했지만, 이제
+   annverify.ai의 실제 jsPDF 클라이언트 생성 방식을 그대로 포팅(app/pdf.js)해서 이 인쇄 전용
+   스타일은 더 이상 필요 없음 — 제거. */

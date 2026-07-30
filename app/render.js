@@ -43,22 +43,9 @@ function shareEntry(entry) {
   }
 }
 
-// ── PDF 다운로드 — worker/routes/ 전체 확인 결과 PDF 생성 엔드포인트 없음(0건). 새 클라이언트
-// 라이브러리(jsPDF 등, annverify.ai frontend/app/utils.js가 쓰는 방식) 도입은 더 큰 의존성
-// 결정이라 이 task 범위에서 임의로 추가하지 않음 — 브라우저 네이티브 인쇄(Print → Save as PDF)
-// 로 실제 PDF 파일을 생성(app/style.css @media print가 리포트 콘텐츠만 남기고 나머지를 숨김).
-// entry가 주어지면(Profile/결과카드에서 호출 시 아직 리포트 뷰가 아닐 수 있음) 먼저 렌더+표시.
-function downloadReportPdf(entry) {
-  if (entry) {
-    renderRightPanel(entry);
-    if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
-      if (typeof mobileShowResult === "function") mobileShowResult();
-    } else if (typeof showAppPage === "function") {
-      showAppPage("dashboard");
-    }
-  }
-  setTimeout(function () { window.print(); }, 100);
-}
+// PDF 다운로드 실제 구현(jsPDF 포팅)은 app/pdf.js의 downloadReportPdf()가 담당 — 이전 PR의
+// window.print() 임시 구현을 대체(PDF 생성 엔드포인트가 없어 그때는 브라우저 네이티브 인쇄로
+// 대신했었음, 이제 annverify.ai의 실제 클라이언트사이드 생성 방식을 그대로 포팅).
 
 // annverify.ai's own render.js explicitly does NOT trust the server's bisl_hash field —
 // comment there reads: "The v5 model returns a bisl_hash field that is NOT a real digest;
@@ -578,7 +565,7 @@ function renderRightPanel(entry) {
   var shareBtn = document.getElementById("rp-share-btn");
   if (shareBtn) shareBtn.addEventListener("click", function () { shareEntry(entry); });
   var dlBtn = document.getElementById("rp-dl-btn");
-  if (dlBtn) dlBtn.addEventListener("click", function () { downloadReportPdf(); });
+  if (dlBtn) dlBtn.addEventListener("click", function () { downloadReportPdf(entry); });
   if (typeof mobileShowResult === "function") mobileShowResult();
 }
 
