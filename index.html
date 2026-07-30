@@ -655,6 +655,19 @@ tailwind.config = {
   <div id="mobile-toast" class="hidden fixed left-1/2 z-[99] bg-[#1c1b1b] text-white px-4 py-2.5 rounded-full font-body-sm text-body-sm shadow-lg max-w-[90%] text-center" style="bottom:calc(64px + env(safe-area-inset-bottom) + 16px);transform:translateX(-50%)"></div>
 </div>
 
+<!-- Sign Out 확인 모달 — 데스크톱(.ni Profile 탭)/모바일(햄버거 메뉴) 공용, #mobile-app 밖에
+     둬서 두 뷰포트 어디서든 항상 사용 가능(#mobile-app은 데스크톱 폭에서 display:none). -->
+<div id="signout-modal" class="hidden fixed inset-0 z-[100] bg-black/40 flex items-center justify-center px-margin-mobile">
+  <div class="signout-modal-card">
+    <h2 class="signout-modal-title">로그아웃</h2>
+    <p class="signout-modal-body">정말 로그아웃하시겠습니까?</p>
+    <div class="signout-modal-actions">
+      <button id="signout-cancel" class="signout-modal-cancel-btn">취소</button>
+      <button id="signout-confirm" class="signout-modal-confirm-btn">로그아웃</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>

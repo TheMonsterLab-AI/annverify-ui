@@ -324,3 +324,12 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 @media (max-width: 640px){
   body { font-size:16px }
 }
+
+/* Sign Out 확인 모달 — 데스크톱/모바일 공용(index.html #signout-modal이 #mobile-app 밖에
+   있어 두 뷰포트 모두에서 사용 가능). 기존 alert() confirm() 대체. */
+.signout-modal-card{background:#FDFAF5;border:1px solid #D4C9B0;border-radius:16px;padding:24px;width:100%;max-width:320px;font-family:'Libre Franklin',sans-serif}
+.signout-modal-title{font-family:'Source Serif 4',serif;font-size:20px;font-weight:700;color:#1c1b1b;margin-bottom:8px}
+.signout-modal-body{font-size:15px;color:#3f4943;margin-bottom:20px;line-height:1.5}
+.signout-modal-actions{display:flex;gap:10px}
+.signout-modal-cancel-btn{flex:1;padding:12px;border:1px solid #005235;border-radius:8px;background:transparent;color:#005235;font-weight:700;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
+.signout-modal-confirm-btn{flex:1;padding:12px;border:none;border-radius:8px;background:#ba1a1a;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}

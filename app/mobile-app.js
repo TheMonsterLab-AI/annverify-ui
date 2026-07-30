@@ -839,7 +839,9 @@ function renderMobileMenuHeader() {
     if (signOutBtn) signOutBtn.classList.remove("hidden");
   } else {
     header.innerHTML =
-      '<button id="mmenu-signin-btn" class="w-full py-2.5 bg-surface text-primary rounded-lg font-label-caps text-label-caps font-bold">Sign In</button>';
+      '<button id="mmenu-signin-btn" class="w-full bg-primary text-white rounded-[10px] text-[16px] p-[14px] font-bold flex items-center justify-center gap-2">' +
+        '<span class="material-symbols-outlined text-[18px]">login</span>Sign In' +
+      '</button>';
     if (signOutBtn) signOutBtn.classList.add("hidden");
     var signinBtn = document.getElementById("mmenu-signin-btn");
     if (signinBtn) signinBtn.addEventListener("click", function () { closeMobileMenu(); if (typeof doSignIn === "function") doSignIn(); });
@@ -912,7 +914,7 @@ function _wireMobileMenu() {
   if (signOutBtn) {
     signOutBtn.addEventListener("click", function () {
       closeMobileMenu();
-      if (confirm("Sign out?")) auth.signOut();
+      openSignOutModal();
     });
   }
 
