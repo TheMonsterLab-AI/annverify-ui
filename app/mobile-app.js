@@ -733,10 +733,13 @@ function mobileSubmitVerify(claimText) {
 // "Firestore users 컬렉션" 직접 조회는 필드명/보안규칙을 확인하지 못해(discuss-detail.js의
 // discussPosts처럼 검증된 스키마가 아님) 대신 이미 검증되고 실제 쓰이고 있는
 // GET /api/v4/points/me(모바일 My Rank 바, app/mobile-app.js _loadMobileMyRank 참고)를
-// 재사용 — annPoints/rank/history(최대 20건 활동 로그)는 전부 실제 서버 필드. 이름/이메일/
+// 재사용 — annPoints/rank/포인트 트랜잭션 history는 전부 실제 서버 필드. 이름/이메일/
 // 가입일은 Firebase Auth currentUser에서(전부 실제 값, 서버 조회 불필요).
-// "검증 횟수"는 /me가 직접 주지 않음(worker 확인됨 — verifyCount는 leaderboard 로우에만
-// 있고 /me엔 없음) — 대신 history 배열 길이를 "최근 활동(최대 20건)"으로 정직하게 표기.
+// "총 검증 수"/"진실 판정 비율"/"최근 검증 기록"(클레임 원문 포함)은 /me에 없음(서버 확인 —
+// 포인트 history의 metadata엔 claimId 해시만 있고 원문 텍스트도, 집계도 없음) — 대신 로컬
+// 세션 기록(history.js computeLocalVerifyStats, 이 기기 한정)에서 계산. "플랜"(Free/Pro 등)
+// 필드는 이 앱에 구독/티어 개념 자체가 없어(전체 코드베이스 확인, _annCurrentPlan 등 전무)
+// 카드에서 생략 — 없는 걸 지어내지 않음.
 function openMobileProfile() {
   var overlay = document.getElementById("mprofile-page");
   if (overlay) overlay.classList.remove("hidden");
@@ -748,6 +751,17 @@ function closeMobileProfile() {
   if (overlay) overlay.classList.add("hidden");
 }
 
+function _profileVerifyHistoryCardHtml(entry) {
+  var info = verdictInfo(entry.verdictClass);
+  var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+  var claimText = (entry.claim || "").toString().slice(0, 40);
+  return '<button class="mprofile-verify-item w-full text-left paper-card p-sm mb-2 flex items-center gap-2" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
+      '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border shrink-0">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
+      '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(claimText) + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p></div>' +
+    '</button>';
+}
+
 async function _loadMobileProfile() {
   var body = document.getElementById("mprofile-body");
   if (!body || typeof currentUser === "undefined" || !currentUser) return;
@@ -755,21 +769,41 @@ async function _loadMobileProfile() {
   var joinDate = (currentUser.metadata && currentUser.metadata.creationTime)
     ? new Date(currentUser.metadata.creationTime).toLocaleDateString()
     : "--";
+  var localStats = (typeof computeLocalVerifyStats === "function") ? computeLocalVerifyStats() : { total: 0, truthRatePct: null, recent: [] };
+
   body.innerHTML =
     '<div class="paper-card p-md mb-md text-center">' +
-      '<div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-bold mx-auto mb-2">' +
+      '<div class="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center text-2xl font-bold mx-auto mb-2">' +
         escapeHtml((currentUser.displayName || "V").charAt(0).toUpperCase()) +
       '</div>' +
       '<p class="font-headline-sm text-headline-sm">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
       '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
       '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+      '<p class="font-headline-sm text-headline-sm text-primary mt-2" id="mprofile-ap-total">--</p>' +
     '</div>' +
     '<div class="grid grid-cols-2 gap-base mb-md">' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">AP Points</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-ap">--</div></div>' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Rank</span><div class="font-headline-md text-headline-md text-primary mt-1" id="mprofile-rank">--</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">총 검증 수</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">진실 판정 비율</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2">Recent Activity</h3>' +
-    '<div id="mprofile-history"><div class="paper-card h-16 animate-pulse"></div></div>';
+    '<h3 class="font-headline-sm text-headline-sm mb-2">최근 검증 기록</h3>' +
+    '<div id="mprofile-verify-history">' +
+      (localStats.recent.length
+        ? localStats.recent.map(_profileVerifyHistoryCardHtml).join("")
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">최근 검증 기록이 없습니다.</p>') +
+    '</div>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">ANN Points 기록</h3>' +
+    '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
+
+  document.querySelectorAll(".mprofile-verify-item[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-entry-id");
+      var entry = localStats.recent.filter(function (e) { return e.id === id; })[0];
+      if (!entry) return;
+      closeMobileProfile();
+      if (typeof renderRightPanel === "function") renderRightPanel(entry);
+      if (typeof mobileShowResult === "function") mobileShowResult();
+    });
+  });
 
   try {
     var idToken = await getIdTokenOrNull();
@@ -778,12 +812,10 @@ async function _loadMobileProfile() {
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
 
-    var apEl = document.getElementById("mprofile-ap");
-    var rankEl = document.getElementById("mprofile-rank");
-    if (apEl) apEl.textContent = data.annPoints || 0;
-    if (rankEl) rankEl.textContent = (data.rank != null) ? ("#" + data.rank) : "--";
+    var apTotalEl = document.getElementById("mprofile-ap-total");
+    if (apTotalEl) apTotalEl.textContent = (data.annPoints || 0) + " AP";
 
-    var histEl = document.getElementById("mprofile-history");
+    var histEl = document.getElementById("mprofile-points-history");
     if (!histEl) return;
     var history = Array.isArray(data.history) ? data.history : [];
     if (!history.length) {
@@ -799,7 +831,7 @@ async function _loadMobileProfile() {
     }).join("");
   } catch (e) {
     console.warn("[mobile profile] failed:", e.message);
-    var histEl2 = document.getElementById("mprofile-history");
+    var histEl2 = document.getElementById("mprofile-points-history");
     if (histEl2) histEl2.innerHTML = '<p class="text-error font-body-sm text-center py-md">Failed to load activity.</p>';
   }
 }

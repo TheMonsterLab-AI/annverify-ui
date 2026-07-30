@@ -61,6 +61,35 @@ function _lastVerifyEntry(session) {
   return null;
 }
 
+// ── Profile 페이지용 로컬 검증 통계 ──────────────────────────────────────
+// 서버(GET /api/v4/points/me, worker/routes/v4/points.js 확인)는 annPoints/rank/포인트
+// 트랜잭션 history만 반환 — "내 총 검증 수"나 "진실 판정 비율" 집계, 클레임 원문 텍스트는
+// 어디에도 없음(포인트 history의 metadata엔 claimId 해시만 있고 실제 텍스트 없음). 이 파일의
+// 세션 기록(로컬 전용, 기기 간 동기화 안 됨 — 위 헤더 주석)에서 근사치를 계산하는 것이 유일한
+// 실제 데이터 소스. Profile 페이지의 "총 검증 수"/"진실 판정 비율"/"최근 검증 기록"은 전부
+// 이 함수 기준(이 기기 한정임을 UI에 표기).
+function collectLocalVerifyEntries() {
+  var sessions = loadSessions();
+  var entries = [];
+  sessions.forEach(function (s) {
+    (s.messages || []).forEach(function (m) {
+      if (m.role === "verify" && m.entry) entries.push(m.entry);
+    });
+  });
+  entries.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+  return entries;
+}
+
+function computeLocalVerifyStats() {
+  var entries = collectLocalVerifyEntries();
+  var total = entries.length;
+  var trueCount = entries.filter(function (e) {
+    return verdictInfo(e.verdictClass).tone === "ok";
+  }).length;
+  var truthRatePct = total > 0 ? Math.round((trueCount / total) * 100) : null;
+  return { total: total, truthRatePct: truthRatePct, recent: entries.slice(0, 10) };
+}
+
 function dayLabel(ts) {
   var d = new Date(ts), now = new Date();
   var sameDay = d.toDateString() === now.toDateString();

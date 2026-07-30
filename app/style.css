@@ -333,3 +333,31 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 .signout-modal-actions{display:flex;gap:10px}
 .signout-modal-cancel-btn{flex:1;padding:12px;border:1px solid #005235;border-radius:8px;background:transparent;color:#005235;font-weight:700;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
 .signout-modal-confirm-btn{flex:1;padding:12px;border:none;border-radius:8px;background:#ba1a1a;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Libre Franklin',sans-serif}
+
+/* 데스크톱 Profile 오버레이 — #signout-modal과 같은 이유로 #mobile-app/.shell 밖(body 최상위)
+   에 있어 뷰포트 폭과 무관하게 항상 사용 가능. */
+.dp-overlay{position:fixed;inset:0;z-index:90;background:#F5F0E8;display:flex;flex-direction:column}
+.dp-header{flex-shrink:0;background:#fff;border-bottom:1px solid #E8E0CF;display:flex;align-items:center;justify-content:space-between;padding:14px 24px}
+.dp-back-btn{background:none;border:none;cursor:pointer;color:#3f4943;padding:6px;border-radius:9999px;display:flex}
+.dp-back-btn:hover{background:#F0EEEA}
+.dp-title{font-family:'Source Serif 4',serif;font-size:18px;font-weight:700;color:#005235}
+.dp-header-spacer{width:28px}
+.dp-body{flex:1;overflow-y:auto;padding:32px 24px;max-width:640px;margin:0 auto;width:100%}
+.dp-card{background:#FDFAF5;border:1px solid #D4C9B0;border-radius:12px;padding:24px;margin-bottom:16px;text-align:center}
+.dp-avatar{width:64px;height:64px;border-radius:9999px;background:#005235;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;margin:0 auto 12px}
+.dp-name{font-family:'Source Serif 4',serif;font-size:20px;font-weight:700;color:#1c1b1b}
+.dp-email{font-size:14px;color:#6f7a72;margin-top:2px}
+.dp-joined{font-size:12px;color:#6f7a72;margin-top:6px}
+.dp-ap-total{font-family:'Source Serif 4',serif;font-size:22px;font-weight:700;color:#005235;margin-top:12px}
+.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.dp-stat-card{background:#FDFAF5;border:1px solid #D4C9B0;border-radius:12px;padding:18px;text-align:center}
+.dp-stat-label{font-family:'Libre Franklin',sans-serif;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#6f7a72}
+.dp-stat-value{font-family:'Source Serif 4',serif;font-size:28px;font-weight:700;color:#005235;margin-top:4px}
+.dp-section-title{font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;color:#1c1b1b;margin:24px 0 10px}
+.dp-verify-item{width:100%;text-align:left;background:#FDFAF5;border:1px solid #D4C9B0;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:'Libre Franklin',sans-serif}
+.dp-verify-item:hover{background:#F5F1EA}
+.dp-verify-claim{font-size:14px;color:#1c1b1b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-verify-date{font-size:12px;color:#6f7a72;margin-top:2px}
+.dp-points-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FDFAF5;border:1px solid #D4C9B0;border-radius:10px;padding:12px 14px;margin-bottom:8px;font-family:'Libre Franklin',sans-serif}
+.dp-points-ap{font-weight:700;color:#005235;flex-shrink:0}
+.dp-empty{text-align:center;color:#6f7a72;font-size:14px;padding:20px}

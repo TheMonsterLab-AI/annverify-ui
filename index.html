@@ -668,6 +668,18 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- 데스크톱 Profile — 사이드바 하단 유저 위젯(아바타/이름) 클릭으로 진입. #signout-modal과
+     같은 이유로 #mobile-app 밖(body 최상위)에 둠 — 모바일은 이미 별도의 #mprofile-page
+     오버레이가 있어(app/mobile-app.js) 이 엘리먼트를 쓰지 않음. -->
+<div id="desktop-profile-page" class="hidden dp-overlay">
+  <header class="dp-header">
+    <button id="dp-back" class="dp-back-btn" aria-label="Back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+    <h1 class="dp-title">Profile</h1>
+    <span class="dp-header-spacer"></span>
+  </header>
+  <div class="dp-body" id="dp-body"></div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
