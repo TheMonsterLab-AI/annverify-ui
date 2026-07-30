@@ -228,7 +228,7 @@ function _verifyCardNode(entry) {
   card.innerHTML =
     '<span class="mv ' + (info.tone === "err" ? "mvf" : "mvv") + '">' + escapeHtml(info.label) + '</span>' +
     '<div style="flex:1;min-width:0"><div class="mc">' + escapeHtml(entry.claim.slice(0, 120)) + '</div>' +
-    '<div class="ms">Confidence ' + Math.round((entry.confidence || 0) * 100) + '% — click to view full dossier</div></div>' +
+    '<div class="ms">Confidence ' + (typeof entry.confidence === "number" ? Math.round(entry.confidence * 100) + "%" : "—") + ' — click to view full dossier</div></div>' +
     '<button class="mc-share-btn" aria-label="Share" title="Share"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg></button>';
   card.addEventListener("click", function () { renderRightPanel(entry); });
   var shareBtn = card.querySelector(".mc-share-btn");
@@ -344,7 +344,8 @@ function showErrorInRightPanel(claim, errKo, errEn) {
 function _secExecutiveSummary(p, entry, info) {
   var text = (p.executive_summary || "").trim();
   if (!text) {
-    text = "This claim was assessed as " + info.label + " with " + Math.round((entry.confidence || 0) * 100) + "% confidence.";
+    var _confStr = typeof entry.confidence === "number" ? Math.round(entry.confidence * 100) + "%" : "unknown";
+    text = "This claim was assessed as " + info.label + " with " + _confStr + " confidence.";
   }
   return '<div class="rp-section"><div class="rp-sec">§1 Executive Summary</div>' +
     '<div class="pg-text">' + escapeHtml(text) + '</div></div>';
@@ -533,7 +534,9 @@ function renderRightPanel(entry) {
   var p = entry.parsed || {};
   var info = verdictInfo(entry.verdictClass);
   var metrics = p.metrics || {};
-  var confPct = Math.round((entry.confidence || 0) * 100);
+  // fix/remove-fake-score-defaults: null (not 0) when confidence is unavailable — the bar
+  // renders empty (width 0) either way, but the text label must say "—", not a fake "0%".
+  var confPct = (typeof entry.confidence === "number") ? Math.round(entry.confidence * 100) : null;
   var consensusPct = (typeof metrics.cross_validation === "number") ? Math.round(metrics.cross_validation) : null;
 
   var dossierId = "AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" +
@@ -572,8 +575,8 @@ function renderRightPanel(entry) {
       '<div class="rp-section">' +
         '<div class="rp-sec">§2 Confidence &amp; Consensus</div>' +
         '<div class="rp-conf-lbl">Confidence Score</div>' +
-        '<div class="rp-bar"><div class="rp-fill" style="width:' + confPct + '%;background:' + toneColor(info.tone) + '"></div></div>' +
-        '<div class="rp-pct" style="color:' + toneColor(info.tone) + '">' + confPct + '%</div>' +
+        '<div class="rp-bar"><div class="rp-fill" style="width:' + (confPct != null ? confPct : 0) + '%;background:' + toneColor(info.tone) + '"></div></div>' +
+        '<div class="rp-pct" style="color:' + toneColor(info.tone) + '">' + (confPct != null ? confPct + '%' : '—') + '</div>' +
         (consensusPct != null ?
           '<div class="rp-conf-lbl">Cross-Source Validation</div>' +
           '<div class="rp-bar"><div class="rp-fill" style="width:' + consensusPct + '%;background:#C9A84C"></div></div>' +

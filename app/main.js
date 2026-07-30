@@ -98,7 +98,9 @@ async function triggerVerifyFromSuggestion(claimText) {
     id: id,
     claim: claimText,
     verdictClass: parsed.verdict_class || null,
-    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+    // fix/remove-fake-score-defaults: null (not 0) when unavailable — 0 asserts "certainly
+    // not confident", which is itself a fabricated judgment when there was no verdict at all.
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : null,
     bislHash: realHash, // real client-computed SHA-256 — NOT parsed.bisl_hash (server's is not a real digest, see computeIntegrityHash)
     model: result.model || null, // raw envelope field, e.g. "claude-sonnet-4-6" — V1 only, V5 has no single-model concept
     engine: result.engine,       // "v5" | "v1"

@@ -12,7 +12,10 @@ var FIREBASE_CONFIG = {
 var API_URL = "https://api.annverify.ai";
 
 // verdict_class → 배지 라벨/색상. worker/routes/verify.js의 Required JSON fields 스펙 기준
-// (VERIFIED LIKELY_TRUE PARTIALLY_TRUE UNVERIFIED CONTEXT_MISSING MISLEADING OUTDATED FALSE OPINION).
+// (VERIFIED LIKELY_TRUE PARTIALLY_TRUE UNVERIFIED CONTEXT_MISSING MISLEADING OUTDATED FALSE OPINION)
+// — V1 응답의 verdict_class 어휘. V5(Railway)는 별도의 짧은 소문자 grade-band 코드를 쓴다
+// (verified/likely/partial/misleading/false — app/engines/v5.py get_grade()). 서로 다른
+// 문자열 집합이라 대소문자 정규화만으로는 못 맞춰 두 세트를 각각 명시.
 var VERDICT_MAP = {
   VERIFIED:          { label: "Verified",         tone: "ok"  },
   LIKELY_TRUE:       { label: "Likely True",       tone: "ok"  },
@@ -23,6 +26,16 @@ var VERDICT_MAP = {
   OUTDATED:          { label: "Outdated",          tone: "mid" },
   FALSE:             { label: "False",             tone: "err" },
   OPINION:           { label: "Opinion",           tone: "mid" },
+  // V5 grade-band codes (lowercase, short form):
+  verified:          { label: "Verified",          tone: "ok"  },
+  likely:            { label: "Likely True",        tone: "ok"  },
+  partial:           { label: "Partially True",     tone: "mid" },
+  misleading:        { label: "Misleading",         tone: "err" },
+  false:             { label: "False",              tone: "err" },
+  // fix/remove-fake-score-defaults: L6 degraded fallback (annverify-py) sends
+  // verdict_class="unavailable" instead of a fabricated "partial" — neutral tone (mid), not
+  // ok/err: we don't know, we didn't judge it true or misleading/false.
+  unavailable:       { label: "Verification Unavailable", tone: "mid" },
 };
 
 function verdictInfo(verdictClass) {
