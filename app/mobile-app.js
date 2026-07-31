@@ -469,21 +469,51 @@ function _syncMobileHomeBottomPadding() {
   }
 }
 
-// feat/mobile-home-chat-first — document.body.scrollTo()는 실기기에서 효과 없음이 재확인됨
-// (window.scrollTo도 마찬가지) — 어느 조상이 실제 스크롤 컨테이너인지 추정하는 대신, 마지막
-// 말풍선 자신에게 scrollIntoView({block:'end'})를 시켜 컨테이너를 몰라도 항상 동작하게 함.
-// 대시보드 제거로 스크롤 거리 자체가 크게 줄어든 것과 별개로 안전망으로 유지.
-// requestAnimationFrame으로 DOM 반영(말풍선 append) 이후 실행 보장.
+// #mobile-app이 CSS로 숨겨진 데스크톱 뷰포트에서는 아무것도 하지 않음(_maybeInitMobile의
+// 데이터-로드 가드와 같은 이유 — 보이지 않는 쪽에서 스크롤/타이머를 돌릴 이유가 없음).
+function _mhomeIsMobileAppVisible() {
+  var app = document.getElementById("mobile-app");
+  return !!app && getComputedStyle(app).display !== "none";
+}
+
+// fix/mobile-scroll-viewport — scrollIntoView({block:'end'})는 말풍선 자신의 뷰포트 좌표
+// 계산에 의존했음. 실측 결과(직전 보고) 실제 스크롤 컨테이너는 document.body 단독이고
+// document.scrollingElement(=html)은 콘텐츠와 무관하게 scrollHeight가 고정돼 있어
+// window.scrollTo/documentElement.scrollTop은 애초에 대상이 아니었음 — 반면
+// document.body.scrollTop 직접 대입은 실측으로 동작 확인(2353까지 이동). 좌표 계산 없이
+// "몸통 스크롤 위치를 스크롤 가능한 최대치로" 만 대입하면 뷰포트가 키보드/주소창으로
+// 흔들려도 결과가 항상 같음 — 헤드리스로는 이 불안정성 자체를 재현할 수 없어(가상 키보드도
+// 주소창 접힘도 없음) PR #39/#40이 헤드리스만으로 통과했던 것과 같은 함정을 피하기 위한
+// 설계. smooth=false 재시도는 애니메이션이 겹쳐 튀는 것을 막기 위해 즉시 스냅.
+function _mhomeScrollToBottomNow(smooth) {
+  var body = document.body;
+  if (smooth && body.scrollTo) {
+    body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
+  } else {
+    body.scrollTop = body.scrollHeight;
+  }
+}
+
+// 재시도 3회(rAF 직후/150ms/400ms) — 안드로이드 키보드 오픈/클로즈 애니메이션이 진행 중일 때
+// 한 번의 rAF만으로는 body.scrollHeight/inputbar 위치가 아직 최종값이 아닐 수 있음. 이미
+// 맨 아래면 재대입은 no-op이라 부작용 없음(값이 같으면 스크롤 이벤트조차 안 남).
 function _mhomeScrollToLatest() {
+  if (!_mhomeIsMobileAppVisible()) return;
   _syncMobileHomeBottomPadding();
   _mhomeSyncEmptyState();
   requestAnimationFrame(function () {
-    var log = _mhomeChatLog();
-    var lastMsg = log && log.lastElementChild;
-    if (lastMsg && lastMsg.scrollIntoView) {
-      lastMsg.scrollIntoView({ block: "end", behavior: "smooth" });
-    }
+    _mhomeScrollToBottomNow(true);
   });
+  setTimeout(function () {
+    if (!_mhomeIsMobileAppVisible()) return;
+    _syncMobileHomeBottomPadding();
+    _mhomeScrollToBottomNow(false);
+  }, 150);
+  setTimeout(function () {
+    if (!_mhomeIsMobileAppVisible()) return;
+    _syncMobileHomeBottomPadding();
+    _mhomeScrollToBottomNow(false);
+  }, 400);
 }
 
 // 상태 4: New Verification 상당 액션(모바일엔 별도 버튼이 없어 "이미 Home인 상태에서 Home
@@ -1326,12 +1356,33 @@ document.addEventListener("DOMContentLoaded", function () {
   // 회전, 키보드 열림/닫힘, 토글 캡션 줄바꿈 등으로 #mhome-inputbar 높이가 바뀌는 모든 경우를
   // 개별적으로 호출부를 추가하는 대신 ResizeObserver로 자동 대응.
   _syncMobileHomeBottomPadding();
-  window.addEventListener("resize", _syncMobileHomeBottomPadding);
+  // window resize와 visualViewport resize 둘 다 여기로 모음 — 안드로이드 키보드 오픈/클로즈가
+  // 두 이벤트를 동시에 쏘는 경우가 있어(브라우저/버전에 따라 다름) rAF 한 프레임으로 합쳐
+  // _syncMobileHomeBottomPadding이 같은 프레임에 중복 실행되지 않게 함.
+  var _mhomeViewportSyncQueued = false;
+  function _mhomeScheduleViewportSync() {
+    if (_mhomeViewportSyncQueued) return;
+    _mhomeViewportSyncQueued = true;
+    requestAnimationFrame(function () {
+      _mhomeViewportSyncQueued = false;
+      _syncMobileHomeBottomPadding();
+    });
+  }
+  window.addEventListener("resize", _mhomeScheduleViewportSync);
   if (typeof ResizeObserver !== "undefined") {
     var _mhomeInputbarEl = document.getElementById("mhome-inputbar");
     if (_mhomeInputbarEl) {
       new ResizeObserver(_syncMobileHomeBottomPadding).observe(_mhomeInputbarEl);
     }
+  }
+  // visualViewport — 키보드가 열리고 닫힐 때 레이아웃 뷰포트(window.innerHeight)는 안 바뀌고
+  // 시각 뷰포트만 바뀌는 브라우저가 있어 window resize만으로는 못 잡음. 지원 브라우저에서만
+  // 등록(구형/미지원 환경은 기존 window resize 경로만으로 동작 — 크래시 없이 그대로 유지).
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", function () {
+      _mhomeScheduleViewportSync();
+      if (_mhomeIsMobileAppVisible()) _mhomeScrollToLatest();
+    });
   }
 
   // 데스크톱 뷰포트에서는 #mobile-app이 CSS로 숨겨져 있으므로 초기 데이터 호출을 건너뛴다
