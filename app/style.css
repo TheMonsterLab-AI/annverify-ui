@@ -12,12 +12,6 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 /* SIDEBAR */
 .sb{width:220px;min-width:220px;background:var(--sb);display:flex;flex-direction:column;border-right:1px solid #E8E0CF}
 .sb-logo{padding:18px 16px 14px;display:flex;align-items:center;gap:10px}
-.logo-box{width:42px;height:42px;flex-shrink:0;border:3px solid var(--c);border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.logo-box.lg{width:64px;height:64px;border-width:4px;border-radius:14px;margin:0 auto 14px}
-.logo-box.lg .ann{font-size:22px}
-.logo-box.lg .vfy{font-size:16px}
-.logo-box .ann{font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:var(--c);line-height:1;letter-spacing:-.5px}
-.logo-box .vfy{font-family:'Source Serif 4',serif;font-weight:400;font-style:italic;font-size:12px;color:var(--c);line-height:1.2}
 .sb-btn{margin:4px 12px 10px;padding:8px 12px;background:var(--c);color:#fff;border:none;font-family:'Libre Franklin',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
 .sb-btn:hover{background:#3D6B5C}
 .sec{padding:10px 14px 3px;font-size:10px;letter-spacing:.12em;color:var(--brn);text-transform:uppercase;font-weight:700}
