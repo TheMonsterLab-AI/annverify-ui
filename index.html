@@ -121,7 +121,12 @@ tailwind.config = {
     <div class="ni" data-page="news">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a2 2 0 012 2v13a2 2 0 01-2 2H4z"/><path d="M18 8H4M18 8v11"/><path d="M8 4v4"/><line x1="8" y1="12" x2="14" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg>News Feed
     </div>
-    <div class="ni" data-page="worldfeed">
+    <!-- fix/remove-world-feed — 진입점만 숨김(라우팅 제외), #page-worldfeed 마크업과
+         app/pages.js의 loadWorldFeed/WORLD_FEED_COUNTRIES 등 JS는 그대로 보존(부활 가능).
+         이 nav-item이 데스크톱에서 #page-worldfeed로 가는 유일한 진입점이라 이것만 지우면
+         전체 기능이 도달 불가능해짐(app/pages.js showAppPage 셀렉터는 .ni[data-page]를
+         쿼리하므로 hidden이어도 클릭 리스너 자체는 붙지만 안 보이니 클릭할 수 없음). -->
+    <div class="ni hidden" data-page="worldfeed">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a15 15 0 000 18a15 15 0 000-18"/></svg>World Feed
     </div>
     <div class="ni" data-page="discussions">
@@ -536,7 +541,9 @@ tailwind.config = {
       </div>
     </div>
     <nav class="flex-1 flex flex-col py-2">
-      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-worldfeed">
+      <!-- fix/remove-world-feed — 진입점만 숨김(라우팅 제외). #mworldfeed-page 오버레이와
+           app/mobile-app.js의 loadMobileWorldFeed 등 JS는 그대로 보존(부활 가능). -->
+      <button class="mmenu-item hidden flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-worldfeed">
         <span class="material-symbols-outlined">language</span><span class="font-body-md text-body-md">World Feed</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
