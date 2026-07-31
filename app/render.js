@@ -593,7 +593,7 @@ function renderRightPanel(entry) {
       _secLimitations() +
       _secReferences(p) +
       '<div class="seal">' +
-        '<div class="seal-box"><div class="seal-ann">ANN</div><div class="seal-vfy">Verify</div></div>' +
+        '<img src="/assets/ann-verify-logo-icon.png" alt="ANN Verify" style="height:56px;width:56px;display:block;"/>' +
         '<div class="seal-txt">AI News Network<br>annverify.ai</div>' +
       '</div>' +
     '</div></div>';

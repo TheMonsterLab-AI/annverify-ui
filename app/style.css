@@ -184,9 +184,6 @@ body{background:var(--bg);font-family:'Libre Franklin',sans-serif;color:var(--da
 
 /* 인장 — 우측 하단 워터마크 */
 .seal{position:absolute;bottom:var(--pad);right:var(--pad);display:flex;flex-direction:column;align-items:center;opacity:.15;pointer-events:none;user-select:none}
-.seal-box{width:56px;height:56px;border:3.5px solid var(--dark);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.seal-ann{font-family:'Source Serif 4',serif;font-weight:700;font-size:20px;color:var(--dark);line-height:1;letter-spacing:-.5px}
-.seal-vfy{font-family:'Source Serif 4',serif;font-weight:400;font-style:italic;font-size:15px;color:var(--dark);line-height:1.2}
 .seal-txt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dark);margin-top:5px;text-align:center;line-height:1.5}
 
 /* PAGES — Live Feed / Discussions / Leaderboard 공용 리스트 UI */
