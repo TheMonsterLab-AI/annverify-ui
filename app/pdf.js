@@ -553,20 +553,17 @@ function _buildStandardReportPdf(doc, entry) {
     y += 5;
   }
 
-  // ── SECTION 05 — LIMITATIONS (annverify.ai와 동일하게 API가 아닌 시스템 공통 정적 안내문) ──
+  // ── SECTION 05 — LIMITATIONS ──
+  // 이전: 내부 스키마 필드명 나열(premise_source signal | unverified_reasons[] |
+  // confidence_per_layer[] | verifier_info block …)을 그대로 노출 → 사용자에겐 '미완성/내부 로그'처럼
+  // 읽혀 신뢰도를 깎는 헛점이었음. 1단계 신뢰도 목표(보여줄 걸 줄여 트집 잡힐 구멍을 없앤다)에 따라
+  // 정직한 한 줄 고지로 대체.
   y = _wpBr(doc, y, 16);
   _wpSectionLabel(doc, '05', 'Limitations', y);
   y += 6;
-  var limText = 'premise_source signal (evidence vs general_knowledge) | unverified_reasons[] per claim | '
-    + 'sources_attempted[] / sources_failed[] | confidence_per_layer[] | '
-    + 'verifier_info block (engine version, model, snapshot)';
-  limText.split('|').map(function (s) { return s.trim(); }).forEach(function (item) {
-    y = _wpBr(doc, y, 7);
-    doc.setFillColor(_WP.C.muted[0], _WP.C.muted[1], _WP.C.muted[2]);
-    doc.circle(_WP.ML + 1, y - 1.2, 0.8, 'F');
-    y = _wpText(doc, item, _WP.ML + 5, y, { fs: 7.5, col: _WP.C.muted, maxW: _WP.CW - 5 });
-    y += 1.2;
-  });
+  var limText = 'This report is an AI-generated analysis based on sources available at the time of '
+    + 'verification. It is intended as a research aid; final judgment rests with the reader.';
+  y = _wpText(doc, limText, _WP.ML, y, { fs: 8, col: _WP.C.muted, maxW: _WP.CW });
   y += 2.5;
   doc.setDrawColor(_WP.C.divider[0], _WP.C.divider[1], _WP.C.divider[2]);
   doc.setLineWidth(0.3);
@@ -611,7 +608,10 @@ function _buildStandardReportPdf(doc, entry) {
   y += 5;
 
   // ── SECTION 07 — CRYPTOGRAPHIC INTEGRITY + 마무리 풀쿼트 ──
-  var boxH = 46;
+  // 이전: VERIFICATION ID(항상 'PENDING' — 스키마에 없는 필드) + BLOCKCHAIN ANCHOR('Pending —
+  // onchain anchoring (Phase D)', 아직 구축 안 된 기능 광고)를 노출 → 둘 다 '미완성'을 자백하는
+  // 헛점이라 제거. 실제로 존재하는 값(클라이언트가 계산한 진짜 SHA-256)만 남긴다.
+  var boxH = 22;
   var quote2 = _wpFirstSentence(r.executive_summary);
   var q2Lines = [];
   var q2LineH = _wpLh(11) * 1.15;
@@ -635,26 +635,12 @@ function _buildStandardReportPdf(doc, entry) {
 
   var by = y + 8;
   _wpFont(doc, 6.5, 'normal', _WP.C.muted, true);
-  doc.text('VERIFICATION ID', _WP.ML + 6, by);
-  by += 5;
-  var vid = r.claimId || 'PENDING'; // annverify-ui/annverify.ai 둘 다 이 필드 자체가 스키마에 없음
-  _wpFont(doc, 9, 'bold', _WP.C.point, true);
-  doc.text(String(vid), _WP.ML + 6, by);
-  by += 9;
-
-  _wpFont(doc, 6.5, 'normal', _WP.C.muted, true);
   doc.text('CONTENT HASH (SHA-256)', _WP.ML + 6, by);
   by += 5;
   // entry.bislHash는 render.js computeIntegrityHash()가 실시간 계산한 진짜 해시(모델이 반환하는
   // bisl_hash는 절대 안 씀) — annverify.ai가 DOM #anchor-sha256에서 읽던 것과 동일한 값의 원본.
   var shaTxt = entry.bislHash || '—';
   by = _wpText(doc, shaTxt, _WP.ML + 6, by, { fs: 7.5, col: _WP.C.text, mono: true, maxW: _WP.CW - 12 }) + 4;
-
-  _wpFont(doc, 6.5, 'normal', _WP.C.muted, true);
-  doc.text('BLOCKCHAIN ANCHOR', _WP.ML + 6, by);
-  by += 5;
-  _wpFont(doc, 8, 'italic', _WP.C.muted);
-  doc.text('Pending — onchain anchoring (Phase D)', _WP.ML + 6, by);
 
   y += boxH + 7;
 
@@ -664,51 +650,10 @@ function _buildStandardReportPdf(doc, entry) {
     q2Lines.forEach(function (ln, i) { doc.text(ln, _WP.W / 2, y + i * q2LineH, { align: 'center' }); });
   }
 
-  // ══════════ PAGE (별도) — SECTION 08(7-Layer Analysis) ══════════
-  doc.addPage();
-  _wpPageBg(doc);
-  y = _WP.MT + 4;
-
-  _wpSectionLabel(doc, '08', '7-Layer Analysis', y);
-  y += 8;
-
-  var la = r.layer_analysis || [];
-  var barX = _WP.ML + _WP.CW * 0.46, barW = _WP.CW * 0.38;
-  if (la.length) {
-    la.forEach(function (L, i) {
-      var badge = String(L.layer || 'L' + (i + 1));
-      var name  = String(L.name || ('Layer ' + (i + 1)));
-      var sc    = (L.score != null && !isNaN(L.score)) ? Math.max(0, Math.min(100, Number(L.score))) : null;
-
-      y = _wpBr(doc, y, 13);
-
-      _wpFont(doc, 8, 'bold', _WP.C.muted, true);
-      doc.text(badge, _WP.ML, y);
-      _wpFont(doc, 9.5, 'bold', _WP.C.text);
-      var nameMaxW = barX - (_WP.ML + 12) - 4;
-      doc.text(doc.splitTextToSize(name, nameMaxW)[0], _WP.ML + 12, y);
-
-      doc.setDrawColor(_WP.C.divider[0], _WP.C.divider[1], _WP.C.divider[2]);
-      doc.setLineWidth(0.3);
-      doc.rect(barX, y - 3, barW, 3.2, 'S');
-      if (sc != null && sc > 0) {
-        doc.setFillColor(_WP.C.point[0], _WP.C.point[1], _WP.C.point[2]);
-        doc.rect(barX, y - 3, (sc / 100) * barW, 3.2, 'F');
-      }
-      _wpFont(doc, 9, 'bold', _WP.C.point);
-      doc.text(sc != null ? String(sc) : '--', _WP.W - _WP.MR, y, { align: 'right' });
-      y += 3.8;
-
-      if (L.summary) {
-        y = _wpText(doc, String(L.summary), _WP.ML + 12, y, { fs: 7.5, col: _WP.C.muted, maxW: _WP.CW - 12, maxLines: 2 });
-        y += 1;
-      }
-      y += 2.1;
-    });
-  } else {
-    _wpFont(doc, 8.5, 'italic', _WP.C.muted);
-    doc.text('No layer analysis data available.', _WP.ML, y);
-  }
+  // SECTION 08(7-Layer Analysis)은 제거됨 — skipped 레이어에 가짜 점수(예: L4 'Skipped (Standard
+  // tier)'인데 88 표시)가 찍히고, 레이어 점수(65~88)가 최종 판정(FALSE/15)과 모순돼 리포트 신뢰도를
+  // 오히려 떨어뜨렸음. 1단계 목표(보여줄 걸 줄여 트집 구멍 제거)에 따라 레이어 나열 자체를 숨김.
+  // 별도 페이지(doc.addPage)도 함께 제거 — 이 섹션이 유일한 2페이지 콘텐츠였음.
 
   _wpFooter(doc, fileNo);
 }

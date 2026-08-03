@@ -407,23 +407,12 @@ function _secVerdictMetrics(p, info) {
     '</div>';
 }
 
+// RETIRED (1단계 신뢰도 트림) — 더 이상 renderRightPanel에서 호출하지 않음. skipped 레이어에
+// 가짜 점수(L4 'Skipped'인데 score 88)가 그대로 찍히고, 레이어 점수(65~88)가 최종 판정과
+// 모순돼 리포트 신뢰도를 오히려 떨어뜨렸음. 실수로 다시 연결돼도 가짜 점수가 렌더되지 않도록
+// 본문을 비워 안전화(빈 문자열 반환). 레이어 데이터를 다시 노출하려면 skipped 처리부터 고칠 것.
 function _secLayerAnalysis(p) {
-  var layers = Array.isArray(p.layer_analysis) ? p.layer_analysis : [];
-  var body;
-  if (layers.length) {
-    body = layers.map(function (l, i) {
-      var name = l.name || l.label || l.layer || ("Layer " + (i + 1));
-      var detail = l.detail || l.summary || l.description || l.note || "";
-      var scoreHtml = (l.score != null) ? '<span class="rp-layer-score">' + escapeHtml(l.score) + '</span>' : "";
-      return '<div class="rp-layer-card">' +
-        '<div class="rp-layer-head"><span class="rp-layer-name">' + escapeHtml(name) + '</span>' + scoreHtml + '</div>' +
-        (detail ? '<div class="rp-layer-detail">' + escapeHtml(detail) + '</div>' : "") +
-        '</div>';
-    }).join("");
-  } else {
-    body = '<div class="src-meta" style="padding:8px 0">No layer analysis returned.</div>';
-  }
-  return '<div class="rp-section"><div class="rp-sec">§5 Layer Analysis</div>' + body + '</div>';
+  return "";
 }
 
 function _secEvidence(p) {
@@ -439,7 +428,7 @@ function _secEvidence(p) {
     block(ev.contradicting, "Contradicting", "#BA1A1A") +
     block(ev.neutral, "Neutral / Contextual", "#9AA09C");
   if (!html) html = '<div class="src-meta" style="padding:8px 0">No evidence breakdown returned.</div>';
-  return '<div class="rp-section"><div class="rp-sec">§6 Evidence</div>' + html + '</div>';
+  return '<div class="rp-section"><div class="rp-sec">§5 Evidence</div>' + html + '</div>';
 }
 
 function _secClaims(p) {
@@ -459,7 +448,7 @@ function _secClaims(p) {
   } else {
     body = '<div class="src-meta" style="padding:8px 0">No individual claims returned.</div>';
   }
-  return '<div class="rp-section"><div class="rp-sec">§7 Claim Verdicts</div>' + body + '</div>';
+  return '<div class="rp-section"><div class="rp-sec">§6 Claim Verdicts</div>' + body + '</div>';
 }
 
 function _secTemporal(p) {
@@ -474,23 +463,23 @@ function _secTemporal(p) {
   } else {
     body = '<div class="src-meta" style="padding:8px 0">No temporal assessment returned.</div>';
   }
-  return '<div class="rp-section"><div class="rp-sec">§8 Temporal Analysis</div>' + body + '</div>';
+  return '<div class="rp-section"><div class="rp-sec">§7 Temporal Analysis</div>' + body + '</div>';
 }
 
 function _secVerificationRecord(entry, p) {
   var lbl = _engineTierLabels(entry, p);
-  return '<div class="rp-section"><div class="rp-sec">§9 Verification Record</div>' +
+  // Claim ID / Claim Hash 행 제거 — 두 필드 다 스키마에 없어 항상 "n/a"로 찍혀 미완성처럼 보였음.
+  // 실제 값이 있는 항목(진짜 SHA-256, 엔진·티어, 문서번호)만 남김.
+  return '<div class="rp-section"><div class="rp-sec">§8 Verification Record</div>' +
     '<div class="mono">' +
       "SHA-256: " + escapeHtml(entry.bislHash || "n/a") + "<br>" +
-      "Claim ID: " + escapeHtml(p.claimId || "n/a") + "<br>" +
-      "Claim Hash: " + escapeHtml(p.claimHash || "n/a") + "<br>" +
       "Engine: " + escapeHtml(lbl.engine) + " · Tier: " + escapeHtml(lbl.tier) + "<br>" +
       "Document No: AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" + (entry.bislHash || "").replace(/^ann-/, "").slice(0, 8) +
     "</div></div>";
 }
 
 function _secLimitations() {
-  return '<div class="rp-section"><div class="rp-sec">§10 Limitations</div>' +
+  return '<div class="rp-section"><div class="rp-sec">§9 Limitations</div>' +
     '<div class="pg-text">이 리포트는 AI 기반 분석이며 최종 판단은 사용자 책임입니다.<br>' +
     '<span style="color:var(--out);font-size:14px">This report is an AI-generated analysis. Final judgment is the user’s responsibility.</span></div></div>';
 }
@@ -510,7 +499,7 @@ function _secReferences(p) {
   } else {
     body = '<div class="src-meta" style="padding:8px 0">No external sources returned.</div>';
   }
-  return '<div class="rp-section" style="margin-bottom:80px"><div class="rp-sec">§11 References</div>' + body + '</div>';
+  return '<div class="rp-section" style="margin-bottom:80px"><div class="rp-sec">§10 References</div>' + body + '</div>';
 }
 
 // STEP 5 정직성 요구사항: V1 폴백과 engine_status:"degraded"를 조용히 넘기지 않고 리포트
@@ -585,7 +574,8 @@ function renderRightPanel(entry) {
       '</div>' +
       _secMethodology(entry, p) +
       _secVerdictMetrics(p, info) +
-      _secLayerAnalysis(p) +
+      // §5 Layer Analysis 제거 — skipped 레이어에 가짜 점수(L4 'Skipped'인데 88)가 찍히고
+      // 레이어 점수가 최종 판정과 모순돼 신뢰도를 깎았음. 1단계 목표에 따라 레이어 나열 숨김.
       _secEvidence(p) +
       _secClaims(p) +
       _secTemporal(p) +
