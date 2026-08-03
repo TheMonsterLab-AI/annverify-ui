@@ -36,6 +36,10 @@ var VERDICT_MAP = {
   // verdict_class="unavailable" instead of a fabricated "partial" — neutral tone (mid), not
   // ok/err: we don't know, we didn't judge it true or misleading/false.
   unavailable:       { label: "Verification Unavailable", tone: "mid" },
+  // fix/unverified-not-false: 엔진이 증거 없음(NO_LINKED_EVIDENCE)으로 UNVERIFIED 판정 시 보내는
+  // 소문자 grade-band 코드. 없으면 verdictInfo가 raw "unverified"(소문자)를 라벨로 노출. "unavailable"
+  // (시스템 장애)과 뜻이 달라 별도 — 엔진은 정상 동작했고 단지 증거가 없었을 뿐이라 중립(mid) 톤.
+  unverified:        { label: "Unverified",              tone: "mid" },
 };
 
 function verdictInfo(verdictClass) {
