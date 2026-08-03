@@ -115,12 +115,19 @@ function normalizeV5Response(data, tier) {
     verdict_class: data.verdict_class || g.cls,
     confidence: (typeof data.confidence === "number") ? data.confidence : null,
     executive_summary: data.executive_summary || "",
-    metrics: data.metrics || { factual: 50, logic: 50, source_quality: 50, cross_validation: 50, recency: 70 },
+    // fix/remove-fake-score-defaults: 백엔드가 metrics를 안 주면 예전엔 전부 50(+recency 70)을
+    // 지어냈음 — 방금 걷어낸 가짜 레이어 점수와 같은 계열의 헛점(§4 지표 막대에 근거 없는 50이 뜸).
+    // null로 넘기면 render.js _secVerdictMetrics는 "No metric breakdown returned."를, pdf.js는 '--'를
+    // 표시(둘 다 이미 null/미존재를 정직하게 처리) — 없는 숫자를 만들어내지 않는다.
+    metrics: (data.metrics && typeof data.metrics === "object") ? data.metrics : null,
     layer_analysis: data.layer_analysis || [],
     claims: claims,
     key_evidence: { supporting: keyEvidence.supporting || [], contradicting: keyEvidence.contradicting || [], neutral: keyEvidence.neutral || [] },
     web_citations: data.web_citations || [],
-    temporal: data.temporal || { timeframe: new Date().toISOString().slice(0, 10), freshness: "unknown", expiry_risk: "MEDIUM", recheck_recommended: false },
+    // fix/remove-fake-score-defaults: 예전 기본값은 expiry_risk "MEDIUM"을 모델이 낸 적도 없는데
+    // 지어내 온스크린 §8에 표시했음(같은 계열 헛점). null이면 render.js _secTemporal은 "No temporal
+    // assessment returned.", pdf.js SECTION 04는 섹션 자체를 생략 — 둘 다 null을 정직하게 처리.
+    temporal: (data.temporal && typeof data.temporal === "object") ? data.temporal : null,
     gate_mode: data.gate_mode || "STANDARD",
     engine_status: data.engine_status || "ok",
     degraded_reason: data.degraded_reason || null,
@@ -211,14 +218,17 @@ async function _fetchV1(claimText, tier) {
 // 표시가 남도록 entry에 그대로 실어 보냄. 표시 자체는 render.js _secMethodology 담당). ──
 async function runVerification(claimText) {
   var tier = getSelectedTier();
+  if (typeof _gaEvent === "function") _gaEvent("verify_started", { tier: tier });
 
   try {
     var parsed = await _fetchV5(claimText, tier);
+    if (typeof _gaEvent === "function") _gaEvent("verify_completed", { engine: "v5", tier: tier, fallback: false });
     return { parsed: parsed, model: null, engine: "v5", tier: tier, fallback: false };
   } catch (v5Err) {
     console.warn("[verify] V5 failed, falling back to V1:", v5Err.message);
     try {
       var v1 = await _fetchV1(claimText, tier);
+      if (typeof _gaEvent === "function") _gaEvent("verify_completed", { engine: "v1", tier: "standard", fallback: true });
       return { parsed: v1.parsed, model: v1.model, engine: "v1", tier: "standard", fallback: true };
     } catch (v1Err) {
       // 둘 다 실패 — 호출부가 mapErrorToMessage(res, data, networkErr)를 그대로 쓸 수 있도록 전달.
