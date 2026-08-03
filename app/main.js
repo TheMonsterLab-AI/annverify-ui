@@ -22,6 +22,7 @@ async function submitChatMessage(text) {
 
   input.value = "";
   submitBtn.disabled = true;
+  if (typeof _gaEvent === "function") _gaEvent("chat_submit", { input_length: text.length });
 
   ensureSession(text);
   appendUserBubble(text);
@@ -74,6 +75,7 @@ async function triggerVerifyFromSuggestion(claimText) {
     appendUsageLimitMessage("verifications");
     return;
   }
+  if (typeof _gaEvent === "function") _gaEvent("verify_this_click", {});
 
   var id = uid();
   appendPendingRow(id);

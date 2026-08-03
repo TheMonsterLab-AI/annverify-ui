@@ -701,6 +701,7 @@ async function mobileSubmitChat(text) {
     return;
   }
 
+  if (typeof _gaEvent === "function") _gaEvent("chat_submit", { input_length: text.length });
   mobileAppendUserBubble(text);
   var typingId = uid();
   var typingRow = mobileAppendTypingBubble(typingId);
@@ -744,6 +745,7 @@ async function mobileTriggerVerify(claimText, opts) {
     return;
   }
 
+  if (typeof _gaEvent === "function") _gaEvent("verify_this_click", { source: opts.showUserBubble ? "url_or_direct" : "suggestion" });
   if (opts.showUserBubble) mobileAppendUserBubble(claimText);
   var id = uid();
   mobileAppendLoadingBubble(id);

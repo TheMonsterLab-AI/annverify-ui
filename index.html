@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- Google tag (gtag.js) — GA4. annverify.ai(블루)와 동일 속성 G-SHK6LWL12C 재사용(마이그레이션 통합 퍼널). 이벤트는 app:'ui'로 그린 구분. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SHK6LWL12C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SHK6LWL12C');
+  window._gaEvent = function(name, params){
+    try { gtag('event', name, Object.assign({ app: 'ui' }, params || {})); } catch(_){}
+  };
+</script>
 <title>ANN Verify — Intelligence Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
