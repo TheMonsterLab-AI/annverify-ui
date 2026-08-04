@@ -6,6 +6,10 @@
 // 주의: 모델명·해시·엔진ID·레이어명 등 식별자는 번역 대상 아님 — locale JSON에 넣지 말 것
 // (블루 v5.1 핸드오프의 "식별자 번역금지" 교훈).
 
+// 라우팅용 최초 해시 캡처 — 가장 먼저 로드되는 커스텀 스크립트라 어떤 페이지 전환보다 앞서 실행됨
+// (pages.js showAppPage / mobile-app.js showMobilePage 복원에서 사용, 새로고침 시 현재 페이지 유지).
+try { if (typeof window !== "undefined" && window._annRoute0 === undefined) window._annRoute0 = (location.hash || "").replace(/^#/, ""); } catch (e) {}
+
 var I18N_LANGS = {
   en: { label: "English", flag: "🇺🇸" },
   ko: { label: "한국어",  flag: "🇰🇷" },

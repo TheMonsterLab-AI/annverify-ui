@@ -37,6 +37,8 @@ var VERDICT_TONE_CLASSES = {
 
 // ── Mobile page router ───────────────────────────────────────────────────
 function showMobilePage(name) {
+  // 새로고침 유지용 — 모바일 폭에서만 해시 기록(데스크톱 init의 교차 덮어쓰기 방지).
+  try { if (name && window.innerWidth < 768 && ("#" + name) !== location.hash) history.replaceState(null, "", "#" + name); } catch (e) {}
   ["home", "news", "livefeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("mpage-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
@@ -276,54 +278,81 @@ async function loadMobileLiveFeed() {
 // ── Discussions ──────────────────────────────────────────────────────────
 // discuss/ranking only ever returns the top 5 (worker-side RANKING_LIMIT), same limitation
 // already noted for the desktop Discussions page — not a browsable/paginated list.
-async function loadMobileDiscussions() {
+// 커뮤니티 = 전체 노출(사용자 요청) — /api/v4/discuss/list로 10개씩 페이지네이션("Load more").
+var _mDiscussOffset = 0;
+
+function _mDiscussCardHtml(it, idx) {
+  var hasVerdict = !!it.verdict;
+  var numColor = hasVerdict ? "text-secondary" : "text-on-surface-variant opacity-60";
+  var badgeHtml = hasVerdict
+    ? (function () {
+        var info = verdictInfo(it.verdict);
+        var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+        return '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>';
+      })()
+    : '<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-caps text-label-caps border border-outline-variant">COMMUNITY</span>';
+  var viewCountHtml = (typeof it.viewCount === "number")
+    ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
+    : '';
+  return '<div class="mdiscuss-card bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
+      '<div class="p-md flex gap-4">' +
+        '<div class="flex flex-col items-center gap-1">' +
+          '<span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(idx + 1).padStart(2, "0") + '</span>' +
+          '<div class="w-[2px] flex-1 min-h-[16px] ' + (hasVerdict ? "bg-secondary" : "bg-outline-variant") + ' opacity-20 rounded-full"></div>' +
+        '</div>' +
+        '<div class="flex-1">' +
+          '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
+          '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
+          '<div class="flex items-center justify-end gap-3 text-on-surface-variant">' +
+            viewCountHtml +
+            '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">forum</span><span class="font-body-sm text-body-sm">' + (it.commentCount || 0) + '</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function _mDiscussMoreBtn(hasMore) {
+  return hasMore
+    ? '<button id="mdiscuss-more" class="w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">' + t("common.more") + '</button>'
+    : '';
+}
+
+async function loadMobileDiscussions(more) {
   var el = document.getElementById("mdiscuss-list");
   if (!el) return;
+  // 클릭 위임 1회 부착 — 카드 열기 + "더 보기"(append된 카드/버튼에도 동작).
+  if (!el._mdDelegated) {
+    el._mdDelegated = true;
+    el.addEventListener("click", function (e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest("#mdiscuss-more")) { loadMobileDiscussions(true); return; }
+      var card = e.target.closest("[data-discuss-id]");
+      if (card && typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
+    });
+  }
+  if (!more) { _mDiscussOffset = 0; el.innerHTML = '<div class="paper-card h-20 animate-pulse"></div>'; }
+  var moreBtnEl = document.getElementById("mdiscuss-more");
+  if (moreBtnEl) { moreBtnEl.textContent = "…"; moreBtnEl.disabled = true; }
   try {
-    var res = await fetch(API_URL + "/api/v4/discuss/ranking");
+    var res = await fetch(API_URL + "/api/v4/discuss/list?offset=" + _mDiscussOffset + "&limit=10");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var items = Array.isArray(data.ranking) ? data.ranking : [];
-    if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No discussions yet</p>'; return; }
-    el.innerHTML = items.map(function (it, i) {
-      var hasVerdict = !!it.verdict;
-      var numColor = hasVerdict ? "text-secondary" : "text-on-surface-variant opacity-60";
-      var badgeHtml = hasVerdict
-        ? (function () {
-            var info = verdictInfo(it.verdict);
-            var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
-            return '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>';
-          })()
-        : '<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-caps text-label-caps border border-outline-variant">COMMUNITY</span>';
-      var viewCountHtml = (typeof it.viewCount === "number")
-        ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
-        : '';
-      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
-          '<div class="p-md flex gap-4">' +
-            '<div class="flex flex-col items-center gap-1">' +
-              '<span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span>' +
-              '<div class="w-[2px] flex-1 min-h-[16px] ' + (hasVerdict ? "bg-secondary" : "bg-outline-variant") + ' opacity-20 rounded-full"></div>' +
-            '</div>' +
-            '<div class="flex-1">' +
-              '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
-              '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
-              '<div class="flex items-center justify-end gap-3 text-on-surface-variant">' +
-                viewCountHtml +
-                '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">forum</span><span class="font-body-sm text-body-sm">' + (it.commentCount || 0) + '</span></div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-    }).join("");
-    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
-      card.addEventListener("click", function () {
-        if (typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
-      });
-    });
+    var items = Array.isArray(data.items) ? data.items : [];
+    if (!more && !items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No discussions yet</p>'; return; }
+    var startIdx = _mDiscussOffset;
+    var cards = items.map(function (it, i) { return _mDiscussCardHtml(it, startIdx + i); }).join("");
+    var moreHtml = _mDiscussMoreBtn(!!data.hasMore);
+    if (!more) el.innerHTML = cards + moreHtml;
+    else { if (moreBtnEl) moreBtnEl.remove(); el.insertAdjacentHTML("beforeend", cards + moreHtml); }
+    _mDiscussOffset += items.length;
   } catch (e) {
     console.warn("[mobile discussions] failed:", e.message);
-    el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
-    el.onclick = function () { el.onclick = null; loadMobileDiscussions(); };
+    if (!more) {
+      el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer" id="mdiscuss-retry">Failed to load. Tap to retry.</p>';
+      var r = document.getElementById("mdiscuss-retry");
+      if (r) r.addEventListener("click", function () { loadMobileDiscussions(false); });
+    } else if (moreBtnEl) { moreBtnEl.textContent = t("common.more"); moreBtnEl.disabled = false; }
   }
 }
 
@@ -1542,6 +1571,12 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   if (typeof _loadMobileHomeChips === "function") _loadMobileHomeChips();
 
+  // 헤더 로고 클릭 → 홈 탭. (사용자 요청 2026-08-04)
+  var mHeaderLogo = document.getElementById("mheader-logo-home");
+  if (mHeaderLogo) mHeaderLogo.addEventListener("click", function () {
+    if (typeof showMobilePage === "function") showMobilePage("home");
+  });
+
   var mtierStandardBtn = document.getElementById("mtier-standard-btn");
   var mtierDeepBtn = document.getElementById("mtier-deep-btn");
   if (mtierStandardBtn) mtierStandardBtn.addEventListener("click", function () { setSelectedTier("standard"); });
@@ -1602,4 +1637,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.matches) _maybeInitMobile();
     });
   }
+});
+
+// 새로고침 시 현재 탭 유지(모바일) — window._annRoute0(i18n.js 최초 캡처)로 복원.
+// 메인 init(showMobilePage("home")) 뒤에 등록되어 그 후 실행됨. (사용자 요청 2026-08-04.)
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    if (window.innerWidth >= 768) return;
+    var r = (window._annRoute0 || "").trim();
+    if (r === "dashboard") r = "home";
+    if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0) showMobilePage(r);
+  } catch (e) {}
 });

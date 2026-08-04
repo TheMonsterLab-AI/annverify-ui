@@ -16,6 +16,8 @@ var _lbCache = { alltime: null, weekly: null };
 
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
+  // 새로고침 유지용 — 데스크톱 폭에서만 해시 기록(모바일 init의 교차 덮어쓰기 방지).
+  try { if (name && window.innerWidth >= 768 && ("#" + name) !== location.hash) history.replaceState(null, "", "#" + name); } catch (e) {}
   ["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
@@ -140,54 +142,69 @@ async function loadLiveFeed() {
   }
 }
 
-// ── Discussions (top 5 — discuss/ranking has no fuller list endpoint) ───
-async function loadDiscussions() {
+// ── Discussions — 전체 목록(신선도순) /api/v4/discuss/list 페이지네이션 10개씩 ───
+var _dDiscussOffset = 0;
+
+function _discCardHtml(it, idx) {
+  var title = (it.claimPreview || "").toString().slice(0, 100);
+  var commentCount = it.commentCount || 0;
+  var badgeHtml = it.verdict
+    ? '<span class="' + _badgeClass(verdictInfo(it.verdict).tone) + '">' + escapeHtml(verdictInfo(it.verdict).label) + '</span>'
+    : '<span class="pg-badge pg-badge-neutral">Community</span>';
+  return (
+    '<div class="disc-card" data-discuss-id="' + escapeHtml(it.id) + '">' +
+      '<span class="disc-rank">' + String(idx + 1).padStart(2, "0") + '</span>' +
+      '<div class="disc-body">' +
+        '<div class="pg-card-row">' + badgeHtml + (commentCount >= 10 ? '<span class="disc-hot">HOT</span>' : '') + '</div>' +
+        '<div class="pg-text">' + escapeHtml(title) + '</div>' +
+        '<div class="pg-meta">' +
+          '<span class="pg-meta-item">💬 ' + commentCount + '</span>' +
+          '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
+          '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function _dDiscussMoreBtn(hasMore) {
+  return hasMore
+    ? '<button id="discussions-more" style="width:100%;max-width:860px;margin:12px auto 0;display:block;padding:12px;border:1px solid #E8E0CF;border-radius:10px;background:#FDFAF5;color:#6f7a72;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer">' + (typeof t === "function" ? t("common.more") : "Show more") + '</button>'
+    : '';
+}
+
+async function loadDiscussions(more) {
   var containerId = "discussions-list";
-  _pgSkeleton(containerId, 5);
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  // 클릭 위임 1회 — 카드 열기(annverify.ai 폴백, 스레드 딥링크 없음) + "더 보기".
+  if (!el._dDelegated) {
+    el._dDelegated = true;
+    el.addEventListener("click", function (e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest("#discussions-more")) { loadDiscussions(true); return; }
+      if (e.target.closest("[data-discuss-id]")) window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+    });
+  }
+  if (!more) { _dDiscussOffset = 0; _pgSkeleton(containerId, 6); }
+  var moreBtn = document.getElementById("discussions-more");
+  if (moreBtn) { moreBtn.textContent = "…"; moreBtn.disabled = true; }
   try {
-    var res = await fetch(API_URL + "/api/v4/discuss/ranking");
+    var res = await fetch(API_URL + "/api/v4/discuss/list?offset=" + _dDiscussOffset + "&limit=10");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var items = Array.isArray(data.ranking) ? data.ranking : [];
-    if (!items.length) { _pgEmpty(containerId, "No discussions yet"); return; }
-
-    var html = items.map(function (it, i) {
-      var title = (it.claimPreview || "").toString().slice(0, 100);
-      var commentCount = it.commentCount || 0;
-      var badgeHtml = it.verdict
-        ? '<span class="' + _badgeClass(verdictInfo(it.verdict).tone) + '">' + escapeHtml(verdictInfo(it.verdict).label) + '</span>'
-        : '<span class="pg-badge pg-badge-neutral">Community</span>';
-      return (
-        '<div class="disc-card" data-discuss-id="' + escapeHtml(it.id) + '">' +
-          '<span class="disc-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
-          '<div class="disc-body">' +
-            '<div class="pg-card-row">' +
-              badgeHtml +
-              (commentCount >= 10 ? '<span class="disc-hot">HOT</span>' : '') +
-            '</div>' +
-            '<div class="pg-text">' + escapeHtml(title) + '</div>' +
-            '<div class="pg-meta">' +
-              '<span class="pg-meta-item">💬 ' + commentCount + '</span>' +
-              '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
-              '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
-      );
-    }).join("");
-    var el = document.getElementById(containerId);
-    el.innerHTML = html;
-    // annverify.ai has no working per-thread deep link (its router falls back to the generic
-    // list when landed on '#discuss-detail' directly without in-app nav state) — so this can
-    // only open the general Discussions list, not the specific thread clicked.
-    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
-      card.addEventListener("click", function () {
-        window.open("https://annverify.ai/#discuss", "_blank", "noopener");
-      });
-    });
+    var items = Array.isArray(data.items) ? data.items : [];
+    if (!more && !items.length) { _pgEmpty(containerId, "No discussions yet"); return; }
+    var startIdx = _dDiscussOffset;
+    var cards = items.map(function (it, i) { return _discCardHtml(it, startIdx + i); }).join("");
+    var moreHtml = _dDiscussMoreBtn(!!data.hasMore);
+    if (!more) el.innerHTML = cards + moreHtml;
+    else { if (moreBtn) moreBtn.remove(); el.insertAdjacentHTML("beforeend", cards + moreHtml); }
+    _dDiscussOffset += items.length;
   } catch (e) {
     console.warn("[discussions] load failed:", e.message);
-    _pgError(containerId, loadDiscussions);
+    if (!more) _pgError(containerId, loadDiscussions);
+    else if (moreBtn) { moreBtn.textContent = (typeof t === "function" ? t("common.more") : "Show more"); moreBtn.disabled = false; }
   }
 }
 
@@ -540,6 +557,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
+  // 사이드바 로고 클릭 → 홈(Dashboard). (사용자 요청 2026-08-04)
+  var sbLogoHome = document.getElementById("sb-logo-home");
+  if (sbLogoHome) sbLogoHome.addEventListener("click", function () { showAppPage("dashboard"); });
   document.querySelectorAll(".lb-tab[data-period]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
   });
@@ -682,4 +702,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!e.matches) loadHomeSections();
     });
   }
+});
+
+// 새로고침 시 현재 페이지 유지(데스크톱) — window._annRoute0(i18n.js 최초 캡처)로 복원.
+// 메인 init 리스너 뒤에 등록되어 그 후 실행됨. (사용자 요청 2026-08-04: ⟳ 눌러도 그 페이지 안에서.)
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    if (window.innerWidth < 768) return;
+    var r = (window._annRoute0 || "").trim();
+    if (r === "home") r = "dashboard";
+    if (["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].indexOf(r) >= 0) showAppPage(r);
+  } catch (e) {}
 });
