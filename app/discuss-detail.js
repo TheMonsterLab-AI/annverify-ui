@@ -187,10 +187,10 @@ function _renderDiscussDetailHtml(post, myVote) {
   ) : "";
 
   var pollButtons = [
-    { key: "yes", label: "동의", pct: post.yes },
-    { key: "partial", label: "부분동의", pct: post.partial },
-    { key: "no", label: "반대", pct: post.no },
-    { key: "notsure", label: "모르겠음", pct: post.notSure },
+    { key: "yes", label: t("vote.yes"), pct: post.yes },
+    { key: "partial", label: t("vote.partial"), pct: post.partial },
+    { key: "no", label: t("vote.no"), pct: post.no },
+    { key: "notsure", label: t("vote.notsure"), pct: post.notSure },
   ];
   var pollHtml = '<div id="dd-poll" class="grid grid-cols-2 gap-2 mb-md">' +
     pollButtons.map(function (b) {
@@ -229,7 +229,7 @@ function _renderDiscussDetailHtml(post, myVote) {
 function _renderDiscussComments(comments) {
   var el = document.getElementById("dd-comments-list");
   if (!el) return;
-  if (!comments.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">댓글이 없습니다. 첫 댓글을 남겨보세요.</p>'; return; }
+  if (!comments.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("discuss.noComments") + '</p>'; return; }
   el.innerHTML = comments.map(function (c) {
     return '<div class="paper-card p-sm">' +
         '<div class="flex items-center justify-between mb-1">' +

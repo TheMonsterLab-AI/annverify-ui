@@ -74,7 +74,14 @@
     "balanceNote": "A detailed breakdown isn't available for earlier points. New activity will appear here.",
     "noActivity": "No activity yet"
   },
+  "vote": {
+    "yes": "Agree",
+    "partial": "Partially agree",
+    "no": "Disagree",
+    "notsure": "Not sure"
+  },
   "discuss": {
+    "noComments": "No comments yet. Be the first to comment.",
     "new": "New Discussion",
     "post": "Post",
     "titlePlaceholder": "Discussion title",

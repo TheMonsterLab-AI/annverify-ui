@@ -74,7 +74,14 @@
     "balanceNote": "이전 포인트의 상세 내역은 제공되지 않습니다. 새 활동부터 여기에 표시됩니다.",
     "noActivity": "활동 없음"
   },
+  "vote": {
+    "yes": "동의",
+    "partial": "부분동의",
+    "no": "반대",
+    "notsure": "모르겠음"
+  },
   "discuss": {
+    "noComments": "댓글이 없습니다. 첫 댓글을 남겨보세요.",
     "new": "새 토론",
     "post": "게시",
     "titlePlaceholder": "토론 제목을 입력하세요",
