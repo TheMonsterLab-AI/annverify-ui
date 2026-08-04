@@ -41,7 +41,7 @@ function showAppPage(name) {
     livefeed:     ["Live Feed", "Recent public verification activity"],
     // task 스펙은 "last 24h"이지만 실제 /api/v4/trends/claims 집계 윈도우는 7일
     // (worker/routes/v4/trends.js WINDOW_MS 확인) — 실제와 다른 문구를 걸 수 없어 정정.
-    trends:       ["Trending Topics", "Most verified claims in the last 7 days"],
+    trends:       ["Trending Topics", "Trending now — auto-detected by your region"],
     news:         ["News Feed", "AI News · World News"],
     worldfeed:    ["World Feed", "Global news by region"],
     discussions:  ["Discussions", "Top discussion threads"],
@@ -215,17 +215,50 @@ async function loadDiscussions(more) {
 // 대비 상대 빈도를 단일색(#005235) 바로 표시 — 없는 verdict 데이터를 지어내지 않기 위함.
 async function loadDesktopTrends() {
   var containerId = "trends-list";
-  _pgSkeleton(containerId, 3);
+  _pgSkeleton(containerId, 5);
   try {
-    var res = await fetch(API_URL + "/api/v4/trends/claims");
+    // 사용자 요청(2026-08-04): 기존 "claimPreview 단어 빈도"(예: "5월", 노이즈)를 실제 트렌딩
+    // 토픽으로 대체 — worker global.js의 Google 트렌드 파이프라인(/api/v4/partner/global) 재사용.
+    // country 미지정 → 워커가 CF-IPCountry로 방문자 국가 자동감지.
+    var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var keywords = Array.isArray(data.keywords) ? data.keywords : [];
-    _renderTrendsList(containerId, keywords, true);
+    var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
+    _renderDesktopTrends(containerId, items);
   } catch (e) {
     console.warn("[trends] load failed:", e.message);
     _pgError(containerId, loadDesktopTrends);
   }
+}
+
+function _trendTopicCardHtml(it, i) {
+  var topic = (it.topTitle || it.keyword || "").toString().slice(0, 130);
+  var bits = [];
+  if (it.traffic) bits.push(escapeHtml(it.traffic) + " searches");
+  if (it.category) bits.push(escapeHtml(String(it.category)));
+  if (it.topDomain) bits.push(escapeHtml(it.topDomain));
+  return (
+    '<div class="trend-card" data-url="' + escapeHtml(it.topUrl || "") + '" style="cursor:pointer">' +
+      '<span class="trend-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
+      '<div class="trend-body">' +
+        '<div class="trend-word">' + escapeHtml(topic) + '</div>' +
+        (bits.length ? '<div class="trend-count">' + bits.join(" · ") + '</div>' : '') +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function _renderDesktopTrends(containerId, items) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { _pgEmpty(containerId, "No trending topics right now."); return; }
+  el.innerHTML = items.slice(0, 15).map(_trendTopicCardHtml).join("");
+  el.querySelectorAll(".trend-card[data-url]").forEach(function (card) {
+    card.addEventListener("click", function () {
+      var u = card.getAttribute("data-url");
+      if (u) window.open(u, "_blank", "noopener");
+    });
+  });
 }
 
 function _trendCardHtml(kw, i, maxCount) {
