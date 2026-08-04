@@ -663,16 +663,16 @@ tailwind.config = {
   <!-- 토론 상세 — annverify.ai discuss.js의 _loadDiscussDetail/voteDiscuss/postCommunityComment를
        Firestore 직접 호출로 포팅(worker에 상세/댓글/투표 엔드포인트 없음, 확인됨). Discussions
        탭 카드 클릭으로만 진입 — 탭바에는 없는 drill-down 화면. -->
-  <div id="mdiscuss-detail" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
-    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+  <div id="mdiscuss-detail" class="hidden fixed inset-0 z-[80] bg-paper-base overflow-y-auto">
+    <header class="sticky top-0 z-10 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
       <button id="mdd-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
       <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Discussion</h1>
       <button id="mdd-share" class="p-2 -mr-2 rounded-full hover:bg-surface-container-high" aria-label="Share"><span class="material-symbols-outlined">share</span></button>
     </header>
-    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mdd-body" style="padding-bottom:96px">
+    <div class="px-margin-mobile py-md" id="mdd-body">
       <div class="paper-card h-48 animate-pulse"></div>
     </div>
-    <div class="shrink-0 bg-surface border-t border-outline-variant p-sm px-margin-mobile flex gap-2 items-center pb-safe">
+    <div class="bg-surface border-t border-outline-variant p-sm px-margin-mobile flex gap-2 items-center pb-safe">
       <input id="mdd-comment-input" class="flex-1 h-11 px-4 bg-surface-container-lowest border border-outline-variant rounded-full text-body-md placeholder:text-on-surface-variant" data-i18n-ph="discuss.commentPlaceholder" placeholder="Write a comment..." type="text" maxlength="500"/>
       <button id="mdd-comment-send" class="w-11 h-11 shrink-0 bg-primary text-white rounded-full flex items-center justify-center" aria-label="Send"><span class="material-symbols-outlined text-[20px]">send</span></button>
     </div>
