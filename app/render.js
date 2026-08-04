@@ -417,7 +417,12 @@ function _secVerdictMetrics(p, info) {
     '</div>';
 }
 
-function _secLayerAnalysis(p) {
+function _secLayerAnalysis(entry, p) {
+  // fix/layer-analysis-v5-only: §5는 V5(진짜 7계층 L1-L7 파이프라인) 결과에서만 노출한다. V1
+  // 폴백의 layer_analysis는 단일 Claude 호출이 스스로를 7항목으로 서술한 것뿐이라(엔진 라벨도
+  // layers="1"로 하드코딩) 이를 §5 다층 분석으로 보이면 단일 패스를 파이프라인처럼 위장하는 셈 —
+  // 신뢰도 훼손이라 숨긴다. (2026-08-04 사용자 결정: "V5만 표시, V1은 숨김")
+  if (!entry || entry.engine !== "v5") return "";
   var layers = Array.isArray(p.layer_analysis) ? p.layer_analysis : [];
   var body;
   if (layers.length) {
@@ -492,8 +497,6 @@ function _secVerificationRecord(entry, p) {
   return '<div class="rp-section"><div class="rp-sec">§9 Verification Record</div>' +
     '<div class="mono">' +
       "SHA-256: " + escapeHtml(entry.bislHash || "n/a") + "<br>" +
-      "Claim ID: " + escapeHtml(p.claimId || "n/a") + "<br>" +
-      "Claim Hash: " + escapeHtml(p.claimHash || "n/a") + "<br>" +
       "Engine: " + escapeHtml(lbl.engine) + " · Tier: " + escapeHtml(lbl.tier) + "<br>" +
       "Document No: AV-" + new Date(entry.ts).toISOString().slice(0, 7).replace("-", "") + "-" + (entry.bislHash || "").replace(/^ann-/, "").slice(0, 8) +
     "</div></div>";
@@ -595,7 +598,7 @@ function renderRightPanel(entry) {
       '</div>' +
       _secMethodology(entry, p) +
       _secVerdictMetrics(p, info) +
-      _secLayerAnalysis(p) +
+      _secLayerAnalysis(entry, p) +
       _secEvidence(p) +
       _secClaims(p) +
       _secTemporal(p) +
