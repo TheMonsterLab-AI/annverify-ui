@@ -68,6 +68,7 @@
   "profile": {
     "totalVerify": "Total verifications",
     "truthRate": "Truth rate",
+    "avgTrust": "Avg. trust score",
     "recent": "Recent verifications",
     "noRecent": "No recent verifications.",
     "pointsHistory": "ANN Points history",

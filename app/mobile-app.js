@@ -849,7 +849,9 @@ function _profileVerifyHistoryCardHtml(entry) {
       '<button class="mprofile-verify-item flex-1 min-w-0 text-left flex items-center gap-2" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
         '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border shrink-0">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
         '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(claimText) + '</p>' +
-        '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p></div>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p>' +
+        (entry.bislHash ? '<p class="font-label-caps text-label-caps text-on-surface-variant truncate" style="font-family:monospace;opacity:.65">SHA-256 ' + escapeHtml(String(entry.bislHash).slice(0, 14)) + '…</p>' : '') +
+      '</div>' +
       '</button>' +
       '<button class="mprofile-dl-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Download PDF" title="Download PDF"><span class="material-symbols-outlined text-[18px]">download</span></button>' +
       '<button class="mprofile-share-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Share" title="Share"><span class="material-symbols-outlined text-[18px]">share</span></button>' +
@@ -875,9 +877,10 @@ async function _loadMobileProfile() {
       '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
       '<p class="font-headline-sm text-headline-sm text-primary mt-2" id="mprofile-ap-total">--</p>' +
     '</div>' +
-    '<div class="grid grid-cols-2 gap-base mb-md">' +
+    '<div class="grid grid-cols-3 gap-base mb-md">' +
       '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.totalVerify") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
       '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.truthRate") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.avgTrust") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.avgConfidence != null ? localStats.avgConfidence + "%" : "--") + '</div></div>' +
     '</div>' +
     '<h3 class="font-headline-sm text-headline-sm mb-2">' + t("profile.recent") + '</h3>' +
     '<div id="mprofile-verify-history">' +

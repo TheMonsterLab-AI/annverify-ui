@@ -68,6 +68,7 @@
   "profile": {
     "totalVerify": "총 검증 수",
     "truthRate": "진실 판정 비율",
+    "avgTrust": "평균 신뢰점수",
     "recent": "최근 검증 기록",
     "noRecent": "최근 검증 기록이 없습니다.",
     "pointsHistory": "ANN Points 기록",

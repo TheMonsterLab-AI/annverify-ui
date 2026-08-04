@@ -87,7 +87,10 @@ function computeLocalVerifyStats() {
     return verdictInfo(e.verdictClass).tone === "ok";
   }).length;
   var truthRatePct = total > 0 ? Math.round((trueCount / total) * 100) : null;
-  return { total: total, truthRatePct: truthRatePct, recent: entries.slice(0, 10) };
+  // 평균 신뢰점수(마이페이지 강화) — entry.confidence는 0~1 스케일(render.js 확인)이라 ×100.
+  var confVals = entries.map(function (e) { return e.confidence; }).filter(function (c) { return typeof c === "number"; });
+  var avgConfidence = confVals.length ? Math.round(confVals.reduce(function (a, b) { return a + b; }, 0) / confVals.length * 100) : null;
+  return { total: total, truthRatePct: truthRatePct, avgConfidence: avgConfidence, recent: entries.slice(0, 10) };
 }
 
 function dayLabel(ts) {
