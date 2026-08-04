@@ -968,6 +968,12 @@ function _loadMobileSettings() {
       '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">On-device history · ' + localCount + ' conversation(s). 기기 간 동기화되지 않습니다.</p>' +
       '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">로컬 기록 삭제 / Clear local history</button>' +
     '</div>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Legal</h3>' +
+    '<div class="paper-card p-md mb-md">' +
+      '<a href="/privacy.html" target="_blank" rel="noopener" class="flex items-center justify-between py-2 text-on-surface"><span class="font-body-sm">개인정보처리방침 / Privacy Policy</span><span class="material-symbols-outlined text-[18px] text-on-surface-variant">open_in_new</span></a>' +
+      '<div class="h-px bg-outline-variant my-1"></div>' +
+      '<a href="/terms.html" target="_blank" rel="noopener" class="flex items-center justify-between py-2 text-on-surface"><span class="font-body-sm">이용약관 / Terms of Service</span><span class="material-symbols-outlined text-[18px] text-on-surface-variant">open_in_new</span></a>' +
+    '</div>' +
     (signedIn
       ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>Sign Out</button>'
       : '');
