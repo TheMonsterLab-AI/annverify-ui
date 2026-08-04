@@ -942,6 +942,15 @@ function closeMobileSettings() {
   if (overlay) overlay.classList.add("hidden");
 }
 
+// i18n: setLang(app/i18n.js) 적용 후 _applyTranslations가 호출 — 열려있는 오버레이를 다시 그려
+// 언어 즉시 반영(선택기 하이라이트·본문). Profile은 Phase 2 계측이지만 재렌더는 무해.
+function onI18nApplied() {
+  var st = document.getElementById("msettings-page");
+  if (st && !st.classList.contains("hidden") && typeof _loadMobileSettings === "function") _loadMobileSettings();
+  var pf = document.getElementById("mprofile-page");
+  if (pf && !pf.classList.contains("hidden") && typeof _loadMobileProfile === "function") _loadMobileProfile();
+}
+
 function _loadMobileSettings() {
   var body = document.getElementById("msettings-body");
   if (!body) return;
@@ -955,12 +964,12 @@ function _loadMobileSettings() {
       '<div class="paper-card p-md mb-md">' +
         '<p class="font-body-md text-on-surface font-bold">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
         '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
-        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("settings.joined") + ' ' + escapeHtml(joinDate) + '</p>' +
       '</div>';
   } else {
     accountHtml =
       '<div class="paper-card p-md mb-md text-center">' +
-        '<p class="font-body-sm text-on-surface-variant mb-2">로그인하면 계정 정보가 표시됩니다. / Sign in to see your account.</p>' +
+        '<p class="font-body-sm text-on-surface-variant mb-2">' + t("settings.signinPrompt") + '</p>' +
         '<button id="msettings-signin" class="bg-primary text-white rounded-[10px] text-[15px] px-4 py-2 font-bold">Sign in with Google</button>' +
       '</div>';
   }
@@ -968,18 +977,34 @@ function _loadMobileSettings() {
   var localCount = 0;
   try { localCount = (typeof loadSessions === "function") ? loadSessions().length : 0; } catch (e) {}
 
+  // 언어 선택기(i18n Phase 1) — IP 자동감지 위에 수동 override. setLang→localStorage 저장·즉시 재렌더.
+  var langBtns = Object.keys(I18N_LANGS).map(function (lc) {
+    var on = (typeof getLang === "function" ? getLang() : "en") === lc;
+    return '<button class="msettings-lang flex-1 rounded-[10px] text-[15px] py-2.5 font-bold ' +
+      (on ? "bg-primary text-white" : "border border-outline-variant text-on-surface") +
+      '" data-lang="' + lc + '">' + escapeHtml(I18N_LANGS[lc].flag + " " + I18N_LANGS[lc].label) + '</button>';
+  }).join("");
+
   body.innerHTML =
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Account</h3>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.account") + '</h3>' +
     accountHtml +
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Data</h3>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.language") + '</h3>' +
+    '<div class="paper-card p-md mb-md"><div class="flex gap-2">' + langBtns + '</div></div>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.data") + '</h3>' +
     '<div class="paper-card p-md mb-md">' +
-      '<p class="font-body-sm text-on-surface">로컬 검증·대화 기록 (이 기기 전용)</p>' +
-      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">On-device history · ' + localCount + ' conversation(s). 기기 간 동기화되지 않습니다.</p>' +
-      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">로컬 기록 삭제 / Clear local history</button>' +
+      '<p class="font-body-sm text-on-surface">' + t("settings.localHistory") + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">' + t("settings.localHistoryDesc", { n: localCount }) + '</p>' +
+      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">' + t("settings.clearHistory") + '</button>' +
     '</div>' +
     (signedIn
-      ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>Sign Out</button>'
+      ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>' + t("settings.signout") + '</button>'
       : '');
+
+  document.querySelectorAll(".msettings-lang[data-lang]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (typeof setLang === "function") setLang(btn.getAttribute("data-lang"));
+    });
+  });
 
   var signinBtn = document.getElementById("msettings-signin");
   if (signinBtn) signinBtn.addEventListener("click", function () {

@@ -1,0 +1,45 @@
+{
+  "home": {
+    "q": "What do you want to verify?",
+    "hint": "Tap any claim to verify it"
+  },
+  "nav": {
+    "home": "Home",
+    "news": "News",
+    "live": "Live Feed",
+    "discuss": "Discuss",
+    "rank": "Rank"
+  },
+  "menu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "help": "Help",
+    "about": "About & API",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "signout": "Sign Out",
+    "signin": "Sign In"
+  },
+  "input": {
+    "placeholder": "Paste claim or source URL for verification..."
+  },
+  "signout": {
+    "title": "Sign Out",
+    "body": "Are you sure you want to sign out?"
+  },
+  "common": {
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "data": "Data",
+    "joined": "Joined",
+    "localHistory": "Local verification & chat history (this device only)",
+    "localHistoryDesc": "On-device history · {n} conversation(s). Not synced across devices.",
+    "clearHistory": "Clear local history",
+    "language": "Language",
+    "signinPrompt": "Sign in to see your account.",
+    "signout": "Sign Out"
+  }
+}

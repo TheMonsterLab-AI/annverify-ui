@@ -150,6 +150,8 @@ tailwind.config = {
       <!-- populated by auth.js: signed-out shows Sign-in button, signed-in shows avatar row -->
     </div>
     <div class="sidebar-legal" style="padding:6px 14px 12px;font-size:11px;color:var(--muted,#9AA09C);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a href="/methodology.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">About</a>
+      <span>·</span>
       <a href="/privacy.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Privacy</a>
       <span>·</span>
       <a href="/terms.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Terms</a>
@@ -179,15 +181,15 @@ tailwind.config = {
           </div>
           <div id="home-sections">
             <div class="home-sec">
-              <div class="home-sec-header"><span class="home-sec-title">🔴 Live Verifications</span><span class="home-sec-more" data-page="livefeed">더보기 &gt;</span></div>
+              <div class="home-sec-header"><span class="home-sec-title">🔴 Live Verifications</span><span class="home-sec-more" data-page="livefeed">More &gt;</span></div>
               <div class="home-sec-list" id="home-live-list"><div class="pg-skeleton" style="height:40px"></div></div>
             </div>
             <div class="home-sec">
-              <div class="home-sec-header"><span class="home-sec-title">💬 Hot Discussions</span><span class="home-sec-more" data-page="discussions">더보기 &gt;</span></div>
+              <div class="home-sec-header"><span class="home-sec-title">💬 Hot Discussions</span><span class="home-sec-more" data-page="discussions">More &gt;</span></div>
               <div class="home-sec-list" id="home-discuss-list"><div class="pg-skeleton" style="height:40px"></div></div>
             </div>
             <div class="home-sec">
-              <div class="home-sec-header"><span class="home-sec-title">🏆 Top Verifiers</span><span class="home-sec-more" data-page="leaderboard">더보기 &gt;</span></div>
+              <div class="home-sec-header"><span class="home-sec-title">🏆 Top Verifiers</span><span class="home-sec-more" data-page="leaderboard">More &gt;</span></div>
               <div class="home-sec-list" id="home-lb-list"><div class="pg-skeleton" style="height:40px"></div></div>
             </div>
           </div>
@@ -245,7 +247,7 @@ tailwind.config = {
       <div class="pg-scroll">
         <div class="news-tabs">
           <button class="news-tab on" id="news-tab-ai" data-newstab="ai">AI News</button>
-          <button class="news-tab" id="news-tab-local" data-newstab="local">로컬 뉴스</button>
+          <button class="news-tab" id="news-tab-local" data-newstab="local">Local News</button>
           <button class="news-tab" id="news-tab-world" data-newstab="world">World News</button>
         </div>
         <div class="pg-list" id="news-ai-list"></div>
@@ -260,13 +262,13 @@ tailwind.config = {
     <div class="body page-container hidden" id="page-worldfeed">
       <div class="pg-scroll">
         <div class="wf-pills">
-          <button class="wf-pill on" data-country="all">전체</button>
-          <button class="wf-pill" data-country="US">미국</button>
-          <button class="wf-pill" data-country="GB">영국</button>
-          <button class="wf-pill" data-country="JP">일본</button>
-          <button class="wf-pill" data-country="IN">인도</button>
-          <button class="wf-pill" data-country="FR">프랑스</button>
-          <button class="wf-pill" data-country="DE">독일</button>
+          <button class="wf-pill on" data-country="all">All</button>
+          <button class="wf-pill" data-country="US">US</button>
+          <button class="wf-pill" data-country="GB">UK</button>
+          <button class="wf-pill" data-country="JP">Japan</button>
+          <button class="wf-pill" data-country="IN">India</button>
+          <button class="wf-pill" data-country="FR">France</button>
+          <button class="wf-pill" data-country="DE">Germany</button>
         </div>
         <div class="pg-list" id="world-feed-list"></div>
       </div>
@@ -356,8 +358,8 @@ tailwind.config = {
          칩 클릭은 입력창만 채우고 자동 전송하지 않음(_fillMobileClaimInput과 동일 원칙).
          1/3 뷰포트 이내로 컴팩트하게. -->
     <div id="mhome-empty-state" class="paper-card p-md flex flex-col items-center text-center gap-sm my-md" style="max-height:33vh">
-      <h2 class="font-headline-sm text-headline-sm text-on-surface">무엇을 검증할까요?</h2>
-      <p class="font-label-caps text-label-caps text-on-surface-variant">이런 주장을 눌러 검증해 보세요</p>
+      <h2 class="font-headline-sm text-headline-sm text-on-surface" data-i18n="home.q">What do you want to verify?</h2>
+      <p class="font-label-caps text-label-caps text-on-surface-variant" data-i18n="home.hint">Tap any claim to verify it</p>
       <div id="mhome-chips" class="flex flex-wrap justify-center gap-2 mt-1">
         <button type="button" class="mhome-chip" data-chip-text="The US Federal Reserve cut interest rates in 2026.">The US Federal Reserve cut interest rates in 2026.</button>
         <button type="button" class="mhome-chip" data-chip-text="2025 was the hottest year on record globally.">2025 was the hottest year on record globally.</button>
@@ -440,7 +442,7 @@ tailwind.config = {
     </div>
     <div class="px-margin-mobile mb-4 flex gap-2">
       <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="ai">AI News</button>
-      <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="local">로컬 뉴스</button>
+      <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="local">Local News</button>
       <button class="mnews-pill flex-1 text-center px-4 py-2 rounded-full font-label-caps text-label-caps" data-newstab="world">World News</button>
     </div>
 
@@ -450,7 +452,7 @@ tailwind.config = {
         <div class="paper-card h-32 animate-pulse"></div>
         <div class="paper-card h-32 animate-pulse"></div>
       </div>
-      <div class="px-margin-mobile mt-4"><button id="mnews-ai-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-ai-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">Show more</button></div>
     </div>
 
     <!-- 로컬 뉴스 — 전용 엔드포인트 없음(annverify.ai worker/routes/ 확인됨), World News와
@@ -462,22 +464,22 @@ tailwind.config = {
         <div class="paper-card h-40 animate-pulse"></div>
         <div class="paper-card h-32 animate-pulse"></div>
       </div>
-      <div class="px-margin-mobile mt-4"><button id="mnews-local-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-local-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">Show more</button></div>
     </div>
 
     <div id="mnews-world" class="hidden">
       <div class="px-margin-mobile mb-4 flex gap-2 overflow-x-auto" id="mnews-world-filters">
-        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="all">전체</button>
-        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="politics">정치</button>
-        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="economy">경제</button>
-        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="social">사회</button>
-        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="international">국제</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="all">All</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="politics">Politics</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="economy">Economy</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="social">Society</button>
+        <button class="mnews-filter-pill px-3 py-1.5 rounded-full font-label-caps text-label-caps whitespace-nowrap" data-category="international">International</button>
       </div>
       <div class="px-margin-mobile space-y-4" id="mnews-world-list">
         <div class="paper-card h-40 animate-pulse"></div>
         <div class="paper-card h-32 animate-pulse"></div>
       </div>
-      <div class="px-margin-mobile mt-4"><button id="mnews-world-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">더 보기</button></div>
+      <div class="px-margin-mobile mt-4"><button id="mnews-world-more" class="hidden w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">Show more</button></div>
     </div>
   </main>
 
@@ -507,7 +509,7 @@ tailwind.config = {
       </div>
       <p id="mobile-tier-hint" class="text-center font-label-caps text-[10px] uppercase tracking-wide mb-2" style="color:var(--out,#9AA09C)">Standard · fast check</p>
       <div class="relative group">
-        <input id="mobile-claim-input" class="w-full h-14 pl-4 pr-16 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm focus:ring-0 focus:border-primary transition-all text-body-md placeholder:text-on-surface-variant" placeholder="Paste claim or source URL for verification..." type="text"/>
+        <input id="mobile-claim-input" class="w-full h-14 pl-4 pr-16 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm focus:ring-0 focus:border-primary transition-all text-body-md placeholder:text-on-surface-variant" data-i18n-ph="input.placeholder" placeholder="Paste claim or source URL for verification..." type="text"/>
         <button id="mobile-verify-btn" class="absolute right-2 top-2 bottom-2 w-12 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-primary-container transition-colors" aria-label="Verify"><span class="material-symbols-outlined">fact_check</span></button>
       </div>
       <p id="mobile-verify-error" class="hidden text-error font-body-sm text-body-sm mt-2 text-center"></p>
@@ -517,19 +519,19 @@ tailwind.config = {
   <!-- 하단 탭바 — Profile 제거, News 추가(햄버거 드로어로 이동) -->
   <nav id="mtabbar" class="bg-surface dark:bg-surface-dim border-t border-outline-variant fixed bottom-0 left-0 w-full flex justify-around items-center h-20 pb-safe px-xs z-50">
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="home">
-      <span class="material-symbols-outlined mtab-icon">home</span><span class="font-label-caps text-label-caps mt-1">Home</span>
+      <span class="material-symbols-outlined mtab-icon">home</span><span class="font-label-caps text-label-caps mt-1" data-i18n="nav.home">Home</span>
     </button>
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="news">
-      <span class="material-symbols-outlined mtab-icon">newspaper</span><span class="font-label-caps text-label-caps mt-1">News</span>
+      <span class="material-symbols-outlined mtab-icon">newspaper</span><span class="font-label-caps text-label-caps mt-1" data-i18n="nav.news">News</span>
     </button>
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="livefeed">
-      <span class="material-symbols-outlined mtab-icon">sensors</span><span class="font-label-caps text-label-caps mt-1">Live Feed</span>
+      <span class="material-symbols-outlined mtab-icon">sensors</span><span class="font-label-caps text-label-caps mt-1" data-i18n="nav.live">Live Feed</span>
     </button>
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="discussions">
-      <span class="material-symbols-outlined mtab-icon">forum</span><span class="font-label-caps text-label-caps mt-1">Discuss</span>
+      <span class="material-symbols-outlined mtab-icon">forum</span><span class="font-label-caps text-label-caps mt-1" data-i18n="nav.discuss">Discuss</span>
     </button>
     <button class="mtab flex flex-col items-center justify-center scale-95 active:scale-90 transition-transform" data-mpage="leaderboard">
-      <span class="material-symbols-outlined mtab-icon">emoji_events</span><span class="font-label-caps text-label-caps mt-1">Rank</span>
+      <span class="material-symbols-outlined mtab-icon">emoji_events</span><span class="font-label-caps text-label-caps mt-1" data-i18n="nav.rank">Rank</span>
     </button>
   </nav>
 
@@ -554,23 +556,26 @@ tailwind.config = {
         <span class="material-symbols-outlined">language</span><span class="font-body-md text-body-md">World Feed</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
-        <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md">Profile</span>
+        <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md" data-i18n="menu.profile">Profile</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-settings">
-        <span class="material-symbols-outlined">settings</span><span class="font-body-md text-body-md">Settings</span>
+        <span class="material-symbols-outlined">settings</span><span class="font-body-md text-body-md" data-i18n="menu.settings">Settings</span>
       </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-help">
-        <span class="material-symbols-outlined">help</span><span class="font-body-md text-body-md">Help</span>
+        <span class="material-symbols-outlined">help</span><span class="font-body-md text-body-md" data-i18n="menu.help">Help</span>
       </button>
+      <a href="/methodology.html" target="_blank" rel="noopener" class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left">
+        <span class="material-symbols-outlined">science</span><span class="font-body-md text-body-md" data-i18n="menu.about">About &amp; API</span>
+      </a>
       <a href="/privacy.html" target="_blank" rel="noopener" class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left">
-        <span class="material-symbols-outlined">shield</span><span class="font-body-md text-body-md">개인정보처리방침</span>
+        <span class="material-symbols-outlined">shield</span><span class="font-body-md text-body-md" data-i18n="menu.privacy">Privacy Policy</span>
       </a>
       <a href="/terms.html" target="_blank" rel="noopener" class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left">
-        <span class="material-symbols-outlined">gavel</span><span class="font-body-md text-body-md">이용약관</span>
+        <span class="material-symbols-outlined">gavel</span><span class="font-body-md text-body-md" data-i18n="menu.terms">Terms of Service</span>
       </a>
       <div class="h-px bg-outline-variant my-2"></div>
       <button class="mmenu-item hidden flex items-center gap-3 px-md py-3 text-error hover:bg-error-container/30 transition-colors text-left" id="mmenu-signout">
-        <span class="material-symbols-outlined">logout</span><span class="font-body-md text-body-md">Sign Out</span>
+        <span class="material-symbols-outlined">logout</span><span class="font-body-md text-body-md" data-i18n="menu.signout">Sign Out</span>
       </button>
     </nav>
   </aside>
@@ -583,7 +588,7 @@ tailwind.config = {
   <div id="mprofile-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
     <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
       <button id="mprofile-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
-      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Profile</h1>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary" data-i18n="menu.profile">Profile</h1>
       <span class="w-10"></span>
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mprofile-body">
@@ -597,7 +602,7 @@ tailwind.config = {
   <div id="msettings-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
     <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
       <button id="msettings-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
-      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Settings</h1>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary" data-i18n="menu.settings">Settings</h1>
       <span class="w-10"></span>
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="msettings-body">
@@ -610,7 +615,7 @@ tailwind.config = {
   <div id="mhelp-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
     <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
       <button id="mhelp-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
-      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Help</h1>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary" data-i18n="menu.help">Help</h1>
       <span class="w-10"></span>
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mhelp-body"></div>
@@ -641,13 +646,13 @@ tailwind.config = {
       <div class="w-9"></div>
     </header>
     <div class="shrink-0 px-margin-mobile pt-sm flex gap-2 overflow-x-auto" id="mwf-pills" style="scrollbar-width:none">
-      <button class="mnews-pill on" data-country="all">전체</button>
-      <button class="mnews-pill" data-country="US">미국</button>
-      <button class="mnews-pill" data-country="GB">영국</button>
-      <button class="mnews-pill" data-country="JP">일본</button>
-      <button class="mnews-pill" data-country="IN">인도</button>
-      <button class="mnews-pill" data-country="FR">프랑스</button>
-      <button class="mnews-pill" data-country="DE">독일</button>
+      <button class="mnews-pill on" data-country="all">All</button>
+      <button class="mnews-pill" data-country="US">US</button>
+      <button class="mnews-pill" data-country="GB">UK</button>
+      <button class="mnews-pill" data-country="JP">Japan</button>
+      <button class="mnews-pill" data-country="IN">India</button>
+      <button class="mnews-pill" data-country="FR">France</button>
+      <button class="mnews-pill" data-country="DE">Germany</button>
     </div>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md space-y-4" id="mworldfeed-list" style="padding-bottom:32px">
       <div class="paper-card h-40 animate-pulse"></div>
@@ -668,7 +673,7 @@ tailwind.config = {
       <div class="paper-card h-48 animate-pulse"></div>
     </div>
     <div class="shrink-0 bg-surface border-t border-outline-variant p-sm px-margin-mobile flex gap-2 items-center pb-safe">
-      <input id="mdd-comment-input" class="flex-1 h-11 px-4 bg-surface-container-lowest border border-outline-variant rounded-full text-body-md placeholder:text-on-surface-variant" placeholder="댓글을 입력하세요..." type="text" maxlength="500"/>
+      <input id="mdd-comment-input" class="flex-1 h-11 px-4 bg-surface-container-lowest border border-outline-variant rounded-full text-body-md placeholder:text-on-surface-variant" placeholder="Write a comment..." type="text" maxlength="500"/>
       <button id="mdd-comment-send" class="w-11 h-11 shrink-0 bg-primary text-white rounded-full flex items-center justify-center" aria-label="Send"><span class="material-symbols-outlined text-[20px]">send</span></button>
     </div>
   </div>
@@ -678,18 +683,18 @@ tailwind.config = {
        title 15자 이상만으로도 통과시켜 클레임 연결을 선택사항으로 둠(스펙 그대로). -->
   <div id="mdiscuss-create" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
     <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
-      <button id="mdc-cancel" class="font-label-caps text-label-caps text-on-surface-variant px-2 py-1">취소</button>
-      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">새 토론</h1>
-      <button id="mdc-submit" class="font-label-caps text-label-caps text-white bg-primary rounded-full px-4 py-1.5" disabled>게시</button>
+      <button id="mdc-cancel" class="font-label-caps text-label-caps text-on-surface-variant px-2 py-1">Cancel</button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">New Discussion</h1>
+      <button id="mdc-submit" class="font-label-caps text-label-caps text-white bg-primary rounded-full px-4 py-1.5" disabled>Post</button>
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md space-y-4" style="padding-bottom:32px">
-      <input id="mdc-title" class="w-full h-12 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant" placeholder="토론 제목을 입력하세요" type="text" maxlength="200"/>
-      <textarea id="mdc-content" class="w-full h-40 p-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant resize-none" placeholder="내용을 입력하세요 (20자 이상, 1000자 이하)"></textarea>
+      <input id="mdc-title" class="w-full h-12 px-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant" placeholder="Discussion title" type="text" maxlength="200"/>
+      <textarea id="mdc-content" class="w-full h-40 p-4 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-md placeholder:text-on-surface-variant resize-none" placeholder="Write your post (20–1000 characters)"></textarea>
       <p id="mdc-error" class="hidden text-error font-body-sm text-body-sm"></p>
 
       <div>
         <button id="mdc-claim-link-btn" class="w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-[18px]">link</span>검증 결과 연결하기
+          <span class="material-symbols-outlined text-[18px]">link</span>Link a verification
         </button>
         <div id="mdc-claim-linked" class="hidden paper-card p-sm mt-2">
           <div class="flex items-center justify-between gap-2">
@@ -701,7 +706,7 @@ tailwind.config = {
       </div>
 
       <div class="flex items-center justify-between paper-card p-sm">
-        <span class="font-body-sm text-on-surface">익명으로 게시</span>
+        <span class="font-body-sm text-on-surface">Post anonymously</span>
         <button id="mdc-anon-toggle" class="relative w-11 h-6 rounded-full bg-surface-container-high transition-colors shrink-0" data-on="false" aria-label="Post anonymously">
           <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
         </button>
@@ -712,10 +717,10 @@ tailwind.config = {
   <!-- 로그인 안내 모달 — 미로그인 상태로 투표/댓글/작성 시도 시 -->
   <div id="mdiscuss-login-modal" class="hidden fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-margin-mobile">
     <div class="paper-card p-md w-full max-w-xs text-center">
-      <p class="font-body-md text-on-surface mb-4">로그인이 필요합니다</p>
+      <p class="font-body-md text-on-surface mb-4">Sign in required</p>
       <div class="flex gap-2">
-        <button id="mdlm-cancel" class="flex-1 py-2 border border-outline-variant rounded-lg font-label-caps text-label-caps text-on-surface-variant">취소</button>
-        <button id="mdlm-signin" class="flex-1 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">로그인</button>
+        <button id="mdlm-cancel" class="flex-1 py-2 border border-outline-variant rounded-lg font-label-caps text-label-caps text-on-surface-variant">Cancel</button>
+        <button id="mdlm-signin" class="flex-1 py-2 bg-primary text-white rounded-lg font-label-caps text-label-caps">Sign In</button>
       </div>
     </div>
   </div>
@@ -727,11 +732,11 @@ tailwind.config = {
      둬서 두 뷰포트 어디서든 항상 사용 가능(#mobile-app은 데스크톱 폭에서 display:none). -->
 <div id="signout-modal" class="hidden fixed inset-0 z-[100] bg-black/40 flex items-center justify-center px-margin-mobile">
   <div class="signout-modal-card">
-    <h2 class="signout-modal-title">로그아웃</h2>
-    <p class="signout-modal-body">정말 로그아웃하시겠습니까?</p>
+    <h2 class="signout-modal-title" data-i18n="signout.title">Sign Out</h2>
+    <p class="signout-modal-body" data-i18n="signout.body">Sign out of your account?</p>
     <div class="signout-modal-actions">
-      <button id="signout-cancel" class="signout-modal-cancel-btn">취소</button>
-      <button id="signout-confirm" class="signout-modal-confirm-btn">로그아웃</button>
+      <button id="signout-cancel" class="signout-modal-cancel-btn" data-i18n="common.cancel">Cancel</button>
+      <button id="signout-confirm" class="signout-modal-confirm-btn" data-i18n="signout.title">Sign Out</button>
     </div>
   </div>
 </div>
@@ -759,6 +764,7 @@ tailwind.config = {
 <!-- PDF 생성 — annverify.ai frontend/index.html:3564와 동일 CDN/버전(app/pdf.js가 window.jspdf 사용) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/app/config.js"></script>
+<script src="/app/i18n.js"></script>
 <script src="/app/usage.js"></script>
 <script src="/app/auth.js"></script>
 <script src="/app/history.js"></script>
