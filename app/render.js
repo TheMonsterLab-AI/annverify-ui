@@ -100,15 +100,6 @@ function mapErrorToMessage(res, data, isNetworkError) {
   if (res && res.status >= 500) {
     return { ko: "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", en: "A server error occurred. Please try again later." };
   }
-  // 콘텐츠 정책 게이트 차단(400, CONTENT_GATE). 이전엔 아래 generic fallback "잠시 후 다시 시도"로
-  // 떨어져 오해를 줬음(재시도해도 안 되고, 차단 사실을 숨김). 차단 카테고리는 노출하지 않되(우회
-  // 탐색 방지 — 게이트 설계 원칙) 정직하게 "검증 대상 아님"으로 안내한다.
-  if (data && (data.error === "CONTENT_POLICY_VIOLATION" || data.code === "CONTENT_GATE")) {
-    return {
-      ko: "이 내용은 검증할 수 없습니다. 다른 주장이나 뉴스 URL을 입력해주세요.",
-      en: "This content can't be verified. Please enter a different claim or news URL.",
-    };
-  }
   if (data && data.error === "INVALID_INPUT") {
     var pattern = (data.pattern || "").toString().toUpperCase();
     if (pattern === "TOO_SHORT") {
@@ -396,6 +387,16 @@ function _secMethodology(entry, p) {
 
 function _secVerdictMetrics(p, info) {
   var m = p.metrics || {};
+  // fix/metrics-under-unverified: 판정이 UNVERIFIED/UNAVAILABLE(overall_score=None)면 세부 지표
+  // (Factual/Logic/…)를 숫자로 노출하지 않는다 — "판정 불가"라면서 지표는 6%/48%로 찍히면 모순
+  // (2026-08-04 실관측: '이게 검증이 안됨?' UNVERIFIED인데 §4에 Factual 6%·Logic 48% 표시).
+  if (typeof p.overall_score !== "number") {
+    return '<div class="rp-section"><div class="rp-sec">§4 Verdict &amp; Metrics</div>' +
+      '<div class="rp-conf-lbl">Overall</div>' +
+      '<div class="pg-text">Grade ' + escapeHtml(p.overall_grade || "—") + ' · —/100</div>' +
+      '<div class="src-meta" style="padding:8px 0">판정 불가 — 세부 지표는 산출하지 않았습니다. / Not scored — per-metric breakdown not computed.</div>' +
+      '</div>';
+  }
   var metricDefs = [
     ["factual", "Factual Accuracy"],
     ["logic", "Logical Consistency"],
