@@ -28,7 +28,8 @@
     "body": "Are you sure you want to sign out?"
   },
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "more": "Show more"
   },
   "settings": {
     "title": "Settings",
@@ -41,5 +42,45 @@
     "language": "Language",
     "signinPrompt": "Sign in to see your account.",
     "signout": "Sign Out"
+  },
+  "news": {
+    "ai": "AI News",
+    "local": "Local News",
+    "world": "World News"
+  },
+  "cat": {
+    "all": "All",
+    "politics": "Politics",
+    "economy": "Economy",
+    "society": "Society",
+    "international": "International",
+    "science": "Science",
+    "health": "Health"
+  },
+  "card": {
+    "discuss": "Discuss",
+    "newFactcheck": "New fact-check"
+  },
+  "profile": {
+    "totalVerify": "Total verifications",
+    "truthRate": "Truth rate",
+    "recent": "Recent verifications",
+    "noRecent": "No recent verifications.",
+    "pointsHistory": "ANN Points history",
+    "balance": "Current balance",
+    "balanceNote": "A detailed breakdown isn't available for earlier points. New activity will appear here.",
+    "noActivity": "No activity yet"
+  },
+  "discuss": {
+    "new": "New Discussion",
+    "post": "Post",
+    "titlePlaceholder": "Discussion title",
+    "bodyPlaceholder": "Write your post (20–1000 characters)",
+    "linkResult": "Link a verification result",
+    "anonymous": "Post anonymously",
+    "commentPlaceholder": "Write a comment..."
+  },
+  "login": {
+    "required": "Sign in required"
   }
 }

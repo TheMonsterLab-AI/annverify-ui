@@ -844,16 +844,16 @@ async function _loadMobileProfile() {
       '<p class="font-headline-sm text-headline-sm text-primary mt-2" id="mprofile-ap-total">--</p>' +
     '</div>' +
     '<div class="grid grid-cols-2 gap-base mb-md">' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">총 검증 수</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">진실 판정 비율</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.totalVerify") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.truthRate") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2">최근 검증 기록</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2">' + t("profile.recent") + '</h3>' +
     '<div id="mprofile-verify-history">' +
       (localStats.recent.length
         ? localStats.recent.map(_profileVerifyHistoryCardHtml).join("")
-        : '<p class="text-on-surface-variant font-body-sm text-center py-md">최근 검증 기록이 없습니다.</p>') +
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noRecent") + '</p>') +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">ANN Points 기록</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">' + t("profile.pointsHistory") + '</h3>' +
     '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
 
   function _findLocalEntry(id) {
@@ -906,10 +906,10 @@ async function _loadMobileProfile() {
       var apNow = (data.annPoints || 0);
       histEl.innerHTML = apNow > 0
         ? '<div class="paper-card p-sm text-center">' +
-            '<p class="font-body-sm text-on-surface">Current balance <span class="font-bold text-primary">' + apNow + ' AP</span></p>' +
-            '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">A detailed breakdown isn\'t available for earlier points. New activity will appear here.</p>' +
+            '<p class="font-body-sm text-on-surface">' + t("profile.balance") + ' <span class="font-bold text-primary">' + apNow + ' AP</span></p>' +
+            '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("profile.balanceNote") + '</p>' +
           '</div>'
-        : '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noActivity") + '</p>';
       return;
     }
     histEl.innerHTML = history.map(function (h) {
@@ -1319,7 +1319,7 @@ function _aiNewsCardHtml(a, featured) {
         '<p class="font-body-sm text-on-surface-variant" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(a.excerpt || "") + '</p>' +
         '<div class="flex items-center justify-between mt-3">' +
           '<div class="flex items-center gap-3"><span class="font-body-sm font-bold text-primary">' + score + '%</span><span class="px-2.5 py-1 rounded bg-surface-container text-[10px] font-bold">' + escapeHtml(grade) + '</span></div>' +
-          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">토론</button>' +
+          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1351,7 +1351,7 @@ async function _loadMobileNewsAi() {
 // 앞에 국가명을 붙여 구분, app/mobile-app.js loadMobileWorldFeed 참고). News 탭에서는 항상 미설정.
 function _worldNewsCardHtml(item) {
   var cat = item.category || "social";
-  var catLabel = WORLD_NEWS_CATEGORY_LABEL[cat] || cat;
+  var catLabel = (typeof t === "function" && t("cat." + cat) !== "cat." + cat) ? t("cat." + cat) : (WORLD_NEWS_CATEGORY_LABEL[cat] || cat);
   var catClass = WORLD_NEWS_CATEGORY_CLASSES[cat] || WORLD_NEWS_CATEGORY_CLASSES.social;
   var thumbHtml = item.thumb ? '<img src="' + escapeHtml(item.thumb) + '" class="w-full h-32 object-cover" loading="lazy"/>' : "";
   var sourceText = (item._countryLabel ? item._countryLabel + " · " : "") + (item.topSource || item.topDomain || "");
@@ -1365,8 +1365,8 @@ function _worldNewsCardHtml(item) {
         '<h3 class="mb-1 leading-tight" style="font-family:\'Source Serif 4\',serif;font-size:18px;font-weight:700;color:#1c1b1b">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
         (item.topSnippet ? '<p class="font-body-sm text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(item.topSnippet) + '</p>' : "") +
         '<div class="flex gap-2 mt-2">' +
-          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">토론</button>' +
-          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">새 팩트체크</button>' +
+          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
+          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">' + t("card.newFactcheck") + '</button>' +
         '</div>' +
       '</div>' +
     '</div>';

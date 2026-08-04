@@ -28,7 +28,8 @@
     "body": "정말 로그아웃하시겠습니까?"
   },
   "common": {
-    "cancel": "취소"
+    "cancel": "취소",
+    "more": "더 보기"
   },
   "settings": {
     "title": "설정",
@@ -41,5 +42,45 @@
     "language": "언어",
     "signinPrompt": "로그인하면 계정 정보가 표시됩니다.",
     "signout": "로그아웃"
+  },
+  "news": {
+    "ai": "AI 뉴스",
+    "local": "로컬 뉴스",
+    "world": "세계 뉴스"
+  },
+  "cat": {
+    "all": "전체",
+    "politics": "정치",
+    "economy": "경제",
+    "society": "사회",
+    "international": "국제",
+    "science": "과학",
+    "health": "건강"
+  },
+  "card": {
+    "discuss": "토론",
+    "newFactcheck": "새 팩트체크"
+  },
+  "profile": {
+    "totalVerify": "총 검증 수",
+    "truthRate": "진실 판정 비율",
+    "recent": "최근 검증 기록",
+    "noRecent": "최근 검증 기록이 없습니다.",
+    "pointsHistory": "ANN Points 기록",
+    "balance": "현재 잔액",
+    "balanceNote": "이전 포인트의 상세 내역은 제공되지 않습니다. 새 활동부터 여기에 표시됩니다.",
+    "noActivity": "활동 없음"
+  },
+  "discuss": {
+    "new": "새 토론",
+    "post": "게시",
+    "titlePlaceholder": "토론 제목을 입력하세요",
+    "bodyPlaceholder": "내용을 입력하세요 (20자 이상, 1000자 이하)",
+    "linkResult": "검증 결과 연결하기",
+    "anonymous": "익명으로 게시",
+    "commentPlaceholder": "댓글을 입력하세요..."
+  },
+  "login": {
+    "required": "로그인이 필요합니다"
   }
 }
