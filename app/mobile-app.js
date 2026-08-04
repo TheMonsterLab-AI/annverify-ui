@@ -1035,6 +1035,37 @@ function closeMobileHelp() {
   if (overlay) overlay.classList.add("hidden");
 }
 
+// feat/live-home-chips: 홈 "무엇을 검증할까요?" 예시 칩을 AI News(글로벌 뉴스 피드)의 최신
+// 헤드라인으로 채운다 — 사용자 요구: 국내가 아닌 "글로벌 이슈". Live Feed(사용자 검증)는 현재
+// 국내 검증이 대부분이라 부적합 → 글로벌 뉴스 피드(/api/v4/news/feed, aiNews·Tech/World/Science
+// 등 글로벌 토픽, 로컬뉴스와 분리)를 소스로 씀. 항상 신선·매 로드 최신, 크론/백엔드 불필요.
+// 3개를 못 채우거나 실패면 index.html의 정적 글로벌 기본 칩을 그대로 둔다(fallback).
+async function _loadMobileHomeChips() {
+  var el = document.getElementById("mhome-chips");
+  if (el == null || typeof API_URL === "undefined") return;
+  try {
+    var res = await fetch(API_URL + "/api/v4/news/feed?limit=20");
+    if (!res || !res.ok) return;
+    var data = await res.json();
+    var items = Array.isArray(data && data.articles) ? data.articles : [];
+    var seen = {}, picked = [];
+    for (var i = 0; i < items.length && picked.length < 3; i++) {
+      var c = ((items[i] && items[i].title) || "").toString().trim();
+      if (c.length < 12) continue;                 // 너무 짧음
+      if (/^https?:\/\//i.test(c)) continue;        // 순수 URL 제외
+      var key = c.slice(0, 40);
+      if (seen[key]) continue;                      // 중복 제외
+      seen[key] = 1;
+      picked.push(c);
+    }
+    if (picked.length < 3) return;                  // 3개 못 채우면 정적 기본 유지
+    el.innerHTML = picked.map(function (c) {
+      var label = c.length > 42 ? c.slice(0, 40) + "…" : c;
+      return '<button type="button" class="mhome-chip" data-chip-text="' + escapeHtml(c) + '">' + escapeHtml(label) + '</button>';
+    }).join("");
+  } catch (e) { /* fallback: 정적 칩 유지 */ }
+}
+
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
 // news.html's actual mockup content was never attached to that task (only a prose
 // description) — built from that description, not a literal HTML transplant like the
@@ -1462,12 +1493,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // feat/mobile-home-chat-first — empty-state 예시 칩: 입력창만 채우고 자동 전송하지 않음
   // (Trending Topics 칩의 _fillMobileClaimInput과 동일 원칙, 클릭 자체는 검증 요청이 아님).
-  document.querySelectorAll(".mhome-chip").forEach(function (chip) {
-    chip.addEventListener("click", function () {
+  // 이벤트 위임 — _loadMobileHomeChips가 칩을 글로벌 뉴스로 갈아끼워도 클릭 유지(정적/동적 공통).
+  var _mhomeChipsEl = document.getElementById("mhome-chips");
+  if (_mhomeChipsEl) {
+    _mhomeChipsEl.addEventListener("click", function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest(".mhome-chip") : null;
+      if (!chip) return;
       var input = document.getElementById("mobile-claim-input");
       if (input) { input.value = chip.getAttribute("data-chip-text"); input.focus(); }
     });
-  });
+  }
+  if (typeof _loadMobileHomeChips === "function") _loadMobileHomeChips();
 
   var mtierStandardBtn = document.getElementById("mtier-standard-btn");
   var mtierDeepBtn = document.getElementById("mtier-deep-btn");
