@@ -390,26 +390,35 @@ function _buildStandardReportPdf(doc, entry) {
   y += 9;
 
   // ── 4 메트릭 인라인: Factual / Logic / Source / Recency ──
+  // fix/metrics-under-unverified(PDF): overall_score가 숫자가 아니면(UNVERIFIED/판정불가) 세부
+  // 지표를 찍지 않는다 — 화면 도씨에(render.js _secVerdictMetrics)와 동일 원칙. "판정 불가"인데
+  // Factual 6·Logic 48이 다운로드/공유 PDF에 그대로 박히면 모순이 산출물에 영구 고정됨.
   y = _wpBr(doc, y, 18);
   doc.setDrawColor(_WP.C.divider[0], _WP.C.divider[1], _WP.C.divider[2]);
   doc.setLineWidth(0.3);
   doc.line(_WP.ML, y, _WP.W - _WP.MR, y);
   y += 4;
-  var met = r.metrics || {};
-  var metItems = [
-    ['FACTUAL', met.factual], ['LOGIC', met.logic],
-    ['SOURCE', met.source_quality], ['RECENCY', met.recency],
-  ];
-  var mColW = _WP.CW / 4;
-  metItems.forEach(function (m, i) {
-    var mx = _WP.ML + i * mColW + mColW / 2;
-    _wpFont(doc, 7, 'normal', _WP.C.muted);
-    doc.text(m[0], mx, y, { align: 'center', charSpace: 0.3 });
-    var mv = (typeof m[1] === 'number') ? m[1] : '--';
-    _wpFont(doc, 16, 'bold', _WP.C.point);
-    doc.text(String(mv), mx, y + 8, { align: 'center' });
-  });
-  y += 9;
+  if (typeof r.overall_score === 'number') {
+    var met = r.metrics || {};
+    var metItems = [
+      ['FACTUAL', met.factual], ['LOGIC', met.logic],
+      ['SOURCE', met.source_quality], ['RECENCY', met.recency],
+    ];
+    var mColW = _WP.CW / 4;
+    metItems.forEach(function (m, i) {
+      var mx = _WP.ML + i * mColW + mColW / 2;
+      _wpFont(doc, 7, 'normal', _WP.C.muted);
+      doc.text(m[0], mx, y, { align: 'center', charSpace: 0.3 });
+      var mv = (typeof m[1] === 'number') ? m[1] : '--';
+      _wpFont(doc, 16, 'bold', _WP.C.point);
+      doc.text(String(mv), mx, y + 8, { align: 'center' });
+    });
+    y += 9;
+  } else {
+    _wpFont(doc, 8, 'italic', _WP.C.muted);
+    doc.text('Not scored — per-metric breakdown not computed for this verdict.', _WP.W / 2, y + 4, { align: 'center' });
+    y += 9;
+  }
   doc.line(_WP.ML, y, _WP.W - _WP.MR, y);
   y += 5;
 
