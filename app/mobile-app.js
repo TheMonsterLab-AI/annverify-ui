@@ -300,7 +300,10 @@ async function loadMobileDiscussions() {
         : '';
       return '<div class="bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
           '<div class="p-md flex gap-4">' +
-            '<div class="flex flex-col items-center gap-1"><span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="flex flex-col items-center gap-1">' +
+              '<span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span>' +
+              '<div class="w-[2px] flex-1 min-h-[16px] ' + (hasVerdict ? "bg-secondary" : "bg-outline-variant") + ' opacity-20 rounded-full"></div>' +
+            '</div>' +
             '<div class="flex-1">' +
               '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
               '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
