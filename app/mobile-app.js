@@ -900,7 +900,16 @@ async function _loadMobileProfile() {
     if (!histEl) return;
     var history = Array.isArray(data.history) ? data.history : [];
     if (!history.length) {
-      histEl.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
+      // fix: 총점(annPoints)은 있는데 이력이 빈 경우 — 시드/레거시/관리자 적립 등 정상 award
+      // 경로(worker points.js:138 annPointsHistory add)를 안 거친 잔액. 이때 "No activity yet"을
+      // 그대로 띄우면 상단 AP 총점과 모순돼 보이므로(예: 515 AP인데 활동 없음), 잔액을 정직하게 표시.
+      var apNow = (data.annPoints || 0);
+      histEl.innerHTML = apNow > 0
+        ? '<div class="paper-card p-sm text-center">' +
+            '<p class="font-body-sm text-on-surface">Current balance <span class="font-bold text-primary">' + apNow + ' AP</span></p>' +
+            '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">A detailed breakdown isn\'t available for earlier points. New activity will appear here.</p>' +
+          '</div>'
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
       return;
     }
     histEl.innerHTML = history.map(function (h) {
