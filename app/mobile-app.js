@@ -917,6 +917,124 @@ async function _loadMobileProfile() {
   }
 }
 
+// ── Settings page ─────────────────────────────────────────────────────────
+// 이 앱이 실제로 지원하는 것만 노출: 계정 정보(Firebase Auth currentUser) + 로컬 검증·대화 기록
+// 삭제(history.js SESSIONS_KEY="annverify_ui_sessions_v1", 이 기기 한정) + 로그아웃. 구독/티어·
+// 다크모드·알림·언어 전환은 앱에 기능 자체가 없어 만들지 않음(가짜 토글 금지 — 죽은 메뉴보다
+// 나쁜 헛점이 됨). 모두 클라이언트/기존 배선으로 실제 동작하는 항목뿐.
+function openMobileSettings() {
+  var overlay = document.getElementById("msettings-page");
+  if (overlay) overlay.classList.remove("hidden");
+  _loadMobileSettings();
+}
+
+function closeMobileSettings() {
+  var overlay = document.getElementById("msettings-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+function _loadMobileSettings() {
+  var body = document.getElementById("msettings-body");
+  if (!body) return;
+  var signedIn = !(typeof currentUser === "undefined" || !currentUser);
+
+  var accountHtml;
+  if (signedIn) {
+    var joinDate = (currentUser.metadata && currentUser.metadata.creationTime)
+      ? new Date(currentUser.metadata.creationTime).toLocaleDateString() : "--";
+    accountHtml =
+      '<div class="paper-card p-md mb-md">' +
+        '<p class="font-body-md text-on-surface font-bold">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
+        '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+      '</div>';
+  } else {
+    accountHtml =
+      '<div class="paper-card p-md mb-md text-center">' +
+        '<p class="font-body-sm text-on-surface-variant mb-2">로그인하면 계정 정보가 표시됩니다. / Sign in to see your account.</p>' +
+        '<button id="msettings-signin" class="bg-primary text-white rounded-[10px] text-[15px] px-4 py-2 font-bold">Sign in with Google</button>' +
+      '</div>';
+  }
+
+  var localCount = 0;
+  try { localCount = (typeof loadSessions === "function") ? loadSessions().length : 0; } catch (e) {}
+
+  body.innerHTML =
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Account</h3>' +
+    accountHtml +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Data</h3>' +
+    '<div class="paper-card p-md mb-md">' +
+      '<p class="font-body-sm text-on-surface">로컬 검증·대화 기록 (이 기기 전용)</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">On-device history · ' + localCount + ' conversation(s). 기기 간 동기화되지 않습니다.</p>' +
+      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">로컬 기록 삭제 / Clear local history</button>' +
+    '</div>' +
+    (signedIn
+      ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>Sign Out</button>'
+      : '');
+
+  var signinBtn = document.getElementById("msettings-signin");
+  if (signinBtn) signinBtn.addEventListener("click", function () {
+    closeMobileSettings();
+    if (typeof showMobileLoginModal === "function") showMobileLoginModal();
+    else if (typeof doSignIn === "function") doSignIn();
+  });
+
+  var clearBtn = document.getElementById("msettings-clear-history");
+  if (clearBtn) clearBtn.addEventListener("click", function () {
+    var ok = window.confirm("이 기기의 로컬 검증·대화 기록을 모두 삭제할까요? 되돌릴 수 없습니다.\nDelete all on-device history? This cannot be undone.");
+    if (!ok) return;
+    try { localStorage.removeItem("annverify_ui_sessions_v1"); } catch (e) {}
+    // history.js의 모듈 전역 _currentSession도 초기화(안 하면 다음 저장 시 삭제된 세션이 되살아남).
+    if (typeof _currentSession !== "undefined") _currentSession = null;
+    if (typeof renderHistorySidebar === "function") renderHistorySidebar();
+    if (typeof renderMobileMenuHistory === "function") renderMobileMenuHistory();
+    if (typeof showAppToast === "function") showAppToast("로컬 기록을 삭제했습니다.");
+    _loadMobileSettings();
+  });
+
+  var signoutBtn = document.getElementById("msettings-signout");
+  if (signoutBtn) signoutBtn.addEventListener("click", function () {
+    closeMobileSettings();
+    if (typeof openSignOutModal === "function") openSignOutModal();
+  });
+}
+
+// ── Help page ─────────────────────────────────────────────────────────────
+// 정적 FAQ/면책(서버 조회 없음). 실제로 검증된 서비스 동작만 설명 — 없는 기능/과장 없음.
+var _MOBILE_HELP_HTML =
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">ANN Verify란? / What is ANN Verify?</h3>' +
+    '<p class="font-body-sm text-on-surface">주장이나 뉴스 URL을 입력하면 여러 출처를 교차검증해 사실 여부를 판정하는 AI 팩트체크 서비스입니다. / An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">7-Layer Engine이 뭔가요? / The 7-Layer Engine</h3>' +
+    '<p class="font-body-sm text-on-surface">입력 분석 → 증거 수집(웹·팩트체크 DB) → 교차검증 → 반론 검토 → 판정 → 시의성(신선도) 점검까지 여러 단계를 거쳐 결론을 냅니다. 단일 답변이 아니라 단계별 근거를 남깁니다. / Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">판정 라벨 읽는 법 / Reading the verdict</h3>' +
+    '<p class="font-body-sm text-on-surface"><b>Verified</b> — 근거가 충분히 뒷받침. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 연결된 증거가 부족해 판정 보류. <b>False</b> — 근거가 반박.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">정확도와 한계 / Accuracy &amp; limits</h3>' +
+    '<p class="font-body-sm text-on-surface">AI 기반 분석이라 오류가 있을 수 있습니다. 리포트의 출처와 근거를 함께 확인하시고, 최종 판단은 사용자에게 있습니다. / This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">문의 / Contact</h3>' +
+    '<p class="font-body-sm text-on-surface">서비스 관련 문의와 피드백은 annverify.ai를 통해 보내주세요. / For questions and feedback, reach us via annverify.ai.</p>' +
+  '</div>';
+
+function openMobileHelp() {
+  var overlay = document.getElementById("mhelp-page");
+  if (overlay) overlay.classList.remove("hidden");
+  var body = document.getElementById("mhelp-body");
+  if (body) body.innerHTML = _MOBILE_HELP_HTML;
+}
+
+function closeMobileHelp() {
+  var overlay = document.getElementById("mhelp-page");
+  if (overlay) overlay.classList.add("hidden");
+}
+
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
 // news.html's actual mockup content was never attached to that task (only a prose
 // description) — built from that description, not a literal HTML transplant like the
@@ -1009,8 +1127,8 @@ function _wireMobileMenu() {
   if (backdrop) backdrop.addEventListener("click", closeMobileMenu);
 
   // Profile — 실제 Profile 페이지로 이동(이전엔 Leaderboard로 리다이렉트하던 임시 조치였음,
-  // openMobileProfile() 참고). Settings/Help는 스펙에 동작이 명시되지 않아 드로어만 닫음
-  // (placeholder — 없는 기능을 만들어내지 않음).
+  // openMobileProfile() 참고). Settings/Help도 이제 실제 페이지로 진입(이전엔 드로어만 닫는
+  // 죽은 플레이스홀더였음 — Settings=계정·로컬기록삭제·로그아웃, Help=FAQ/면책, 전부 실제 동작).
   var profileBtn = document.getElementById("mmenu-profile");
   if (profileBtn) {
     profileBtn.addEventListener("click", function () {
@@ -1021,8 +1139,8 @@ function _wireMobileMenu() {
   }
   var settingsBtn = document.getElementById("mmenu-settings");
   var helpBtn = document.getElementById("mmenu-help");
-  if (settingsBtn) settingsBtn.addEventListener("click", closeMobileMenu);
-  if (helpBtn) helpBtn.addEventListener("click", closeMobileMenu);
+  if (settingsBtn) settingsBtn.addEventListener("click", function () { closeMobileMenu(); openMobileSettings(); });
+  if (helpBtn) helpBtn.addEventListener("click", function () { closeMobileMenu(); openMobileHelp(); });
   var signOutBtn = document.getElementById("mmenu-signout");
   if (signOutBtn) {
     signOutBtn.addEventListener("click", function () {
@@ -1279,6 +1397,11 @@ function _renderMobileLocalNews() {
 document.addEventListener("DOMContentLoaded", function () {
   var profileBackBtn = document.getElementById("mprofile-back");
   if (profileBackBtn) profileBackBtn.addEventListener("click", closeMobileProfile);
+
+  var settingsBackBtn = document.getElementById("msettings-back");
+  if (settingsBackBtn) settingsBackBtn.addEventListener("click", closeMobileSettings);
+  var helpBackBtn = document.getElementById("mhelp-back");
+  if (helpBackBtn) helpBackBtn.addEventListener("click", closeMobileHelp);
 
   var trendsViewAllBtn = document.getElementById("mhome-trends-viewall");
   if (trendsViewAllBtn) trendsViewAllBtn.addEventListener("click", openMobileTrends);

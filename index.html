@@ -579,6 +579,31 @@ tailwind.config = {
     </div>
   </div>
 
+  <!-- Settings — 이 앱이 실제로 지원하는 항목만: 계정 정보(Firebase currentUser) + 로컬 검증
+       기록 삭제(localStorage annverify_ui_sessions_v1, app/history.js) + 로그아웃. 티어·다크모드·
+       알림·언어 전환은 앱에 기능 자체가 없어 넣지 않음(없는 기능을 만들어내지 않음 — 가짜 토글 금지). -->
+  <div id="msettings-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="msettings-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Settings</h1>
+      <span class="w-10"></span>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="msettings-body">
+      <div class="paper-card h-32 animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- Help — 정적 FAQ/면책(서버 조회 없음). 회의적 신규 사용자가 서비스·판정 라벨·정확도 한계를
+       이해하도록. app/mobile-app.js _MOBILE_HELP_HTML이 본문을 채움. -->
+  <div id="mhelp-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mhelp-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Help</h1>
+      <span class="w-10"></span>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mhelp-body"></div>
+  </div>
+
   <!-- Trending Topics 전체 목록 — Home 섹션의 VIEW ALL로만 진입, 탭바에는 없는 drill-down
        화면(토론 상세와 동일 패턴). /api/v4/trends/claims는 word/count만 반환 -->
   <div id="mtrends-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
