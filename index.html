@@ -558,6 +558,9 @@ tailwind.config = {
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-profile">
         <span class="material-symbols-outlined">person</span><span class="font-body-md text-body-md" data-i18n="menu.profile">Profile</span>
       </button>
+      <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-records">
+        <span class="material-symbols-outlined">history</span><span class="font-body-md text-body-md" data-i18n="menu.records">Verification Records</span>
+      </button>
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-settings">
         <span class="material-symbols-outlined">settings</span><span class="font-body-md text-body-md" data-i18n="menu.settings">Settings</span>
       </button>
@@ -619,6 +622,17 @@ tailwind.config = {
       <span class="w-10"></span>
     </header>
     <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mhelp-body"></div>
+  </div>
+
+  <!-- 검증 기록 — 로컬 검증기록 전체 + Grade 분포 + SHA-256 무결성 안내. Profile "전체 기록"·드로어로 진입.
+       데이터는 history.js collectLocalVerifyEntries()(이 기기 로컬). app/mobile-app.js _loadMobileRecords. -->
+  <div id="mrecords-page" class="hidden fixed inset-0 z-[80] bg-paper-base flex flex-col">
+    <header class="shrink-0 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile h-16">
+      <button id="mrecords-back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-high" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></button>
+      <h1 class="font-headline-sm text-headline-sm font-bold text-primary" data-i18n="records.title">Verification Records</h1>
+      <span class="w-10"></span>
+    </header>
+    <div class="flex-1 overflow-y-auto px-margin-mobile py-md" id="mrecords-body"></div>
   </div>
 
   <!-- Trending Topics 전체 목록 — Home 섹션의 VIEW ALL로만 진입, 탭바에는 없는 drill-down

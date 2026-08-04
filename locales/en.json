@@ -12,6 +12,7 @@
   },
   "menu": {
     "profile": "Profile",
+    "records": "Verification Records",
     "settings": "Settings",
     "help": "Help",
     "about": "About & API",
@@ -92,5 +93,26 @@
   },
   "login": {
     "required": "Sign in required"
+  },
+  "records": {
+    "title": "Verification Records",
+    "distribution": "Grade Distribution",
+    "all": "All Records",
+    "viewAll": "View all records",
+    "empty": "No verification records on this device yet.",
+    "note": "Stored on this device only, not synced across devices. Each report carries a SHA-256 integrity hash.",
+    "clearConfirm": "Delete all records on this device? This cannot be undone."
+  },
+  "help": {
+    "q1t": "What is ANN Verify?",
+    "q1b": "An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.",
+    "q2t": "The 7-Layer Engine",
+    "q2b": "Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.",
+    "q3t": "Reading the verdict",
+    "q3b": "<b>Verified</b> — well supported by evidence. <b>Likely True</b> — largely supported but partly uncertain. <b>Partially True</b> — only partly true. <b>Unverified</b> — not enough linked evidence to rule. <b>False</b> — contradicted by evidence.",
+    "q4t": "Accuracy & limits",
+    "q4b": "This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.",
+    "q5t": "Contact",
+    "q5b": "For questions and feedback, reach us via annverify.ai."
   }
 }

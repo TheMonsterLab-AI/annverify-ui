@@ -885,6 +885,7 @@ async function _loadMobileProfile() {
         ? localStats.recent.map(_profileVerifyHistoryCardHtml).join("")
         : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noRecent") + '</p>') +
     '</div>' +
+    (localStats.recent.length ? '<button id="mprofile-viewall" class="w-full border border-outline-variant text-on-surface rounded-[10px] text-[14px] py-2 font-bold mt-1">' + t("records.viewAll") + '</button>' : "") +
     '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">' + t("profile.pointsHistory") + '</h3>' +
     '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
 
@@ -917,6 +918,8 @@ async function _loadMobileProfile() {
       if (typeof shareEntry === "function") shareEntry(entry);
     });
   });
+  var viewAllBtn = document.getElementById("mprofile-viewall");
+  if (viewAllBtn) viewAllBtn.addEventListener("click", function () { closeMobileProfile(); openMobileRecords(); });
 
   try {
     var idToken = await getIdTokenOrNull();
@@ -981,6 +984,12 @@ function onI18nApplied() {
   if (st && !st.classList.contains("hidden") && typeof _loadMobileSettings === "function") _loadMobileSettings();
   var pf = document.getElementById("mprofile-page");
   if (pf && !pf.classList.contains("hidden") && typeof _loadMobileProfile === "function") _loadMobileProfile();
+  var hp = document.getElementById("mhelp-page");
+  if (hp && !hp.classList.contains("hidden") && typeof _mobileHelpHtml === "function") {
+    var hb = document.getElementById("mhelp-body"); if (hb) hb.innerHTML = _mobileHelpHtml();
+  }
+  var rp = document.getElementById("mrecords-page");
+  if (rp && !rp.classList.contains("hidden") && typeof _loadMobileRecords === "function") _loadMobileRecords();
 }
 
 function _loadMobileSettings() {
@@ -1067,38 +1076,104 @@ function _loadMobileSettings() {
 
 // ── Help page ─────────────────────────────────────────────────────────────
 // 정적 FAQ/면책(서버 조회 없음). 실제로 검증된 서비스 동작만 설명 — 없는 기능/과장 없음.
-var _MOBILE_HELP_HTML =
-  '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">ANN Verify란? / What is ANN Verify?</h3>' +
-    '<p class="font-body-sm text-on-surface">주장이나 뉴스 URL을 입력하면 여러 출처를 교차검증해 사실 여부를 판정하는 AI 팩트체크 서비스입니다. / An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.</p>' +
-  '</div>' +
-  '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">7-Layer Engine이 뭔가요? / The 7-Layer Engine</h3>' +
-    '<p class="font-body-sm text-on-surface">입력 분석 → 증거 수집(웹·팩트체크 DB) → 교차검증 → 반론 검토 → 판정 → 시의성(신선도) 점검까지 여러 단계를 거쳐 결론을 냅니다. 단일 답변이 아니라 단계별 근거를 남깁니다. / Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.</p>' +
-  '</div>' +
-  '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">판정 라벨 읽는 법 / Reading the verdict</h3>' +
-    '<p class="font-body-sm text-on-surface"><b>Verified</b> — 근거가 충분히 뒷받침. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 연결된 증거가 부족해 판정 보류. <b>False</b> — 근거가 반박.</p>' +
-  '</div>' +
-  '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">정확도와 한계 / Accuracy &amp; limits</h3>' +
-    '<p class="font-body-sm text-on-surface">AI 기반 분석이라 오류가 있을 수 있습니다. 리포트의 출처와 근거를 함께 확인하시고, 최종 판단은 사용자에게 있습니다. / This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.</p>' +
-  '</div>' +
-  '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">문의 / Contact</h3>' +
-    '<p class="font-body-sm text-on-surface">서비스 관련 문의와 피드백은 annverify.ai를 통해 보내주세요. / For questions and feedback, reach us via annverify.ai.</p>' +
-  '</div>';
+// i18n: Help FAQ를 현재 언어로 렌더(기존 KO/EN 병기 → 단일언어). 판정 라벨(Verified/Likely True 등)은
+// 식별자라 두 언어 모두 영어 유지, 설명만 언어별. 언어 변경 시 onI18nApplied가 재렌더.
+function _mobileHelpHtml() {
+  function _hcard(tt, bb) {
+    return '<div class="paper-card p-md mb-md">' +
+        '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + tt + '</h3>' +
+        '<p class="font-body-sm text-on-surface">' + bb + '</p>' +
+      '</div>';
+  }
+  return _hcard(t("help.q1t"), t("help.q1b")) +
+         _hcard(t("help.q2t"), t("help.q2b")) +
+         _hcard(t("help.q3t"), t("help.q3b")) +
+         _hcard(t("help.q4t"), t("help.q4b")) +
+         _hcard(t("help.q5t"), t("help.q5b"));
+}
 
 function openMobileHelp() {
   var overlay = document.getElementById("mhelp-page");
   if (overlay) overlay.classList.remove("hidden");
   var body = document.getElementById("mhelp-body");
-  if (body) body.innerHTML = _MOBILE_HELP_HTML;
+  if (body) body.innerHTML = _mobileHelpHtml();
 }
 
 function closeMobileHelp() {
   var overlay = document.getElementById("mhelp-page");
   if (overlay) overlay.classList.add("hidden");
+}
+
+// ── 검증 기록 (패리티) — 로컬 전체 기록 + Grade 분포 + SHA-256 안내 + Clear ──────────────
+// 데이터는 history.js collectLocalVerifyEntries()(이 기기 로컬 전용, 서버엔 클레임 원문 없음).
+// 카드는 프로필과 동일 렌더러(_profileVerifyHistoryCardHtml) 재사용 — 클릭 시 리포트 재열람.
+function openMobileRecords() {
+  var o = document.getElementById("mrecords-page");
+  if (o) o.classList.remove("hidden");
+  _loadMobileRecords();
+}
+function closeMobileRecords() {
+  var o = document.getElementById("mrecords-page");
+  if (o) o.classList.add("hidden");
+}
+function _loadMobileRecords() {
+  var body = document.getElementById("mrecords-body");
+  if (!body) return;
+  var entries = (typeof collectLocalVerifyEntries === "function") ? collectLocalVerifyEntries() : [];
+  if (!entries.length) {
+    body.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">' + t("records.empty") + '</p>';
+    return;
+  }
+  // Grade 분포 — 판정 라벨별 건수/비율, tone 색 막대
+  var byLabel = {}, order = ["Verified", "Likely True", "Partially True", "Unverified", "False"];
+  entries.forEach(function (e) {
+    var info = verdictInfo(e.verdictClass);
+    if (!byLabel[info.label]) byLabel[info.label] = { count: 0, tone: info.tone };
+    byLabel[info.label].count++;
+  });
+  var total = entries.length;
+  var labels = order.filter(function (l) { return byLabel[l]; })
+    .concat(Object.keys(byLabel).filter(function (l) { return order.indexOf(l) < 0; }));
+  var distHtml = '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("records.distribution") + '</h3>' +
+    labels.map(function (l) {
+      var d = byLabel[l], pct = Math.round(d.count / total * 100);
+      var tone = VERDICT_TONE_CLASSES[d.tone] || VERDICT_TONE_CLASSES.mid;
+      return '<div class="mb-2">' +
+          '<div class="flex justify-between font-label-caps text-label-caps mb-0.5"><span class="text-on-surface">' + escapeHtml(l) + '</span><span class="text-on-surface-variant">' + d.count + '</span></div>' +
+          '<div class="h-2 rounded-full bg-surface-container overflow-hidden"><div class="h-full ' + tone.line + ' rounded-full" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+    }).join("") +
+  '</div>';
+
+  var listHtml = '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("records.all") + ' (' + total + ')</h3>' +
+    entries.map(_profileVerifyHistoryCardHtml).join("");
+  var clearHtml = '<button id="mrecords-clear" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold mt-2">' + t("settings.clearHistory") + '</button>';
+  var noteHtml = '<p class="font-label-caps text-label-caps text-on-surface-variant mt-3">' + t("records.note") + '</p>';
+  body.innerHTML = distHtml + listHtml + clearHtml + noteHtml;
+
+  function _findEntry(id) { return entries.filter(function (e) { return e.id === id; })[0]; }
+  body.querySelectorAll(".mprofile-verify-item[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var e = _findEntry(btn.getAttribute("data-entry-id")); if (!e) return;
+      closeMobileRecords();
+      if (typeof renderRightPanel === "function") renderRightPanel(e);
+      if (typeof mobileShowResult === "function") mobileShowResult();
+    });
+  });
+  body.querySelectorAll(".mprofile-dl-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (ev) { ev.stopPropagation(); var e = _findEntry(btn.getAttribute("data-entry-id")); if (e && typeof downloadReportPdf === "function") downloadReportPdf(e); });
+  });
+  body.querySelectorAll(".mprofile-share-btn[data-entry-id]").forEach(function (btn) {
+    btn.addEventListener("click", function (ev) { ev.stopPropagation(); var e = _findEntry(btn.getAttribute("data-entry-id")); if (e && typeof shareEntry === "function") shareEntry(e); });
+  });
+  var clearBtn = document.getElementById("mrecords-clear");
+  if (clearBtn) clearBtn.addEventListener("click", function () {
+    if (!window.confirm(t("records.clearConfirm"))) return;
+    try { localStorage.removeItem("annverify_ui_sessions_v1"); } catch (e) {}
+    if (typeof _currentSession !== "undefined") _currentSession = null;
+    _loadMobileRecords();
+  });
 }
 
 // feat/live-home-chips: 홈 "무엇을 검증할까요?" 예시 칩을 AI News(글로벌 뉴스 피드)의 최신
@@ -1234,6 +1309,8 @@ function _wireMobileMenu() {
       openMobileProfile();
     });
   }
+  var recordsBtn = document.getElementById("mmenu-records");
+  if (recordsBtn) recordsBtn.addEventListener("click", function () { closeMobileMenu(); openMobileRecords(); });
   var settingsBtn = document.getElementById("mmenu-settings");
   var helpBtn = document.getElementById("mmenu-help");
   if (settingsBtn) settingsBtn.addEventListener("click", function () { closeMobileMenu(); openMobileSettings(); });
@@ -1499,6 +1576,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (settingsBackBtn) settingsBackBtn.addEventListener("click", closeMobileSettings);
   var helpBackBtn = document.getElementById("mhelp-back");
   if (helpBackBtn) helpBackBtn.addEventListener("click", closeMobileHelp);
+  var recordsBackBtn = document.getElementById("mrecords-back");
+  if (recordsBackBtn) recordsBackBtn.addEventListener("click", closeMobileRecords);
 
   var trendsViewAllBtn = document.getElementById("mhome-trends-viewall");
   if (trendsViewAllBtn) trendsViewAllBtn.addEventListener("click", openMobileTrends);
