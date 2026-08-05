@@ -82,7 +82,8 @@
     "tierHint": "Standard · fast check",
     "tierStd": "Standard",
     "tierDeep": "Deep",
-    "dossierEmpty": "Your verification dossier will appear here."
+    "dossierEmpty": "Your verification dossier will appear here.",
+    "tierHintDeep": "Deep · deep cross-check"
   },
   "news": {
     "ai": "AI News",
@@ -224,7 +225,16 @@
   },
   "toast": {
     "linkCopied": "Link copied",
-    "shareUnsupported": "Sharing isn't supported here"
+    "shareUnsupported": "Sharing isn't supported here",
+    "voteFailed": "Vote failed",
+    "loadFailed": "Failed to load",
+    "commentPosted": "Comment posted",
+    "commentFailed": "Failed to post comment",
+    "discussPosted": "Discussion posted",
+    "discussFailed": "Failed to post discussion",
+    "bodyMin": "Body must be at least 20 characters.",
+    "bodyMax": "Body can be up to 1000 characters.",
+    "titleShort": "Title or linked verification is too short (15+ characters needed)."
   },
   "report": {
     "verifyThis": "Verify this",
@@ -239,5 +249,9 @@
     "numeric": "Numbers-only input cannot be verified.",
     "invalidInput": "This input can't be verified. Please enter a specific claim or a news URL.",
     "verifyFail": "Verification failed. Please try again later."
+  },
+  "usage": {
+    "upgradePro": "Upgrade to the Pro plan for more {kind}.",
+    "signinMore": "Sign in for a higher daily limit."
   }
 }

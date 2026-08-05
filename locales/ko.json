@@ -82,7 +82,8 @@
     "tierHint": "표준 · 빠른 검사",
     "tierStd": "표준",
     "tierDeep": "딥",
-    "dossierEmpty": "검증 리포트가 여기에 표시됩니다."
+    "dossierEmpty": "검증 리포트가 여기에 표시됩니다.",
+    "tierHintDeep": "딥 · 심층 교차검증"
   },
   "news": {
     "ai": "AI 뉴스",
@@ -224,7 +225,16 @@
   },
   "toast": {
     "linkCopied": "링크가 복사되었습니다",
-    "shareUnsupported": "공유가 지원되지 않는 환경입니다"
+    "shareUnsupported": "공유가 지원되지 않는 환경입니다",
+    "voteFailed": "투표에 실패했습니다",
+    "loadFailed": "불러오기에 실패했습니다",
+    "commentPosted": "댓글이 등록되었습니다",
+    "commentFailed": "댓글 등록에 실패했습니다",
+    "discussPosted": "토론이 게시되었습니다",
+    "discussFailed": "토론 게시에 실패했습니다",
+    "bodyMin": "본문은 최소 20자 이상이어야 합니다.",
+    "bodyMax": "본문은 최대 1000자까지 가능합니다.",
+    "titleShort": "제목 또는 연결된 검증 내용이 너무 짧습니다 (15자 이상 필요)."
   },
   "report": {
     "verifyThis": "검증하기",
@@ -239,5 +249,9 @@
     "numeric": "숫자만 입력된 경우 검증할 수 없습니다.",
     "invalidInput": "검증할 수 없는 입력입니다. 구체적인 주장이나 뉴스 URL을 입력해주세요.",
     "verifyFail": "검증에 실패했습니다. 잠시 후 다시 시도해주세요."
+  },
+  "usage": {
+    "upgradePro": "Pro 플랜으로 업그레이드하세요.",
+    "signinMore": "로그인하면 더 많이 사용할 수 있어요."
   }
 }

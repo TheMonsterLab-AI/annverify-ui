@@ -71,9 +71,10 @@ function setSelectedTier(tier) {
   });
   // desktop caption sits in the same tight row as the pills themselves (.if2) — short form only.
   var hint = document.getElementById("input-hint");
-  if (hint) hint.textContent = TIER_INFO[tier].label + " · " + TIER_INFO[tier].shortEn;
-  // 모바일 힌트(#mobile-tier-hint)는 setSelectedTier가 건드리지 않는다 — 이제 양쪽 모드를 항상
-  // 설명하는 고정 문구(index.html data-i18n="mode.explain")라, 선택마다 덮어쓰면 설명이 사라짐.
+  if (hint) hint.textContent = t(tier === "deep" ? "dhome.tierHintDeep" : "dhome.tierHint");
+  // mobile caption has its own row above the input — room for the fuller description.
+  var mhint = document.getElementById("mobile-tier-hint");
+  if (mhint) mhint.textContent = t(tier === "deep" ? "dhome.tierHintDeep" : "dhome.tierHint");
 }
 
 // Railway V5 응답 → render.js 호환 리포트 shape. annverify.ai's normalizeResponse() 그대로 이식.

@@ -249,7 +249,7 @@ function _wireDiscussDetailButtons(id) {
       _voteOnDiscuss(id, vote).then(function (applied) {
         if (applied) openMobileDiscussDetail(id); // 재조회 — 카운트/퍼센트 정확도 위해 문서 1개 다시 로드
       }).catch(function (e) {
-        showMobileToast(e.message === "LOGIN_REQUIRED" ? "로그인이 필요합니다" : "투표에 실패했습니다");
+        showMobileToast(e.message === "LOGIN_REQUIRED" ? t("login.required") : t("toast.voteFailed"));
       });
     });
   });
@@ -278,7 +278,7 @@ async function openMobileDiscussDetail(id) {
   } catch (e) {
     console.warn("[discuss detail] failed:", e.message);
     if (body) body.innerHTML = '<p class="text-error font-body-sm text-center py-lg">Failed to load.</p>';
-    showMobileToast("불러오기에 실패했습니다");
+    showMobileToast(t("toast.loadFailed"));
   }
 }
 
@@ -304,9 +304,9 @@ async function _submitMobileDiscussComment() {
     _renderDiscussComments(comments);
     var countEl = document.getElementById("dd-comment-count");
     if (countEl) countEl.textContent = comments.length;
-    showMobileToast("댓글이 등록되었습니다");
+    showMobileToast(t("toast.commentPosted"));
   } catch (e) {
-    showMobileToast(e.message === "LOGIN_REQUIRED" ? "로그인이 필요합니다" : "댓글 등록에 실패했습니다");
+    showMobileToast(e.message === "LOGIN_REQUIRED" ? t("login.required") : t("toast.commentFailed"));
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -395,24 +395,24 @@ async function _submitMobileDiscussCreate() {
   var errEl = document.getElementById("mdc-error");
   errEl.classList.add("hidden");
 
-  if (content.length < 20) { errEl.textContent = "본문은 최소 20자 이상이어야 합니다."; errEl.classList.remove("hidden"); return; }
-  if (content.length > 1000) { errEl.textContent = "본문은 최대 1000자까지 가능합니다."; errEl.classList.remove("hidden"); return; }
+  if (content.length < 20) { errEl.textContent = t("toast.bodyMin"); errEl.classList.remove("hidden"); return; }
+  if (content.length > 1000) { errEl.textContent = t("toast.bodyMax"); errEl.classList.remove("hidden"); return; }
 
   var btn = document.getElementById("mdc-submit");
   if (btn) btn.disabled = true;
   try {
     var id = await _createDiscussPost({ title: title, content: content, anonymous: _mdcAnonymous, claim: _mdcLinkedClaim });
     closeMobileDiscussCreate();
-    showMobileToast("토론이 게시되었습니다");
+    showMobileToast(t("toast.discussPosted"));
     openMobileDiscussDetail(id);
   } catch (e) {
     if (e.message === "LOW_QUALITY") {
-      errEl.textContent = "제목 또는 연결된 검증 내용이 너무 짧습니다 (15자 이상 필요).";
+      errEl.textContent = t("toast.titleShort");
       errEl.classList.remove("hidden");
     } else if (e.message === "LOGIN_REQUIRED") {
       showMobileLoginModal();
     } else {
-      showMobileToast("토론 게시에 실패했습니다");
+      showMobileToast(t("toast.discussFailed"));
     }
   } finally {
     if (btn) btn.disabled = false;
@@ -432,7 +432,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (navigator.share) {
         navigator.share({ title: "ANN Verify Discussion", url: url }).catch(function () {});
       } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(function () { showMobileToast("링크가 복사되었습니다"); }).catch(function () {});
+        navigator.clipboard.writeText(url).then(function () { showMobileToast(t("toast.linkCopied")); }).catch(function () {});
       }
     });
   }

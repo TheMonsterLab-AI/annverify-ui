@@ -13,13 +13,6 @@ var USAGE_LIMITS = {
   signedIn:  { chat: 20, verify: 3 },
 };
 
-// fix/disable-usage-limit (2026-08-03): Pro 플랜이 아직 없어 "Upgrade (Coming soon)" 버튼이 죽은
-// 페이월이 됐음 — 한도 넘은 사용자는 검증도 못 하고 업그레이드도 못 하는 막다른 길. 성장 우선
-// 국면이라 정식 출시/Pro 도입 전까지 소프트 한도를 비활성화한다. 재활성화: 이 값을 true로.
-// (USAGE_LIMITS·카운터·메시지는 그대로 보존. 실제 남용 방어는 워커의 서버측 per-IP verifyQuota가
-// 계속 담당하므로 이 클라 한도를 꺼도 abuse backstop은 유지됨 — 위 헤더 주석 참조.)
-var USAGE_LIMIT_ENABLED = false;
-
 function _todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -45,12 +38,10 @@ function _tierLimits() {
 }
 
 function canChat() {
-  if (!USAGE_LIMIT_ENABLED) return true;
   return _readUsage().chat < _tierLimits().chat;
 }
 
 function canVerify() {
-  if (!USAGE_LIMIT_ENABLED) return true;
   return _readUsage().verify < _tierLimits().verify;
 }
 
@@ -69,14 +60,14 @@ function usageLimitMessageHtml(kind) {
   if (signedIn) {
     return (
       '<div class="usage-limit-box">' +
-        '<p>Pro 플랜으로 업그레이드하세요. / Upgrade to the Pro plan for more ' + escapeHtml(kind) + '.</p>' +
+        '<p>' + t("usage.upgradePro", { kind: escapeHtml(kind) }) + '</p>' +
         '<button class="usage-upgrade-btn" disabled title="Coming soon">Upgrade (Coming soon)</button>' +
       '</div>'
     );
   }
   return (
     '<div class="usage-limit-box">' +
-      '<p>로그인하면 더 많이 사용할 수 있어요. / Sign in for a higher daily limit.</p>' +
+      '<p>' + t("usage.signinMore") + '</p>' +
       '<button class="signin-btn usage-signin-btn" id="usage-signin-btn">Sign in with Google</button>' +
     '</div>'
   );
