@@ -17,7 +17,7 @@ var _lbCache = { alltime: null, weekly: null };
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
   // 새로고침 유지용 — 데스크톱 폭에서만 해시 기록(모바일 init의 교차 덮어쓰기 방지).
-  try { if (name && window.innerWidth >= 768 && ("#" + name) !== location.hash) history.replaceState(null, "", "#" + name); } catch (e) {}
+  try { if (name && window.innerWidth >= 768 && ("#" + name) !== location.hash) history[window._annRouteReady ? "pushState" : "replaceState"](null, "", "#" + name); } catch (e) {}
   ["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);

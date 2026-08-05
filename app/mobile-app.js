@@ -38,7 +38,7 @@ var VERDICT_TONE_CLASSES = {
 // ── Mobile page router ───────────────────────────────────────────────────
 function showMobilePage(name) {
   // 새로고침 유지용 — 모바일 폭에서만 해시 기록(데스크톱 init의 교차 덮어쓰기 방지).
-  try { if (name && window.innerWidth < 768 && ("#" + name) !== location.hash) history.replaceState(null, "", "#" + name); } catch (e) {}
+  try { if (name && window.innerWidth < 768 && ("#" + name) !== location.hash) history[window._annRouteReady ? "pushState" : "replaceState"](null, "", "#" + name); } catch (e) {}
   ["home", "news", "livefeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("mpage-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
@@ -1734,9 +1734,29 @@ document.addEventListener("DOMContentLoaded", function () {
 // 메인 init(showMobilePage("home")) 뒤에 등록되어 그 후 실행됨. (사용자 요청 2026-08-04.)
 document.addEventListener("DOMContentLoaded", function () {
   try {
-    if (window.innerWidth >= 768) return;
-    var r = (window._annRoute0 || "").trim();
-    if (r === "dashboard") r = "home";
-    if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0) showMobilePage(r);
+    if (window.innerWidth < 768) {
+      var r = (window._annRoute0 || "").trim();
+      if (r === "dashboard") r = "home";
+      if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0) showMobilePage(r);
+    }
+  } catch (e) {}
+  // 이 리스너가 마지막으로 로드되는 라우팅 스크립트(index.html: pages.js→mobile-app.js)라 복원
+  //   전부 끝난 뒤 실행됨. 여기서 준비완료 플래그를 켜야 이후 "사용자 내비게이션"부터만 pushState
+  //   → 뒤로가기 지원(init/복원 중 replaceState라 히스토리 오염 없음).
+  window._annRouteReady = true;
+});
+
+// 뒤로가기/앞으로가기(popstate) — 그린 패리티(blue router.js 기능 이식). popstate 시 hash는 이미
+//   대상값이라 showMobilePage/showAppPage의 ("#"+name)!==location.hash 가드가 이중 push를 자동 차단.
+window.addEventListener("popstate", function () {
+  try {
+    var r = (location.hash || "").replace(/^#/, "").trim();
+    if (window.innerWidth < 768) {
+      if (!r || r === "dashboard") r = "home";
+      if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0 && typeof showMobilePage === "function") showMobilePage(r);
+    } else {
+      if (!r || r === "home") r = "dashboard";
+      if (["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].indexOf(r) >= 0 && typeof showAppPage === "function") showAppPage(r);
+    }
   } catch (e) {}
 });
