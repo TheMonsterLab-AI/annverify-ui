@@ -639,7 +639,10 @@ function _mhomeErrorBubbleHtml(errorKo) {
     '</div>';
 }
 
+// 대화형 검증 레이어(verify-conversation.js)로 위임 — 결정론적 판정 투영 + 2-해상도 버블.
+// 그 파일이 로드 안 됐을 경우를 대비한 인라인 폴백(기존 최소 버블)을 함께 둔다.
 function _mhomeResultBubbleHtml(entry) {
+  if (typeof conversationalResultBubbleHtml === "function") return conversationalResultBubbleHtml(entry);
   var info = verdictInfo(entry.verdictClass);
   var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
   var pct = Math.round((entry.confidence || 0) * 100);
@@ -812,6 +815,12 @@ async function mobileTriggerVerify(claimText, opts) {
     parsed: parsed,
   };
   mobileReplaceLoadingWithResult(id, entry, false);
+
+  // live WRITE(패리티) — 로그인+동의 사용자의 검증 결과를 공개 피드에 기록. 옵트인 미동의 시
+  //   첫 검증 1회 모달, 익명은 무참여. live-write.js가 전역 노출.
+  if (typeof recordLiveActivity === "function") {
+    try { recordLiveActivity(claimText, parsed, claimText, "user", null); } catch (_) {}
+  }
 }
 
 // mobileSubmitVerify(claimText) — News "새 팩트체크" 등 기존 호출부와의 하위호환 시그니처.

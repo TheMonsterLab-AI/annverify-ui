@@ -76,6 +76,27 @@
     "balanceNote": "이전 포인트의 상세 내역은 제공되지 않습니다. 새 활동부터 여기에 표시됩니다.",
     "noActivity": "활동 없음"
   },
+  "verdict": {
+    "confidence": "신뢰도 {pct}%",
+    "viewReport": "전체 리포트 보기",
+    "summary": {
+      "verified": "근거로 잘 뒷받침됩니다.",
+      "likely": "대체로 성립하나 일부는 불확실합니다.",
+      "partial": "부분적으로만 사실입니다.",
+      "unverified": "판단할 만큼 연결된 근거가 아직 부족합니다.",
+      "outdated": "한때 사실이었으나 지금은 시효가 지났습니다.",
+      "opinion": "검증 대상 사실이 아니라 의견입니다.",
+      "misleading": "기술적으로 왜곡된 오해의 소지가 있습니다.",
+      "false": "근거와 배치됩니다.",
+      "unavailable": "이번에는 검증을 완료하지 못했습니다."
+    }
+  },
+  "live": {
+    "optinTitle": "공개 피드에 게시할까요?",
+    "optinBody": "검증 결과를 공개 라이브 피드에 올려 다른 사람도 볼 수 있게 합니다. 나중에 변경할 수 있습니다.",
+    "optinNo": "나중에",
+    "optinYes": "게시"
+  },
   "vote": {
     "yes": "동의",
     "partial": "부분동의",

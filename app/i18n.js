@@ -11,12 +11,18 @@
 try { if (typeof window !== "undefined" && window._annRoute0 === undefined) window._annRoute0 = (location.hash || "").replace(/^#/, ""); } catch (e) {}
 
 var I18N_LANGS = {
-  en: { label: "English", flag: "🇺🇸" },
-  ko: { label: "한국어",  flag: "🇰🇷" },
+  en: { label: "English",  flag: "🇺🇸" },
+  ko: { label: "한국어",   flag: "🇰🇷" },
+  hi: { label: "हिन्दी",    flag: "🇮🇳" },
+  bn: { label: "বাংলা",    flag: "🇧🇩" },
 };
 
-// IP 국가코드(ISO-3166 alpha-2) → 언어. 없으면 en 폴백. (Phase 2 확장: JP:ja, IN:hi, BD:bn, PK:ur, SY:ar …)
-var I18N_COUNTRY_LANG = { KR: "ko" };
+// RTL 언어 집합 — _applyTranslations()에서 <html dir> 설정에 사용. 현재 LTR만(힌디/벵골),
+// Phase 2b(ar/ur) 추가 시 여기에 넣으면 방향 전환이 자동으로 동작.
+var I18N_RTL = { ar: true, ur: true };
+
+// IP 국가코드(ISO-3166 alpha-2) → 언어. 없으면 en 폴백. (Phase 2b 확장: PK:ur, SY:ar, EG:ar …)
+var I18N_COUNTRY_LANG = { KR: "ko", IN: "hi", BD: "bn" };
 
 var _translations = {};   // { lang: {...} }
 var _i18nLang = "en";     // _detectLocale() 후 갱신
@@ -71,6 +77,7 @@ function _applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll("[data-i18n-ph]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-ph")); });
   document.documentElement.lang = _i18nLang;
+  document.documentElement.dir = I18N_RTL[_i18nLang] ? "rtl" : "ltr";
   // JS 렌더 영역 재렌더 훅 — mobile-app.js가 정의(설정/프로필 등 열려있으면 다시 그림)
   if (typeof onI18nApplied === "function") { try { onI18nApplied(); } catch (e) {} }
 }

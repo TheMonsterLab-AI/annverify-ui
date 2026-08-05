@@ -755,6 +755,18 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- live WRITE 공개 게시 동의 모달(패리티) — 첫 검증 1회. liveOptInChoose()는 live-write.js. -->
+<div id="live-optin-modal" class="hidden fixed inset-0 z-[100] bg-black/40 flex items-center justify-center px-margin-mobile">
+  <div class="signout-modal-card">
+    <h2 class="signout-modal-title" data-i18n="live.optinTitle">Share to public feed?</h2>
+    <p class="signout-modal-body" data-i18n="live.optinBody">Post your verification results to the public live feed so others can see them. You can change this later.</p>
+    <div class="signout-modal-actions">
+      <button class="signout-modal-cancel-btn" data-i18n="live.optinNo" onclick="liveOptInChoose(false)">Not now</button>
+      <button class="signout-modal-confirm-btn" data-i18n="live.optinYes" onclick="liveOptInChoose(true)">Share</button>
+    </div>
+  </div>
+</div>
+
 <!-- 데스크톱 Profile — 사이드바 하단 유저 위젯(아바타/이름) 클릭으로 진입. #signout-modal과
      같은 이유로 #mobile-app 밖(body 최상위)에 둠 — 모바일은 이미 별도의 #mprofile-page
      오버레이가 있어(app/mobile-app.js) 이 엘리먼트를 쓰지 않음. -->
@@ -781,12 +793,14 @@ tailwind.config = {
 <script src="/app/i18n.js"></script>
 <script src="/app/usage.js"></script>
 <script src="/app/auth.js"></script>
+<script src="/app/live-write.js"></script>
 <script src="/app/history.js"></script>
 <script src="/app/verify-engine.js"></script>
 <script src="/app/render.js"></script>
 <script src="/app/pdf.js"></script>
 <script src="/app/mobile.js"></script>
 <script src="/app/pages.js"></script>
+<script src="/app/verify-conversation.js"></script>
 <script src="/app/mobile-app.js"></script>
 <script src="/app/discuss-detail.js"></script>
 <script src="/app/main.js"></script>

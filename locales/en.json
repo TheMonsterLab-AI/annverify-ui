@@ -76,6 +76,27 @@
     "balanceNote": "A detailed breakdown isn't available for earlier points. New activity will appear here.",
     "noActivity": "No activity yet"
   },
+  "verdict": {
+    "confidence": "Confidence {pct}%",
+    "viewReport": "View full report",
+    "summary": {
+      "verified": "This checks out — well supported by the evidence.",
+      "likely": "This largely holds up, though parts remain uncertain.",
+      "partial": "This is only partly true.",
+      "unverified": "There isn't enough linked evidence to judge this yet.",
+      "outdated": "This was true once, but it's now outdated.",
+      "opinion": "This is an opinion, not a checkable fact.",
+      "misleading": "This is misleading — technically twisted.",
+      "false": "This is contradicted by the evidence.",
+      "unavailable": "The verification couldn't be completed this time."
+    }
+  },
+  "live": {
+    "optinTitle": "Share to public feed?",
+    "optinBody": "Post your verification results to the public live feed so others can see them. You can change this later.",
+    "optinNo": "Not now",
+    "optinYes": "Share"
+  },
   "vote": {
     "yes": "Agree",
     "partial": "Partially agree",
