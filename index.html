@@ -820,6 +820,26 @@ tailwind.config = {
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <!-- PDF 생성 — annverify.ai frontend/index.html:3564와 동일 CDN/버전(app/pdf.js가 window.jspdf 사용) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- SEO 크롤 콘텐츠(정적) — SPA 셸에 구글봇이 렌더 없이도 인덱싱할 실제 텍스트 제공. 앱 하단 콘텐츠 영역.
+     컷오버 시 검색 콘텐츠 손실 방지. 카피는 blue annverify.ai SEO 기조 유지. -->
+<footer id="seo-content" style="max-width:920px;margin:48px auto 0;padding:32px 24px 64px;color:#c9d6e2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.65;border-top:1px solid rgba(255,255,255,.08)">
+  <h1 style="font-size:26px;color:#fff;margin:0 0 12px;letter-spacing:-.01em">ANN Verify — AI Fact-Checking Engine</h1>
+  <p style="margin:0 0 20px">ANN Verify is an AI-powered fact-checking platform that verifies claims, detects misinformation, and produces real-time credibility scores. Paste any claim or news URL and the engine cross-checks multiple authoritative sources to assess whether it holds up.</p>
+  <h2 style="font-size:19px;color:#fff;margin:24px 0 8px">How it works — the 7-layer verification engine</h2>
+  <p style="margin:0 0 20px">Every claim passes through a seven-layer pipeline: claim extraction, evidence gathering, cross-validation, adversarial probing, natural-language-inference trust scoring, final verdict synthesis, and a cryptographic integrity seal. Each report shows its sources and reasoning, and carries a SHA-256 integrity hash so verdicts stay re-checkable for years.</p>
+  <h2 style="font-size:19px;color:#fff;margin:24px 0 8px">Key features</h2>
+  <ul style="margin:0 0 20px;padding-left:20px">
+    <li>Sentence-level fact-checking on a Verified · Likely True · Partially True · Unverified · False scale</li>
+    <li>Multi-source cross-validation across authoritative news and government open-data sources</li>
+    <li>Transparent, auditable reports with citations and SHA-256 integrity hashes</li>
+    <li>Real-time credibility scoring for news headlines and social claims</li>
+    <li>Localized for global markets including English, Hindi, and Bengali</li>
+  </ul>
+  <h2 style="font-size:19px;color:#fff;margin:24px 0 8px">What is AI fact-checking?</h2>
+  <p style="margin:0 0 20px">AI fact-checking uses language models and retrieval systems to evaluate whether a claim is supported by evidence, far faster than manual review. ANN Verify combines multiple models that cross-examine each other, so disagreements are surfaced rather than hidden, and every verdict is traceable to its sources.</p>
+  <p style="margin:0"><a href="/methodology.html" style="color:#0995ec">Read the full methodology</a> · <a href="/privacy.html" style="color:#0995ec">Privacy Policy</a> · <a href="/terms.html" style="color:#0995ec">Terms of Service</a></p>
+</footer>
+
 <script src="/app/config.js"></script>
 <script src="/app/i18n.js"></script>
 <script src="/app/usage.js"></script>
