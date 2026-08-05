@@ -37,8 +37,6 @@ var VERDICT_TONE_CLASSES = {
 
 // ── Mobile page router ───────────────────────────────────────────────────
 function showMobilePage(name) {
-  // 새로고침 유지용 — 모바일 폭에서만 해시 기록(데스크톱 init의 교차 덮어쓰기 방지).
-  try { if (name && window.innerWidth < 768 && ("#" + name) !== location.hash) history[window._annRouteReady ? "pushState" : "replaceState"](null, "", "#" + name); } catch (e) {}
   ["home", "news", "livefeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("mpage-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
@@ -278,81 +276,51 @@ async function loadMobileLiveFeed() {
 // ── Discussions ──────────────────────────────────────────────────────────
 // discuss/ranking only ever returns the top 5 (worker-side RANKING_LIMIT), same limitation
 // already noted for the desktop Discussions page — not a browsable/paginated list.
-// 커뮤니티 = 전체 노출(사용자 요청) — /api/v4/discuss/list로 10개씩 페이지네이션("Load more").
-var _mDiscussOffset = 0;
-
-function _mDiscussCardHtml(it, idx) {
-  var hasVerdict = !!it.verdict;
-  var numColor = hasVerdict ? "text-secondary" : "text-on-surface-variant opacity-60";
-  var badgeHtml = hasVerdict
-    ? (function () {
-        var info = verdictInfo(it.verdict);
-        var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
-        return '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>';
-      })()
-    : '<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-caps text-label-caps border border-outline-variant">COMMUNITY</span>';
-  var viewCountHtml = (typeof it.viewCount === "number")
-    ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
-    : '';
-  return '<div class="mdiscuss-card bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
-      '<div class="p-md flex gap-4">' +
-        '<div class="flex flex-col items-center gap-1">' +
-          '<span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(idx + 1).padStart(2, "0") + '</span>' +
-          '<div class="w-[2px] flex-1 min-h-[16px] ' + (hasVerdict ? "bg-secondary" : "bg-outline-variant") + ' opacity-20 rounded-full"></div>' +
-        '</div>' +
-        '<div class="flex-1">' +
-          '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
-          '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
-          '<div class="flex items-center justify-end gap-3 text-on-surface-variant">' +
-            viewCountHtml +
-            '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">forum</span><span class="font-body-sm text-body-sm">' + (it.commentCount || 0) + '</span></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-}
-
-function _mDiscussMoreBtn(hasMore) {
-  return hasMore
-    ? '<button id="mdiscuss-more" class="w-full py-3 border border-outline-variant rounded-xl font-label-caps text-label-caps text-on-surface-variant">' + t("common.more") + '</button>'
-    : '';
-}
-
-async function loadMobileDiscussions(more) {
+async function loadMobileDiscussions() {
   var el = document.getElementById("mdiscuss-list");
   if (!el) return;
-  // 클릭 위임 1회 부착 — 카드 열기 + "더 보기"(append된 카드/버튼에도 동작).
-  if (!el._mdDelegated) {
-    el._mdDelegated = true;
-    el.addEventListener("click", function (e) {
-      if (!e.target || !e.target.closest) return;
-      if (e.target.closest("#mdiscuss-more")) { loadMobileDiscussions(true); return; }
-      var card = e.target.closest("[data-discuss-id]");
-      if (card && typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
-    });
-  }
-  if (!more) { _mDiscussOffset = 0; el.innerHTML = '<div class="paper-card h-20 animate-pulse"></div>'; }
-  var moreBtnEl = document.getElementById("mdiscuss-more");
-  if (moreBtnEl) { moreBtnEl.textContent = "…"; moreBtnEl.disabled = true; }
   try {
-    var res = await fetch(API_URL + "/api/v4/discuss/list?offset=" + _mDiscussOffset + "&limit=10");
+    var res = await fetch(API_URL + "/api/v4/discuss/ranking");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var items = Array.isArray(data.items) ? data.items : [];
-    if (!more && !items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No discussions yet</p>'; return; }
-    var startIdx = _mDiscussOffset;
-    var cards = items.map(function (it, i) { return _mDiscussCardHtml(it, startIdx + i); }).join("");
-    var moreHtml = _mDiscussMoreBtn(!!data.hasMore);
-    if (!more) el.innerHTML = cards + moreHtml;
-    else { if (moreBtnEl) moreBtnEl.remove(); el.insertAdjacentHTML("beforeend", cards + moreHtml); }
-    _mDiscussOffset += items.length;
+    var items = Array.isArray(data.ranking) ? data.ranking : [];
+    if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">No discussions yet</p>'; return; }
+    el.innerHTML = items.map(function (it, i) {
+      var hasVerdict = !!it.verdict;
+      var numColor = hasVerdict ? "text-secondary" : "text-on-surface-variant opacity-60";
+      var badgeHtml = hasVerdict
+        ? (function () {
+            var info = verdictInfo(it.verdict);
+            var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
+            return '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border">' + escapeHtml(info.label.toUpperCase()) + '</span>';
+          })()
+        : '<span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-caps text-label-caps border border-outline-variant">COMMUNITY</span>';
+      var viewCountHtml = (typeof it.viewCount === "number")
+        ? '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span><span class="font-body-sm text-body-sm">' + it.viewCount + '</span></div>'
+        : '';
+      return '<div class="bg-paper border border-brand rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" data-discuss-id="' + escapeHtml(it.id) + '">' +
+          '<div class="p-md flex gap-4">' +
+            '<div class="flex flex-col items-center gap-1"><span class="font-headline-sm text-headline-sm ' + numColor + ' font-bold">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="flex-1">' +
+              '<div class="flex items-center justify-between mb-2">' + badgeHtml + '<span class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(it.createdAt)) + '</span></div>' +
+              '<h3 class="font-headline-sm text-headline-sm mb-3 leading-tight">' + escapeHtml((it.claimPreview || "").toString().slice(0, 100)) + '</h3>' +
+              '<div class="flex items-center justify-end gap-3 text-on-surface-variant">' +
+                viewCountHtml +
+                '<div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">forum</span><span class="font-body-sm text-body-sm">' + (it.commentCount || 0) + '</span></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join("");
+    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        if (typeof openMobileDiscussDetail === "function") openMobileDiscussDetail(card.getAttribute("data-discuss-id"));
+      });
+    });
   } catch (e) {
     console.warn("[mobile discussions] failed:", e.message);
-    if (!more) {
-      el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer" id="mdiscuss-retry">Failed to load. Tap to retry.</p>';
-      var r = document.getElementById("mdiscuss-retry");
-      if (r) r.addEventListener("click", function () { loadMobileDiscussions(false); });
-    } else if (moreBtnEl) { moreBtnEl.textContent = t("common.more"); moreBtnEl.disabled = false; }
+    el.innerHTML = '<p class="text-error font-body-sm text-center py-lg cursor-pointer">Failed to load. Tap to retry.</p>';
+    el.onclick = function () { el.onclick = null; loadMobileDiscussions(); };
   }
 }
 
@@ -639,10 +607,7 @@ function _mhomeErrorBubbleHtml(errorKo) {
     '</div>';
 }
 
-// 대화형 검증 레이어(verify-conversation.js)로 위임 — 결정론적 판정 투영 + 2-해상도 버블.
-// 그 파일이 로드 안 됐을 경우를 대비한 인라인 폴백(기존 최소 버블)을 함께 둔다.
 function _mhomeResultBubbleHtml(entry) {
-  if (typeof conversationalResultBubbleHtml === "function") return conversationalResultBubbleHtml(entry);
   var info = verdictInfo(entry.verdictClass);
   var tone = VERDICT_TONE_CLASSES[info.tone] || VERDICT_TONE_CLASSES.mid;
   var pct = Math.round((entry.confidence || 0) * 100);
@@ -815,12 +780,6 @@ async function mobileTriggerVerify(claimText, opts) {
     parsed: parsed,
   };
   mobileReplaceLoadingWithResult(id, entry, false);
-
-  // live WRITE(패리티) — 로그인+동의 사용자의 검증 결과를 공개 피드에 기록. 옵트인 미동의 시
-  //   첫 검증 1회 모달, 익명은 무참여. live-write.js가 전역 노출.
-  if (typeof recordLiveActivity === "function") {
-    try { recordLiveActivity(claimText, parsed, claimText, "user", null); } catch (_) {}
-  }
 }
 
 // mobileSubmitVerify(claimText) — News "새 팩트체크" 등 기존 호출부와의 하위호환 시그니처.
@@ -858,9 +817,7 @@ function _profileVerifyHistoryCardHtml(entry) {
       '<button class="mprofile-verify-item flex-1 min-w-0 text-left flex items-center gap-2" data-entry-id="' + escapeHtml(entry.id || "") + '">' +
         '<span class="' + tone.bg10 + ' ' + tone.textBorder + ' px-2 py-0.5 rounded-full font-label-caps text-label-caps border shrink-0">' + escapeHtml(info.label.toUpperCase()) + '</span>' +
         '<div class="flex-1 min-w-0"><p class="font-body-sm text-on-surface truncate">' + escapeHtml(claimText) + '</p>' +
-        '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p>' +
-        (entry.bislHash ? '<p class="font-label-caps text-label-caps text-on-surface-variant truncate" style="font-family:monospace;opacity:.65">SHA-256 ' + escapeHtml(String(entry.bislHash).slice(0, 14)) + '…</p>' : '') +
-      '</div>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant">' + escapeHtml(relativeTime(entry.ts)) + '</p></div>' +
       '</button>' +
       '<button class="mprofile-dl-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Download PDF" title="Download PDF"><span class="material-symbols-outlined text-[18px]">download</span></button>' +
       '<button class="mprofile-share-btn shrink-0 p-1 text-on-surface-variant" data-entry-id="' + escapeHtml(entry.id || "") + '" aria-label="Share" title="Share"><span class="material-symbols-outlined text-[18px]">share</span></button>' +
@@ -886,19 +843,17 @@ async function _loadMobileProfile() {
       '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
       '<p class="font-headline-sm text-headline-sm text-primary mt-2" id="mprofile-ap-total">--</p>' +
     '</div>' +
-    '<div class="grid grid-cols-3 gap-base mb-md">' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.totalVerify") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.truthRate") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.avgTrust") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.avgConfidence != null ? localStats.avgConfidence + "%" : "--") + '</div></div>' +
+    '<div class="grid grid-cols-2 gap-base mb-md">' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">총 검증 수</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">진실 판정 비율</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2">' + t("profile.recent") + '</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2">최근 검증 기록</h3>' +
     '<div id="mprofile-verify-history">' +
       (localStats.recent.length
         ? localStats.recent.map(_profileVerifyHistoryCardHtml).join("")
-        : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noRecent") + '</p>') +
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">최근 검증 기록이 없습니다.</p>') +
     '</div>' +
-    (localStats.recent.length ? '<button id="mprofile-viewall" class="w-full border border-outline-variant text-on-surface rounded-[10px] text-[14px] py-2 font-bold mt-1">' + t("records.viewAll") + '</button>' : "") +
-    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">' + t("profile.pointsHistory") + '</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">ANN Points 기록</h3>' +
     '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
 
   function _findLocalEntry(id) {
@@ -930,8 +885,6 @@ async function _loadMobileProfile() {
       if (typeof shareEntry === "function") shareEntry(entry);
     });
   });
-  var viewAllBtn = document.getElementById("mprofile-viewall");
-  if (viewAllBtn) viewAllBtn.addEventListener("click", function () { closeMobileProfile(); openMobileRecords(); });
 
   try {
     var idToken = await getIdTokenOrNull();
@@ -947,16 +900,7 @@ async function _loadMobileProfile() {
     if (!histEl) return;
     var history = Array.isArray(data.history) ? data.history : [];
     if (!history.length) {
-      // fix: 총점(annPoints)은 있는데 이력이 빈 경우 — 시드/레거시/관리자 적립 등 정상 award
-      // 경로(worker points.js:138 annPointsHistory add)를 안 거친 잔액. 이때 "No activity yet"을
-      // 그대로 띄우면 상단 AP 총점과 모순돼 보이므로(예: 515 AP인데 활동 없음), 잔액을 정직하게 표시.
-      var apNow = (data.annPoints || 0);
-      histEl.innerHTML = apNow > 0
-        ? '<div class="paper-card p-sm text-center">' +
-            '<p class="font-body-sm text-on-surface">' + t("profile.balance") + ' <span class="font-bold text-primary">' + apNow + ' AP</span></p>' +
-            '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("profile.balanceNote") + '</p>' +
-          '</div>'
-        : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noActivity") + '</p>';
+      histEl.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-md">No activity yet</p>';
       return;
     }
     histEl.innerHTML = history.map(function (h) {
@@ -989,21 +933,6 @@ function closeMobileSettings() {
   if (overlay) overlay.classList.add("hidden");
 }
 
-// i18n: setLang(app/i18n.js) 적용 후 _applyTranslations가 호출 — 열려있는 오버레이를 다시 그려
-// 언어 즉시 반영(선택기 하이라이트·본문). Profile은 Phase 2 계측이지만 재렌더는 무해.
-function onI18nApplied() {
-  var st = document.getElementById("msettings-page");
-  if (st && !st.classList.contains("hidden") && typeof _loadMobileSettings === "function") _loadMobileSettings();
-  var pf = document.getElementById("mprofile-page");
-  if (pf && !pf.classList.contains("hidden") && typeof _loadMobileProfile === "function") _loadMobileProfile();
-  var hp = document.getElementById("mhelp-page");
-  if (hp && !hp.classList.contains("hidden") && typeof _mobileHelpHtml === "function") {
-    var hb = document.getElementById("mhelp-body"); if (hb) hb.innerHTML = _mobileHelpHtml();
-  }
-  var rp = document.getElementById("mrecords-page");
-  if (rp && !rp.classList.contains("hidden") && typeof _loadMobileRecords === "function") _loadMobileRecords();
-}
-
 function _loadMobileSettings() {
   var body = document.getElementById("msettings-body");
   if (!body) return;
@@ -1017,12 +946,12 @@ function _loadMobileSettings() {
       '<div class="paper-card p-md mb-md">' +
         '<p class="font-body-md text-on-surface font-bold">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
         '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
-        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("settings.joined") + ' ' + escapeHtml(joinDate) + '</p>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
       '</div>';
   } else {
     accountHtml =
       '<div class="paper-card p-md mb-md text-center">' +
-        '<p class="font-body-sm text-on-surface-variant mb-2">' + t("settings.signinPrompt") + '</p>' +
+        '<p class="font-body-sm text-on-surface-variant mb-2">로그인하면 계정 정보가 표시됩니다. / Sign in to see your account.</p>' +
         '<button id="msettings-signin" class="bg-primary text-white rounded-[10px] text-[15px] px-4 py-2 font-bold">Sign in with Google</button>' +
       '</div>';
   }
@@ -1030,34 +959,18 @@ function _loadMobileSettings() {
   var localCount = 0;
   try { localCount = (typeof loadSessions === "function") ? loadSessions().length : 0; } catch (e) {}
 
-  // 언어 선택기(i18n Phase 1) — IP 자동감지 위에 수동 override. setLang→localStorage 저장·즉시 재렌더.
-  var langBtns = Object.keys(I18N_LANGS).map(function (lc) {
-    var on = (typeof getLang === "function" ? getLang() : "en") === lc;
-    return '<button class="msettings-lang flex-1 rounded-[10px] text-[15px] py-2.5 font-bold ' +
-      (on ? "bg-primary text-white" : "border border-outline-variant text-on-surface") +
-      '" data-lang="' + lc + '">' + escapeHtml(I18N_LANGS[lc].flag + " " + I18N_LANGS[lc].label) + '</button>';
-  }).join("");
-
   body.innerHTML =
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.account") + '</h3>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Account</h3>' +
     accountHtml +
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.language") + '</h3>' +
-    '<div class="paper-card p-md mb-md"><div class="flex gap-2">' + langBtns + '</div></div>' +
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("settings.data") + '</h3>' +
+    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Data</h3>' +
     '<div class="paper-card p-md mb-md">' +
-      '<p class="font-body-sm text-on-surface">' + t("settings.localHistory") + '</p>' +
-      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">' + t("settings.localHistoryDesc", { n: localCount }) + '</p>' +
-      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">' + t("settings.clearHistory") + '</button>' +
+      '<p class="font-body-sm text-on-surface">로컬 검증·대화 기록 (이 기기 전용)</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">On-device history · ' + localCount + ' conversation(s). 기기 간 동기화되지 않습니다.</p>' +
+      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">로컬 기록 삭제 / Clear local history</button>' +
     '</div>' +
     (signedIn
-      ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>' + t("settings.signout") + '</button>'
+      ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>Sign Out</button>'
       : '');
-
-  document.querySelectorAll(".msettings-lang[data-lang]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      if (typeof setLang === "function") setLang(btn.getAttribute("data-lang"));
-    });
-  });
 
   var signinBtn = document.getElementById("msettings-signin");
   if (signinBtn) signinBtn.addEventListener("click", function () {
@@ -1088,135 +1001,38 @@ function _loadMobileSettings() {
 
 // ── Help page ─────────────────────────────────────────────────────────────
 // 정적 FAQ/면책(서버 조회 없음). 실제로 검증된 서비스 동작만 설명 — 없는 기능/과장 없음.
-// i18n: Help FAQ를 현재 언어로 렌더(기존 KO/EN 병기 → 단일언어). 판정 라벨(Verified/Likely True 등)은
-// 식별자라 두 언어 모두 영어 유지, 설명만 언어별. 언어 변경 시 onI18nApplied가 재렌더.
-function _mobileHelpHtml() {
-  function _hcard(tt, bb) {
-    return '<div class="paper-card p-md mb-md">' +
-        '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + tt + '</h3>' +
-        '<p class="font-body-sm text-on-surface">' + bb + '</p>' +
-      '</div>';
-  }
-  return _hcard(t("help.q1t"), t("help.q1b")) +
-         _hcard(t("help.q2t"), t("help.q2b")) +
-         _hcard(t("help.q3t"), t("help.q3b")) +
-         _hcard(t("help.q4t"), t("help.q4b")) +
-         _hcard(t("help.q5t"), t("help.q5b"));
-}
+var _MOBILE_HELP_HTML =
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">ANN Verify란? / What is ANN Verify?</h3>' +
+    '<p class="font-body-sm text-on-surface">주장이나 뉴스 URL을 입력하면 여러 출처를 교차검증해 사실 여부를 판정하는 AI 팩트체크 서비스입니다. / An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">7-Layer Engine이 뭔가요? / The 7-Layer Engine</h3>' +
+    '<p class="font-body-sm text-on-surface">입력 분석 → 증거 수집(웹·팩트체크 DB) → 교차검증 → 반론 검토 → 판정 → 시의성(신선도) 점검까지 여러 단계를 거쳐 결론을 냅니다. 단일 답변이 아니라 단계별 근거를 남깁니다. / Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">판정 라벨 읽는 법 / Reading the verdict</h3>' +
+    '<p class="font-body-sm text-on-surface"><b>Verified</b> — 근거가 충분히 뒷받침. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 연결된 증거가 부족해 판정 보류. <b>False</b> — 근거가 반박.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">정확도와 한계 / Accuracy &amp; limits</h3>' +
+    '<p class="font-body-sm text-on-surface">AI 기반 분석이라 오류가 있을 수 있습니다. 리포트의 출처와 근거를 함께 확인하시고, 최종 판단은 사용자에게 있습니다. / This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.</p>' +
+  '</div>' +
+  '<div class="paper-card p-md mb-md">' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">문의 / Contact</h3>' +
+    '<p class="font-body-sm text-on-surface">서비스 관련 문의와 피드백은 annverify.ai를 통해 보내주세요. / For questions and feedback, reach us via annverify.ai.</p>' +
+  '</div>';
 
 function openMobileHelp() {
   var overlay = document.getElementById("mhelp-page");
   if (overlay) overlay.classList.remove("hidden");
   var body = document.getElementById("mhelp-body");
-  if (body) body.innerHTML = _mobileHelpHtml();
+  if (body) body.innerHTML = _MOBILE_HELP_HTML;
 }
 
 function closeMobileHelp() {
   var overlay = document.getElementById("mhelp-page");
   if (overlay) overlay.classList.add("hidden");
-}
-
-// ── 검증 기록 (패리티) — 로컬 전체 기록 + Grade 분포 + SHA-256 안내 + Clear ──────────────
-// 데이터는 history.js collectLocalVerifyEntries()(이 기기 로컬 전용, 서버엔 클레임 원문 없음).
-// 카드는 프로필과 동일 렌더러(_profileVerifyHistoryCardHtml) 재사용 — 클릭 시 리포트 재열람.
-function openMobileRecords() {
-  var o = document.getElementById("mrecords-page");
-  if (o) o.classList.remove("hidden");
-  _loadMobileRecords();
-}
-function closeMobileRecords() {
-  var o = document.getElementById("mrecords-page");
-  if (o) o.classList.add("hidden");
-}
-function _loadMobileRecords() {
-  var body = document.getElementById("mrecords-body");
-  if (!body) return;
-  var entries = (typeof collectLocalVerifyEntries === "function") ? collectLocalVerifyEntries() : [];
-  if (!entries.length) {
-    body.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">' + t("records.empty") + '</p>';
-    return;
-  }
-  // Grade 분포 — 판정 라벨별 건수/비율, tone 색 막대
-  var byLabel = {}, order = ["Verified", "Likely True", "Partially True", "Unverified", "False"];
-  entries.forEach(function (e) {
-    var info = verdictInfo(e.verdictClass);
-    if (!byLabel[info.label]) byLabel[info.label] = { count: 0, tone: info.tone };
-    byLabel[info.label].count++;
-  });
-  var total = entries.length;
-  var labels = order.filter(function (l) { return byLabel[l]; })
-    .concat(Object.keys(byLabel).filter(function (l) { return order.indexOf(l) < 0; }));
-  var distHtml = '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("records.distribution") + '</h3>' +
-    labels.map(function (l) {
-      var d = byLabel[l], pct = Math.round(d.count / total * 100);
-      var tone = VERDICT_TONE_CLASSES[d.tone] || VERDICT_TONE_CLASSES.mid;
-      return '<div class="mb-2">' +
-          '<div class="flex justify-between font-label-caps text-label-caps mb-0.5"><span class="text-on-surface">' + escapeHtml(l) + '</span><span class="text-on-surface-variant">' + d.count + '</span></div>' +
-          '<div class="h-2 rounded-full bg-surface-container overflow-hidden"><div class="h-full ' + tone.line + ' rounded-full" style="width:' + pct + '%"></div></div>' +
-        '</div>';
-    }).join("") +
-  '</div>';
-
-  var listHtml = '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">' + t("records.all") + ' (' + total + ')</h3>' +
-    entries.map(_profileVerifyHistoryCardHtml).join("");
-  var clearHtml = '<button id="mrecords-clear" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold mt-2">' + t("settings.clearHistory") + '</button>';
-  var noteHtml = '<p class="font-label-caps text-label-caps text-on-surface-variant mt-3">' + t("records.note") + '</p>';
-  body.innerHTML = distHtml + listHtml + clearHtml + noteHtml;
-
-  function _findEntry(id) { return entries.filter(function (e) { return e.id === id; })[0]; }
-  body.querySelectorAll(".mprofile-verify-item[data-entry-id]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var e = _findEntry(btn.getAttribute("data-entry-id")); if (!e) return;
-      closeMobileRecords();
-      if (typeof renderRightPanel === "function") renderRightPanel(e);
-      if (typeof mobileShowResult === "function") mobileShowResult();
-    });
-  });
-  body.querySelectorAll(".mprofile-dl-btn[data-entry-id]").forEach(function (btn) {
-    btn.addEventListener("click", function (ev) { ev.stopPropagation(); var e = _findEntry(btn.getAttribute("data-entry-id")); if (e && typeof downloadReportPdf === "function") downloadReportPdf(e); });
-  });
-  body.querySelectorAll(".mprofile-share-btn[data-entry-id]").forEach(function (btn) {
-    btn.addEventListener("click", function (ev) { ev.stopPropagation(); var e = _findEntry(btn.getAttribute("data-entry-id")); if (e && typeof shareEntry === "function") shareEntry(e); });
-  });
-  var clearBtn = document.getElementById("mrecords-clear");
-  if (clearBtn) clearBtn.addEventListener("click", function () {
-    if (!window.confirm(t("records.clearConfirm"))) return;
-    try { localStorage.removeItem("annverify_ui_sessions_v1"); } catch (e) {}
-    if (typeof _currentSession !== "undefined") _currentSession = null;
-    _loadMobileRecords();
-  });
-}
-
-// feat/live-home-chips: 홈 "무엇을 검증할까요?" 예시 칩을 AI News(글로벌 뉴스 피드)의 최신
-// 헤드라인으로 채운다 — 사용자 요구: 국내가 아닌 "글로벌 이슈". Live Feed(사용자 검증)는 현재
-// 국내 검증이 대부분이라 부적합 → 글로벌 뉴스 피드(/api/v4/news/feed, aiNews·Tech/World/Science
-// 등 글로벌 토픽, 로컬뉴스와 분리)를 소스로 씀. 항상 신선·매 로드 최신, 크론/백엔드 불필요.
-// 3개를 못 채우거나 실패면 index.html의 정적 글로벌 기본 칩을 그대로 둔다(fallback).
-async function _loadMobileHomeChips() {
-  var el = document.getElementById("mhome-chips");
-  if (el == null || typeof API_URL === "undefined") return;
-  try {
-    var res = await fetch(API_URL + "/api/v4/news/feed?limit=20");
-    if (!res || !res.ok) return;
-    var data = await res.json();
-    var items = Array.isArray(data && data.articles) ? data.articles : [];
-    var seen = {}, picked = [];
-    for (var i = 0; i < items.length && picked.length < 3; i++) {
-      var c = ((items[i] && items[i].title) || "").toString().trim();
-      if (c.length < 12) continue;                 // 너무 짧음
-      if (/^https?:\/\//i.test(c)) continue;        // 순수 URL 제외
-      var key = c.slice(0, 40);
-      if (seen[key]) continue;                      // 중복 제외
-      seen[key] = 1;
-      picked.push(c);
-    }
-    if (picked.length < 3) return;                  // 3개 못 채우면 정적 기본 유지
-    el.innerHTML = picked.map(function (c) {
-      var label = c.length > 42 ? c.slice(0, 40) + "…" : c;
-      return '<button type="button" class="mhome-chip" data-chip-text="' + escapeHtml(c) + '">' + escapeHtml(label) + '</button>';
-    }).join("");
-  } catch (e) { /* fallback: 정적 칩 유지 */ }
 }
 
 // ── Hamburger drawer (right slide-in) ───────────────────────────────────
@@ -1321,8 +1137,6 @@ function _wireMobileMenu() {
       openMobileProfile();
     });
   }
-  var recordsBtn = document.getElementById("mmenu-records");
-  if (recordsBtn) recordsBtn.addEventListener("click", function () { closeMobileMenu(); openMobileRecords(); });
   var settingsBtn = document.getElementById("mmenu-settings");
   var helpBtn = document.getElementById("mmenu-help");
   if (settingsBtn) settingsBtn.addEventListener("click", function () { closeMobileMenu(); openMobileSettings(); });
@@ -1440,7 +1254,7 @@ function _aiNewsCardHtml(a, featured) {
         '<p class="font-body-sm text-on-surface-variant" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(a.excerpt || "") + '</p>' +
         '<div class="flex items-center justify-between mt-3">' +
           '<div class="flex items-center gap-3"><span class="font-body-sm font-bold text-primary">' + score + '%</span><span class="px-2.5 py-1 rounded bg-surface-container text-[10px] font-bold">' + escapeHtml(grade) + '</span></div>' +
-          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
+          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">토론</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1472,7 +1286,7 @@ async function _loadMobileNewsAi() {
 // 앞에 국가명을 붙여 구분, app/mobile-app.js loadMobileWorldFeed 참고). News 탭에서는 항상 미설정.
 function _worldNewsCardHtml(item) {
   var cat = item.category || "social";
-  var catLabel = (typeof t === "function" && t("cat." + cat) !== "cat." + cat) ? t("cat." + cat) : (WORLD_NEWS_CATEGORY_LABEL[cat] || cat);
+  var catLabel = WORLD_NEWS_CATEGORY_LABEL[cat] || cat;
   var catClass = WORLD_NEWS_CATEGORY_CLASSES[cat] || WORLD_NEWS_CATEGORY_CLASSES.social;
   var thumbHtml = item.thumb ? '<img src="' + escapeHtml(item.thumb) + '" class="w-full h-32 object-cover" loading="lazy"/>' : "";
   var sourceText = (item._countryLabel ? item._countryLabel + " · " : "") + (item.topSource || item.topDomain || "");
@@ -1486,8 +1300,8 @@ function _worldNewsCardHtml(item) {
         '<h3 class="mb-1 leading-tight" style="font-family:\'Source Serif 4\',serif;font-size:18px;font-weight:700;color:#1c1b1b">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
         (item.topSnippet ? '<p class="font-body-sm text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(item.topSnippet) + '</p>' : "") +
         '<div class="flex gap-2 mt-2">' +
-          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
-          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">' + t("card.newFactcheck") + '</button>' +
+          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">토론</button>' +
+          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">새 팩트체크</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1588,8 +1402,6 @@ document.addEventListener("DOMContentLoaded", function () {
   if (settingsBackBtn) settingsBackBtn.addEventListener("click", closeMobileSettings);
   var helpBackBtn = document.getElementById("mhelp-back");
   if (helpBackBtn) helpBackBtn.addEventListener("click", closeMobileHelp);
-  var recordsBackBtn = document.getElementById("mrecords-back");
-  if (recordsBackBtn) recordsBackBtn.addEventListener("click", closeMobileRecords);
 
   var trendsViewAllBtn = document.getElementById("mhome-trends-viewall");
   if (trendsViewAllBtn) trendsViewAllBtn.addEventListener("click", openMobileTrends);
@@ -1650,22 +1462,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // feat/mobile-home-chat-first — empty-state 예시 칩: 입력창만 채우고 자동 전송하지 않음
   // (Trending Topics 칩의 _fillMobileClaimInput과 동일 원칙, 클릭 자체는 검증 요청이 아님).
-  // 이벤트 위임 — _loadMobileHomeChips가 칩을 글로벌 뉴스로 갈아끼워도 클릭 유지(정적/동적 공통).
-  var _mhomeChipsEl = document.getElementById("mhome-chips");
-  if (_mhomeChipsEl) {
-    _mhomeChipsEl.addEventListener("click", function (e) {
-      var chip = e.target && e.target.closest ? e.target.closest(".mhome-chip") : null;
-      if (!chip) return;
+  document.querySelectorAll(".mhome-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
       var input = document.getElementById("mobile-claim-input");
-      if (input) { input.value = chip.getAttribute("data-chip-text"); input.focus(); }
+      if (input) { input.value = (chip.textContent || chip.getAttribute("data-chip-text") || "").trim(); input.focus(); }
     });
-  }
-  if (typeof _loadMobileHomeChips === "function") _loadMobileHomeChips();
-
-  // 헤더 로고 클릭 → 홈 탭. (사용자 요청 2026-08-04)
-  var mHeaderLogo = document.getElementById("mheader-logo-home");
-  if (mHeaderLogo) mHeaderLogo.addEventListener("click", function () {
-    if (typeof showMobilePage === "function") showMobilePage("home");
   });
 
   var mtierStandardBtn = document.getElementById("mtier-standard-btn");
@@ -1728,35 +1529,4 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.matches) _maybeInitMobile();
     });
   }
-});
-
-// 새로고침 시 현재 탭 유지(모바일) — window._annRoute0(i18n.js 최초 캡처)로 복원.
-// 메인 init(showMobilePage("home")) 뒤에 등록되어 그 후 실행됨. (사용자 요청 2026-08-04.)
-document.addEventListener("DOMContentLoaded", function () {
-  try {
-    if (window.innerWidth < 768) {
-      var r = (window._annRoute0 || "").trim();
-      if (r === "dashboard") r = "home";
-      if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0) showMobilePage(r);
-    }
-  } catch (e) {}
-  // 이 리스너가 마지막으로 로드되는 라우팅 스크립트(index.html: pages.js→mobile-app.js)라 복원
-  //   전부 끝난 뒤 실행됨. 여기서 준비완료 플래그를 켜야 이후 "사용자 내비게이션"부터만 pushState
-  //   → 뒤로가기 지원(init/복원 중 replaceState라 히스토리 오염 없음).
-  window._annRouteReady = true;
-});
-
-// 뒤로가기/앞으로가기(popstate) — 그린 패리티(blue router.js 기능 이식). popstate 시 hash는 이미
-//   대상값이라 showMobilePage/showAppPage의 ("#"+name)!==location.hash 가드가 이중 push를 자동 차단.
-window.addEventListener("popstate", function () {
-  try {
-    var r = (location.hash || "").replace(/^#/, "").trim();
-    if (window.innerWidth < 768) {
-      if (!r || r === "dashboard") r = "home";
-      if (["home", "news", "livefeed", "discussions", "leaderboard"].indexOf(r) >= 0 && typeof showMobilePage === "function") showMobilePage(r);
-    } else {
-      if (!r || r === "home") r = "dashboard";
-      if (["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].indexOf(r) >= 0 && typeof showAppPage === "function") showAppPage(r);
-    }
-  } catch (e) {}
 });

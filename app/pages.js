@@ -16,8 +16,6 @@ var _lbCache = { alltime: null, weekly: null };
 
 // ── Page switcher ────────────────────────────────────────────────────────
 function showAppPage(name) {
-  // 새로고침 유지용 — 데스크톱 폭에서만 해시 기록(모바일 init의 교차 덮어쓰기 방지).
-  try { if (name && window.innerWidth >= 768 && ("#" + name) !== location.hash) history[window._annRouteReady ? "pushState" : "replaceState"](null, "", "#" + name); } catch (e) {}
   ["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].forEach(function (p) {
     var el = document.getElementById("page-" + p);
     if (el) el.classList.toggle("hidden", p !== name);
@@ -37,18 +35,17 @@ function showAppPage(name) {
   var titleEl = document.getElementById("topbar-title");
   var subEl = document.getElementById("topbar-subtitle");
   var titles = {
-    dashboard:    ["Intelligence Dashboard", "Quick verification · ANN 7-Layer Engine"],
-    livefeed:     ["Live Feed", "Recent public verification activity"],
-    // task 스펙은 "last 24h"이지만 실제 /api/v4/trends/claims 집계 윈도우는 7일
-    // (worker/routes/v4/trends.js WINDOW_MS 확인) — 실제와 다른 문구를 걸 수 없어 정정.
-    trends:       ["Trending Topics", "Trending now — auto-detected by your region"],
-    news:         ["News Feed", "AI News · World News"],
-    worldfeed:    ["World Feed", "Global news by region"],
-    discussions:  ["Discussions", "Top discussion threads"],
-    leaderboard:  ["Leaderboard", "Top verifiers by ANN Points"],
+    dashboard:    ["dpg.dashboardT", "dpg.dashboardS"],
+    livefeed:     ["dpg.livefeedT", "dpg.livefeedS"],
+    trends:       ["dpg.trendsT", "dpg.trendsS"],
+    news:         ["dpg.newsT", "dpg.newsS"],
+    worldfeed:    ["dpg.worldfeedT", "dpg.worldfeedS"],
+    discussions:  ["dpg.discussionsT", "dpg.discussionsS"],
+    leaderboard:  ["dpg.leaderboardT", "dpg.leaderboardS"],
   };
-  if (titleEl && titles[name]) titleEl.textContent = titles[name][0];
-  if (subEl && titles[name]) subEl.textContent = titles[name][1];
+  var _tt = function (k) { return (typeof t === "function") ? t(k) : k; };
+  if (titleEl && titles[name]) { titleEl.setAttribute("data-i18n", titles[name][0]); titleEl.textContent = _tt(titles[name][0]); }
+  if (subEl && titles[name]) { subEl.setAttribute("data-i18n", titles[name][1]); subEl.textContent = _tt(titles[name][1]); }
 
   if (name === "livefeed") {
     loadLiveFeed();
@@ -87,8 +84,8 @@ function _pgError(containerId, retryFn) {
   var el = document.getElementById(containerId);
   if (!el) return;
   el.innerHTML =
-    '<div class="pg-error">Failed to load.<br>' +
-      '<button class="pg-retry-btn" id="' + containerId + '-retry">Retry</button>' +
+    '<div class="pg-error">' + t("msg.failLoad") + '<br>' +
+      '<button class="pg-retry-btn" id="' + containerId + '-retry">' + t("msg.retry") + '</button>' +
     '</div>';
   var btn = document.getElementById(containerId + "-retry");
   if (btn) btn.addEventListener("click", retryFn);
@@ -142,69 +139,54 @@ async function loadLiveFeed() {
   }
 }
 
-// ── Discussions — 전체 목록(신선도순) /api/v4/discuss/list 페이지네이션 10개씩 ───
-var _dDiscussOffset = 0;
-
-function _discCardHtml(it, idx) {
-  var title = (it.claimPreview || "").toString().slice(0, 100);
-  var commentCount = it.commentCount || 0;
-  var badgeHtml = it.verdict
-    ? '<span class="' + _badgeClass(verdictInfo(it.verdict).tone) + '">' + escapeHtml(verdictInfo(it.verdict).label) + '</span>'
-    : '<span class="pg-badge pg-badge-neutral">Community</span>';
-  return (
-    '<div class="disc-card" data-discuss-id="' + escapeHtml(it.id) + '">' +
-      '<span class="disc-rank">' + String(idx + 1).padStart(2, "0") + '</span>' +
-      '<div class="disc-body">' +
-        '<div class="pg-card-row">' + badgeHtml + (commentCount >= 10 ? '<span class="disc-hot">HOT</span>' : '') + '</div>' +
-        '<div class="pg-text">' + escapeHtml(title) + '</div>' +
-        '<div class="pg-meta">' +
-          '<span class="pg-meta-item">💬 ' + commentCount + '</span>' +
-          '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
-          '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
-        '</div>' +
-      '</div>' +
-    '</div>'
-  );
-}
-
-function _dDiscussMoreBtn(hasMore) {
-  return hasMore
-    ? '<button id="discussions-more" style="width:100%;max-width:860px;margin:12px auto 0;display:block;padding:12px;border:1px solid #E8E0CF;border-radius:10px;background:#FDFAF5;color:#6f7a72;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer">' + (typeof t === "function" ? t("common.more") : "Show more") + '</button>'
-    : '';
-}
-
-async function loadDiscussions(more) {
+// ── Discussions (top 5 — discuss/ranking has no fuller list endpoint) ───
+async function loadDiscussions() {
   var containerId = "discussions-list";
-  var el = document.getElementById(containerId);
-  if (!el) return;
-  // 클릭 위임 1회 — 카드 열기(annverify.ai 폴백, 스레드 딥링크 없음) + "더 보기".
-  if (!el._dDelegated) {
-    el._dDelegated = true;
-    el.addEventListener("click", function (e) {
-      if (!e.target || !e.target.closest) return;
-      if (e.target.closest("#discussions-more")) { loadDiscussions(true); return; }
-      if (e.target.closest("[data-discuss-id]")) window.open("https://annverify.ai/#discuss", "_blank", "noopener");
-    });
-  }
-  if (!more) { _dDiscussOffset = 0; _pgSkeleton(containerId, 6); }
-  var moreBtn = document.getElementById("discussions-more");
-  if (moreBtn) { moreBtn.textContent = "…"; moreBtn.disabled = true; }
+  _pgSkeleton(containerId, 5);
   try {
-    var res = await fetch(API_URL + "/api/v4/discuss/list?offset=" + _dDiscussOffset + "&limit=10");
+    var res = await fetch(API_URL + "/api/v4/discuss/ranking");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var items = Array.isArray(data.items) ? data.items : [];
-    if (!more && !items.length) { _pgEmpty(containerId, "No discussions yet"); return; }
-    var startIdx = _dDiscussOffset;
-    var cards = items.map(function (it, i) { return _discCardHtml(it, startIdx + i); }).join("");
-    var moreHtml = _dDiscussMoreBtn(!!data.hasMore);
-    if (!more) el.innerHTML = cards + moreHtml;
-    else { if (moreBtn) moreBtn.remove(); el.insertAdjacentHTML("beforeend", cards + moreHtml); }
-    _dDiscussOffset += items.length;
+    var items = Array.isArray(data.ranking) ? data.ranking : [];
+    if (!items.length) { _pgEmpty(containerId, "No discussions yet"); return; }
+
+    var html = items.map(function (it, i) {
+      var title = (it.claimPreview || "").toString().slice(0, 100);
+      var commentCount = it.commentCount || 0;
+      var badgeHtml = it.verdict
+        ? '<span class="' + _badgeClass(verdictInfo(it.verdict).tone) + '">' + escapeHtml(verdictInfo(it.verdict).label) + '</span>'
+        : '<span class="pg-badge pg-badge-neutral">Community</span>';
+      return (
+        '<div class="disc-card" data-discuss-id="' + escapeHtml(it.id) + '">' +
+          '<span class="disc-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
+          '<div class="disc-body">' +
+            '<div class="pg-card-row">' +
+              badgeHtml +
+              (commentCount >= 10 ? '<span class="disc-hot">HOT</span>' : '') +
+            '</div>' +
+            '<div class="pg-text">' + escapeHtml(title) + '</div>' +
+            '<div class="pg-meta">' +
+              '<span class="pg-meta-item">💬 ' + commentCount + '</span>' +
+              '<span class="pg-meta-item">♡ ' + (it.likeCount || 0) + '</span>' +
+              '<span class="pg-meta-item">' + escapeHtml(relativeTime(it.createdAt)) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+    var el = document.getElementById(containerId);
+    el.innerHTML = html;
+    // annverify.ai has no working per-thread deep link (its router falls back to the generic
+    // list when landed on '#discuss-detail' directly without in-app nav state) — so this can
+    // only open the general Discussions list, not the specific thread clicked.
+    el.querySelectorAll("[data-discuss-id]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        window.open("https://annverify.ai/#discuss", "_blank", "noopener");
+      });
+    });
   } catch (e) {
     console.warn("[discussions] load failed:", e.message);
-    if (!more) _pgError(containerId, loadDiscussions);
-    else if (moreBtn) { moreBtn.textContent = (typeof t === "function" ? t("common.more") : "Show more"); moreBtn.disabled = false; }
+    _pgError(containerId, loadDiscussions);
   }
 }
 
@@ -215,50 +197,17 @@ async function loadDiscussions(more) {
 // 대비 상대 빈도를 단일색(#005235) 바로 표시 — 없는 verdict 데이터를 지어내지 않기 위함.
 async function loadDesktopTrends() {
   var containerId = "trends-list";
-  _pgSkeleton(containerId, 5);
+  _pgSkeleton(containerId, 3);
   try {
-    // 사용자 요청(2026-08-04): 기존 "claimPreview 단어 빈도"(예: "5월", 노이즈)를 실제 트렌딩
-    // 토픽으로 대체 — worker global.js의 Google 트렌드 파이프라인(/api/v4/partner/global) 재사용.
-    // country 미지정 → 워커가 CF-IPCountry로 방문자 국가 자동감지.
-    var res = await fetch(API_URL + "/api/v4/partner/global?type=ranking");
+    var res = await fetch(API_URL + "/api/v4/trends/claims");
     var data = await res.json();
     if (!res.ok) throw new Error("HTTP " + res.status);
-    var items = (data.ranking && Array.isArray(data.ranking.items)) ? data.ranking.items : [];
-    _renderDesktopTrends(containerId, items);
+    var keywords = Array.isArray(data.keywords) ? data.keywords : [];
+    _renderTrendsList(containerId, keywords, true);
   } catch (e) {
     console.warn("[trends] load failed:", e.message);
     _pgError(containerId, loadDesktopTrends);
   }
-}
-
-function _trendTopicCardHtml(it, i) {
-  var topic = (it.topTitle || it.keyword || "").toString().slice(0, 130);
-  var bits = [];
-  if (it.traffic) bits.push(escapeHtml(it.traffic) + " searches");
-  if (it.category) bits.push(escapeHtml(String(it.category)));
-  if (it.topDomain) bits.push(escapeHtml(it.topDomain));
-  return (
-    '<div class="trend-card" data-url="' + escapeHtml(it.topUrl || "") + '" style="cursor:pointer">' +
-      '<span class="trend-rank">' + String(i + 1).padStart(2, "0") + '</span>' +
-      '<div class="trend-body">' +
-        '<div class="trend-word">' + escapeHtml(topic) + '</div>' +
-        (bits.length ? '<div class="trend-count">' + bits.join(" · ") + '</div>' : '') +
-      '</div>' +
-    '</div>'
-  );
-}
-
-function _renderDesktopTrends(containerId, items) {
-  var el = document.getElementById(containerId);
-  if (!el) return;
-  if (!items.length) { _pgEmpty(containerId, "No trending topics right now."); return; }
-  el.innerHTML = items.slice(0, 15).map(_trendTopicCardHtml).join("");
-  el.querySelectorAll(".trend-card[data-url]").forEach(function (card) {
-    card.addEventListener("click", function () {
-      var u = card.getAttribute("data-url");
-      if (u) window.open(u, "_blank", "noopener");
-    });
-  });
 }
 
 function _trendCardHtml(kw, i, maxCount) {
@@ -279,7 +228,7 @@ function _trendCardHtml(kw, i, maxCount) {
 function _renderTrendsList(containerId, keywords, isDesktop, limit) {
   var el = document.getElementById(containerId);
   if (!el) return;
-  if (!keywords.length) { _pgEmpty(containerId, "트렌드 데이터가 없습니다."); return; }
+  if (!keywords.length) { _pgEmpty(containerId, t("msg.noTrends")); return; }
   var items = limit ? keywords.slice(0, limit) : keywords;
   var maxCount = keywords.reduce(function (m, k) { return Math.max(m, k.count || 0); }, 0);
   el.innerHTML = items.map(function (kw, i) { return _trendCardHtml(kw, i, maxCount); }).join("");
@@ -414,8 +363,8 @@ function _renderDesktopNewsAi(articles) {
             (a.trust_grade ? '<span class="news-grade">' + escapeHtml(a.trust_grade) + '</span>' : "") +
           '</div>' +
           '<div class="news-actions">' +
-            '<button class="news-discuss-btn">토론</button>' +
-            '<button class="news-factcheck-btn" data-title="' + escapeHtml(a.title || "") + '">새 팩트체크</button>' +
+            '<button class="news-discuss-btn">' + t("card.discuss") + '</button>' +
+            '<button class="news-factcheck-btn" data-title="' + escapeHtml(a.title || "") + '">' + t("card.newFactcheck") + '</button>' +
           '</div>' +
         '</div>' +
       '</div>'
@@ -481,13 +430,13 @@ async function _loadDesktopNewsWorld() {
 
 // World News/로컬 뉴스/World Feed 전부 같은 /api/v4/partner/global 응답 모양이라 렌더러 공유.
 // emptyMessage 미지정 시 기존 동작(News Feed 탭들) 그대로 유지 — World Feed(app/pages.js
-// loadWorldFeed)는 "해당 국가의 뉴스가 없습니다." 전용 문구를 넘김.
+// loadWorldFeed)는 t("msg.noCountryNews") 전용 문구를 넘김.
 // it._countryLabel이 있으면(World Feed "전체" 필터 — 여러 국가를 합쳐 보여줄 때만 설정)
 // 출처 앞에 국가명을 붙여 어느 나라 뉴스인지 표시 — 카드 컴포넌트 자체는 그대로 재사용.
 function _renderDesktopNewsWorldLike(containerId, items, emptyMessage) {
   var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
   if (!filtered.length) {
-    _pgEmpty(containerId, emptyMessage || (containerId === "news-local-list" ? "로컬 뉴스 준비 중입니다." : "No news available"));
+    _pgEmpty(containerId, emptyMessage || (containerId === "news-local-list" ? t("msg.localNewsSoon") : t("msg.noNews")));
     return;
   }
   var html = filtered.map(function (it) {
@@ -502,8 +451,8 @@ function _renderDesktopNewsWorldLike(containerId, items, emptyMessage) {
           (it.topSnippet ? '<div class="news-summary">' + escapeHtml(it.topSnippet.toString().slice(0, 160)) + '</div>' : "") +
           (sourceText ? '<div class="news-source-row"><span class="news-source">' + escapeHtml(sourceText) + '</span></div>' : "") +
           '<div class="news-actions">' +
-            '<button class="news-discuss-btn">토론</button>' +
-            '<button class="news-factcheck-btn" data-url="' + escapeHtml(it.topUrl) + '">새 팩트체크</button>' +
+            '<button class="news-discuss-btn">' + t("card.discuss") + '</button>' +
+            '<button class="news-factcheck-btn" data-url="' + escapeHtml(it.topUrl) + '">' + t("card.newFactcheck") + '</button>' +
           '</div>' +
         '</div>' +
       '</div>'
@@ -566,7 +515,7 @@ async function loadWorldFeed(countryId) {
     p.classList.toggle("on", p.getAttribute("data-country") === countryId);
   });
   var containerId = "world-feed-list";
-  if (_worldFeedCache[countryId]) { _renderDesktopNewsWorldLike(containerId, _worldFeedCache[countryId], "해당 국가의 뉴스가 없습니다."); return; }
+  if (_worldFeedCache[countryId]) { _renderDesktopNewsWorldLike(containerId, _worldFeedCache[countryId], t("msg.noCountryNews")); return; }
   _pgSkeleton(containerId, 3);
 
   try {
@@ -579,7 +528,7 @@ async function loadWorldFeed(countryId) {
       items = await _fetchWorldFeedCountry(countryId, null);
     }
     _worldFeedCache[countryId] = items;
-    _renderDesktopNewsWorldLike(containerId, items, "해당 국가의 뉴스가 없습니다.");
+    _renderDesktopNewsWorldLike(containerId, items, t("msg.noCountryNews"));
   } catch (e) {
     console.warn("[world feed] load failed:", e.message);
     _pgError(containerId, function () { loadWorldFeed(countryId); });
@@ -590,9 +539,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".ni[data-page]").forEach(function (n) {
     n.addEventListener("click", function () { showAppPage(n.getAttribute("data-page")); });
   });
-  // 사이드바 로고 클릭 → 홈(Dashboard). (사용자 요청 2026-08-04)
-  var sbLogoHome = document.getElementById("sb-logo-home");
-  if (sbLogoHome) sbLogoHome.addEventListener("click", function () { showAppPage("dashboard"); });
   document.querySelectorAll(".lb-tab[data-period]").forEach(function (tab) {
     tab.addEventListener("click", function () { loadLeaderboard(tab.getAttribute("data-period")); });
   });
@@ -626,15 +572,15 @@ function HOME_SECTIONS_HTML() {
   return (
     '<div id="home-sections">' +
       '<div class="home-sec">' +
-        '<div class="home-sec-header"><span class="home-sec-title">🔴 Live Verifications</span><span class="home-sec-more" data-page="livefeed">더보기 &gt;</span></div>' +
+        '<div class="home-sec-header"><span class="home-sec-title">' + t("dhome.liveTitle") + '</span><span class="home-sec-more" data-page="livefeed">' + t("dhome.more") + '</span></div>' +
         '<div class="home-sec-list" id="home-live-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
       '</div>' +
       '<div class="home-sec">' +
-        '<div class="home-sec-header"><span class="home-sec-title">💬 Hot Discussions</span><span class="home-sec-more" data-page="discussions">더보기 &gt;</span></div>' +
+        '<div class="home-sec-header"><span class="home-sec-title">' + t("dhome.discussTitle") + '</span><span class="home-sec-more" data-page="discussions">' + t("dhome.more") + '</span></div>' +
         '<div class="home-sec-list" id="home-discuss-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
       '</div>' +
       '<div class="home-sec">' +
-        '<div class="home-sec-header"><span class="home-sec-title">🏆 Top Verifiers</span><span class="home-sec-more" data-page="leaderboard">더보기 &gt;</span></div>' +
+        '<div class="home-sec-header"><span class="home-sec-title">' + t("dhome.lbTitle") + '</span><span class="home-sec-more" data-page="leaderboard">' + t("dhome.more") + '</span></div>' +
         '<div class="home-sec-list" id="home-lb-list"><div class="pg-skeleton" style="height:40px"></div></div>' +
       '</div>' +
     '</div>'
@@ -735,15 +681,4 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!e.matches) loadHomeSections();
     });
   }
-});
-
-// 새로고침 시 현재 페이지 유지(데스크톱) — window._annRoute0(i18n.js 최초 캡처)로 복원.
-// 메인 init 리스너 뒤에 등록되어 그 후 실행됨. (사용자 요청 2026-08-04: ⟳ 눌러도 그 페이지 안에서.)
-document.addEventListener("DOMContentLoaded", function () {
-  try {
-    if (window.innerWidth < 768) return;
-    var r = (window._annRoute0 || "").trim();
-    if (r === "home") r = "dashboard";
-    if (["dashboard", "livefeed", "trends", "news", "worldfeed", "discussions", "leaderboard"].indexOf(r) >= 0) showAppPage(r);
-  } catch (e) {}
 });

@@ -1,7 +1,10 @@
 {
   "home": {
     "q": "What do you want to verify?",
-    "hint": "Tap any claim to verify it"
+    "hint": "Tap any claim to verify it",
+    "chipNews": "Paste a news link",
+    "chipSns": "A claim from social media",
+    "chipStat": "Check a statistic"
   },
   "nav": {
     "home": "Home",
@@ -12,7 +15,6 @@
   },
   "menu": {
     "profile": "Profile",
-    "records": "Verification Records",
     "settings": "Settings",
     "help": "Help",
     "about": "About & API",
@@ -23,9 +25,6 @@
   },
   "input": {
     "placeholder": "Paste claim or source URL for verification..."
-  },
-  "mode": {
-    "explain": "Standard = quick check · Deep = more sources, slower"
   },
   "signout": {
     "title": "Sign Out",
@@ -47,10 +46,89 @@
     "signinPrompt": "Sign in to see your account.",
     "signout": "Sign Out"
   },
+  "dsb": {
+    "newVerif": "New Verification",
+    "mainTerminal": "Main Terminal",
+    "myHistory": "My History",
+    "noHist": "No verifications yet"
+  },
+  "dnav": {
+    "dashboard": "Dashboard",
+    "livefeed": "Live Feed",
+    "trends": "Trends",
+    "newsfeed": "News Feed",
+    "worldfeed": "World Feed",
+    "discussions": "Discussions",
+    "leaderboard": "Leaderboard"
+  },
+  "nb": {
+    "live": "Live",
+    "hot": "Hot"
+  },
+  "dtop": {
+    "title": "Intelligence Dashboard",
+    "subtitle": "Quick verification · ANN 7-Layer Engine",
+    "live": "Live"
+  },
+  "dhome": {
+    "emptyPrompt": "Ask me anything or share a news claim to fact-check...",
+    "liveTitle": "🔴 Live Verifications",
+    "discussTitle": "💬 Hot Discussions",
+    "lbTitle": "🏆 Top Verifiers",
+    "more": "More >",
+    "tierHint": "Standard · fast check",
+    "tierStd": "Standard",
+    "tierDeep": "Deep",
+    "dossierEmpty": "Your verification dossier will appear here."
+  },
   "news": {
     "ai": "AI News",
     "local": "Local News",
     "world": "World News"
+  },
+  "country": {
+    "all": "All",
+    "us": "US",
+    "gb": "UK",
+    "jp": "Japan",
+    "in": "India",
+    "fr": "France",
+    "de": "Germany"
+  },
+  "dlb": {
+    "alltime": "All-Time",
+    "weekly": "Weekly"
+  },
+  "card": {
+    "discuss": "Discuss",
+    "newFactcheck": "New Fact-Check"
+  },
+  "msg": {
+    "noTrends": "No trend data.",
+    "localNewsSoon": "Local news coming soon.",
+    "noCountryNews": "No news for this region.",
+    "noNews": "No news available",
+    "failLoad": "Failed to load.",
+    "retry": "Retry"
+  },
+  "dpg": {
+    "dashboardT": "Intelligence Dashboard",
+    "dashboardS": "Quick verification · ANN 7-Layer Engine",
+    "livefeedT": "Live Feed",
+    "livefeedS": "Recent public verification activity",
+    "trendsT": "Trending Topics",
+    "trendsS": "Most verified claims in the last 7 days",
+    "newsT": "News Feed",
+    "newsS": "AI News · World News",
+    "worldfeedT": "World Feed",
+    "worldfeedS": "Global news by region",
+    "discussionsT": "Discussions",
+    "discussionsS": "Top discussion threads",
+    "leaderboardT": "Leaderboard",
+    "leaderboardS": "Top verifiers by ANN Points"
+  },
+  "mode": {
+    "explain": "Standard = quick check · Deep = more sources, slower"
   },
   "cat": {
     "all": "All",
@@ -61,39 +139,35 @@
     "science": "Science",
     "health": "Health"
   },
-  "card": {
-    "discuss": "Discuss",
-    "newFactcheck": "New fact-check"
-  },
   "profile": {
-    "totalVerify": "Total verifications",
-    "truthRate": "Truth rate",
-    "avgTrust": "Avg. trust score",
-    "recent": "Recent verifications",
+    "totalVerify": "Total Verifications",
+    "truthRate": "Truth Rate",
+    "avgTrust": "Avg. Trust Score",
+    "recent": "Recent Verifications",
     "noRecent": "No recent verifications.",
-    "pointsHistory": "ANN Points history",
-    "balance": "Current balance",
-    "balanceNote": "A detailed breakdown isn't available for earlier points. New activity will appear here.",
+    "pointsHistory": "ANN Points History",
+    "balance": "Current Balance",
+    "balanceNote": "Detailed history of older points isn't available. New activity will appear here.",
     "noActivity": "No activity yet"
   },
   "verdict": {
     "confidence": "Confidence {pct}%",
     "viewReport": "View full report",
     "summary": {
-      "verified": "This checks out — well supported by the evidence.",
-      "likely": "This largely holds up, though parts remain uncertain.",
-      "partial": "This is only partly true.",
+      "verified": "This is well supported by evidence.",
+      "likely": "This mostly holds up, though some parts are uncertain.",
+      "partial": "This is only partially true.",
       "unverified": "There isn't enough linked evidence to judge this yet.",
-      "outdated": "This was true once, but it's now outdated.",
-      "opinion": "This is an opinion, not a checkable fact.",
+      "outdated": "This was once true, but it's now out of date.",
+      "opinion": "This is an opinion, not a verifiable fact.",
       "misleading": "This is misleading — technically twisted.",
-      "false": "This is contradicted by the evidence.",
-      "unavailable": "The verification couldn't be completed this time."
+      "false": "This runs contrary to the evidence.",
+      "unavailable": "Verification couldn't be completed this time."
     }
   },
   "live": {
-    "optinTitle": "Share to public feed?",
-    "optinBody": "Post your verification results to the public live feed so others can see them. You can change this later.",
+    "optinTitle": "Share to the public feed?",
+    "optinBody": "Post your verification result to the public live feed so others can see it. You can change this later.",
     "optinNo": "Not now",
     "optinYes": "Share"
   },
@@ -109,9 +183,10 @@
     "post": "Post",
     "titlePlaceholder": "Discussion title",
     "bodyPlaceholder": "Write your post (20–1000 characters)",
-    "linkResult": "Link a verification result",
+    "linkResult": "Attach a verification result",
     "anonymous": "Post anonymously",
-    "commentPlaceholder": "Write a comment..."
+    "commentPlaceholder": "Write a comment...",
+    "detailTitle": "Discussion"
   },
   "login": {
     "required": "Sign in required"
@@ -123,18 +198,25 @@
     "viewAll": "View all records",
     "empty": "No verification records on this device yet.",
     "note": "Stored on this device only, not synced across devices. Each report carries a SHA-256 integrity hash.",
-    "clearConfirm": "Delete all records on this device? This cannot be undone."
+    "clearConfirm": "Delete all records on this device? This can't be undone."
   },
   "help": {
     "q1t": "What is ANN Verify?",
-    "q1b": "An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.",
-    "q2t": "The 7-Layer Engine",
-    "q2b": "Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.",
-    "q3t": "Reading the verdict",
-    "q3b": "<b>Verified</b> — well supported by evidence. <b>Likely True</b> — largely supported but partly uncertain. <b>Partially True</b> — only partly true. <b>Unverified</b> — not enough linked evidence to rule. <b>False</b> — contradicted by evidence.",
-    "q4t": "Accuracy & limits",
+    "q1b": "An AI fact-checking service: enter a claim or news URL and it assesses whether it holds up by cross-checking multiple sources.",
+    "q2t": "The 7-layer engine",
+    "q2b": "Your input passes through several stages — analysis, evidence gathering, cross-verification, counter-checking, verdict, and freshness — leaving a step-by-step trail instead of an opaque answer.",
+    "q3t": "Understanding the verdict",
+    "q3b": "<b>Verified</b> — well supported by evidence. <b>Likely True</b> — mostly supported but partly uncertain. <b>Partially True</b> — only partly true. <b>Unverified</b> — not enough linked evidence to judge. <b>False</b> — refuted by evidence.",
+    "q4t": "Accuracy and limits",
     "q4b": "This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.",
     "q5t": "Contact",
     "q5b": "For questions and feedback, reach us via annverify.ai."
+  },
+  "m": {
+    "community": "COMMUNITY",
+    "myPerf": "My Performance",
+    "rank": "RANK",
+    "ap": "AP",
+    "lbDesc": "Top verifiers ranked by ANN Points earned through accurate verification activity."
   }
 }

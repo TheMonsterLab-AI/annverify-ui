@@ -1,7 +1,10 @@
 {
   "home": {
     "q": "무엇을 검증할까요?",
-    "hint": "이런 주장을 눌러 검증해 보세요"
+    "hint": "이런 주장을 눌러 검증해 보세요",
+    "chipNews": "뉴스 링크 붙여넣기",
+    "chipSns": "SNS에서 본 주장",
+    "chipStat": "통계·수치 확인"
   },
   "nav": {
     "home": "홈",
@@ -12,7 +15,6 @@
   },
   "menu": {
     "profile": "프로필",
-    "records": "검증 기록",
     "settings": "설정",
     "help": "도움말",
     "about": "소개 & API",
@@ -23,9 +25,6 @@
   },
   "input": {
     "placeholder": "주장이나 출처 URL을 붙여넣어 검증하세요..."
-  },
-  "mode": {
-    "explain": "Standard = 빠른 검사 · Deep = 더 많은 출처, 느림"
   },
   "signout": {
     "title": "로그아웃",
@@ -47,10 +46,89 @@
     "signinPrompt": "로그인하면 계정 정보가 표시됩니다.",
     "signout": "로그아웃"
   },
+  "dsb": {
+    "newVerif": "새 검증",
+    "mainTerminal": "메인 터미널",
+    "myHistory": "내 기록",
+    "noHist": "아직 검증 없음"
+  },
+  "dnav": {
+    "dashboard": "대시보드",
+    "livefeed": "라이브 피드",
+    "trends": "트렌드",
+    "newsfeed": "뉴스 피드",
+    "worldfeed": "월드 피드",
+    "discussions": "토론",
+    "leaderboard": "리더보드"
+  },
+  "nb": {
+    "live": "실시간",
+    "hot": "인기"
+  },
+  "dtop": {
+    "title": "인텔리전스 대시보드",
+    "subtitle": "빠른 검증 · ANN 7-레이어 엔진",
+    "live": "실시간"
+  },
+  "dhome": {
+    "emptyPrompt": "무엇이든 물어보거나 팩트체크할 뉴스 주장을 입력하세요...",
+    "liveTitle": "🔴 실시간 검증",
+    "discussTitle": "💬 인기 토론",
+    "lbTitle": "🏆 상위 검증자",
+    "more": "더보기 >",
+    "tierHint": "표준 · 빠른 검사",
+    "tierStd": "표준",
+    "tierDeep": "딥",
+    "dossierEmpty": "검증 리포트가 여기에 표시됩니다."
+  },
   "news": {
     "ai": "AI 뉴스",
     "local": "로컬 뉴스",
-    "world": "세계 뉴스"
+    "world": "월드 뉴스"
+  },
+  "country": {
+    "all": "전체",
+    "us": "미국",
+    "gb": "영국",
+    "jp": "일본",
+    "in": "인도",
+    "fr": "프랑스",
+    "de": "독일"
+  },
+  "dlb": {
+    "alltime": "전체 기간",
+    "weekly": "주간"
+  },
+  "card": {
+    "discuss": "토론",
+    "newFactcheck": "새 팩트체크"
+  },
+  "msg": {
+    "noTrends": "트렌드 데이터가 없습니다.",
+    "localNewsSoon": "로컬 뉴스 준비 중입니다.",
+    "noCountryNews": "해당 국가의 뉴스가 없습니다.",
+    "noNews": "뉴스가 없습니다",
+    "failLoad": "불러오지 못했습니다.",
+    "retry": "다시 시도"
+  },
+  "dpg": {
+    "dashboardT": "인텔리전스 대시보드",
+    "dashboardS": "빠른 검증 · ANN 7-레이어 엔진",
+    "livefeedT": "라이브 피드",
+    "livefeedS": "최근 공개 검증 활동",
+    "trendsT": "트렌딩 토픽",
+    "trendsS": "최근 7일 최다 검증 주장",
+    "newsT": "뉴스 피드",
+    "newsS": "AI 뉴스 · 월드 뉴스",
+    "worldfeedT": "월드 피드",
+    "worldfeedS": "지역별 글로벌 뉴스",
+    "discussionsT": "토론",
+    "discussionsS": "인기 토론 스레드",
+    "leaderboardT": "리더보드",
+    "leaderboardS": "ANN 포인트 상위 검증자"
+  },
+  "mode": {
+    "explain": "표준 = 빠른 검증 · 딥 = 더 많은 출처, 느림"
   },
   "cat": {
     "all": "전체",
@@ -61,80 +139,84 @@
     "science": "과학",
     "health": "건강"
   },
-  "card": {
-    "discuss": "토론",
-    "newFactcheck": "새 팩트체크"
-  },
   "profile": {
-    "totalVerify": "총 검증 수",
-    "truthRate": "진실 판정 비율",
-    "avgTrust": "평균 신뢰점수",
-    "recent": "최근 검증 기록",
-    "noRecent": "최근 검증 기록이 없습니다.",
-    "pointsHistory": "ANN Points 기록",
+    "totalVerify": "총 검증",
+    "truthRate": "사실 비율",
+    "avgTrust": "평균 신뢰 점수",
+    "recent": "최근 검증",
+    "noRecent": "최근 검증이 없습니다.",
+    "pointsHistory": "ANN 포인트 이력",
     "balance": "현재 잔액",
-    "balanceNote": "이전 포인트의 상세 내역은 제공되지 않습니다. 새 활동부터 여기에 표시됩니다.",
-    "noActivity": "활동 없음"
+    "balanceNote": "이전 포인트의 상세 내역은 제공되지 않습니다. 새 활동이 여기에 표시됩니다.",
+    "noActivity": "아직 활동 없음"
   },
   "verdict": {
     "confidence": "신뢰도 {pct}%",
     "viewReport": "전체 리포트 보기",
     "summary": {
-      "verified": "근거로 잘 뒷받침됩니다.",
-      "likely": "대체로 성립하나 일부는 불확실합니다.",
+      "verified": "이것은 증거로 잘 뒷받침됩니다.",
+      "likely": "대체로 성립하지만 일부는 불확실합니다.",
       "partial": "부분적으로만 사실입니다.",
-      "unverified": "판단할 만큼 연결된 근거가 아직 부족합니다.",
-      "outdated": "한때 사실이었으나 지금은 시효가 지났습니다.",
-      "opinion": "검증 대상 사실이 아니라 의견입니다.",
-      "misleading": "기술적으로 왜곡된 오해의 소지가 있습니다.",
-      "false": "근거와 배치됩니다.",
+      "unverified": "아직 판단할 만한 연결된 증거가 충분하지 않습니다.",
+      "outdated": "한때는 사실이었으나 지금은 오래된 정보입니다.",
+      "opinion": "이것은 검증 가능한 사실이 아니라 의견입니다.",
+      "misleading": "오해를 유발합니다 — 교묘하게 왜곡되었습니다.",
+      "false": "이것은 증거에 반합니다.",
       "unavailable": "이번에는 검증을 완료하지 못했습니다."
     }
   },
   "live": {
-    "optinTitle": "공개 피드에 게시할까요?",
-    "optinBody": "검증 결과를 공개 라이브 피드에 올려 다른 사람도 볼 수 있게 합니다. 나중에 변경할 수 있습니다.",
+    "optinTitle": "공개 피드에 공유할까요?",
+    "optinBody": "검증 결과를 공개 라이브 피드에 게시해 다른 사람도 볼 수 있게 합니다. 나중에 변경할 수 있습니다.",
     "optinNo": "나중에",
-    "optinYes": "게시"
+    "optinYes": "공유"
   },
   "vote": {
     "yes": "동의",
-    "partial": "부분동의",
+    "partial": "부분 동의",
     "no": "반대",
-    "notsure": "모르겠음"
+    "notsure": "잘 모름"
   },
   "discuss": {
-    "noComments": "댓글이 없습니다. 첫 댓글을 남겨보세요.",
+    "noComments": "아직 댓글이 없습니다. 첫 댓글을 남겨보세요.",
     "new": "새 토론",
     "post": "게시",
-    "titlePlaceholder": "토론 제목을 입력하세요",
-    "bodyPlaceholder": "내용을 입력하세요 (20자 이상, 1000자 이하)",
-    "linkResult": "검증 결과 연결하기",
+    "titlePlaceholder": "토론 제목",
+    "bodyPlaceholder": "게시글을 작성하세요 (20–1000자)",
+    "linkResult": "검증 결과 연결",
     "anonymous": "익명으로 게시",
-    "commentPlaceholder": "댓글을 입력하세요..."
+    "commentPlaceholder": "댓글을 입력하세요...",
+    "detailTitle": "토론"
   },
   "login": {
     "required": "로그인이 필요합니다"
   },
   "records": {
     "title": "검증 기록",
-    "distribution": "판정 분포",
+    "distribution": "등급 분포",
     "all": "전체 기록",
-    "viewAll": "전체 검증 기록 보기",
-    "empty": "이 기기에 검증 기록이 아직 없습니다.",
-    "note": "이 기기에만 저장되며 기기 간 동기화되지 않습니다. 각 리포트에 SHA-256 무결성 해시가 포함됩니다.",
-    "clearConfirm": "이 기기의 모든 검증 기록을 삭제할까요? 되돌릴 수 없습니다."
+    "viewAll": "전체 기록 보기",
+    "empty": "이 기기에 아직 검증 기록이 없습니다.",
+    "note": "이 기기에만 저장되며 기기 간 동기화되지 않습니다. 각 리포트에는 SHA-256 무결성 해시가 포함됩니다.",
+    "clearConfirm": "이 기기의 모든 기록을 삭제할까요? 되돌릴 수 없습니다."
   },
   "help": {
     "q1t": "ANN Verify란?",
-    "q1b": "주장이나 뉴스 URL을 입력하면 여러 출처를 교차검증해 사실 여부를 판정하는 AI 팩트체크 서비스입니다.",
-    "q2t": "7-Layer Engine이 뭔가요?",
-    "q2b": "입력 분석 → 증거 수집(웹·팩트체크 DB) → 교차검증 → 반론 검토 → 판정 → 시의성(신선도) 점검까지 여러 단계를 거쳐 결론을 냅니다. 단일 답변이 아니라 단계별 근거를 남깁니다.",
-    "q3t": "판정 라벨 읽는 법",
-    "q3b": "<b>Verified</b> — 근거가 충분히 뒷받침. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 연결된 증거가 부족해 판정 보류. <b>False</b> — 근거가 반박.",
+    "q1b": "AI 팩트체크 서비스입니다: 주장이나 뉴스 URL을 입력하면 여러 출처를 교차 확인해 성립 여부를 평가합니다.",
+    "q2t": "7-레이어 엔진",
+    "q2b": "입력은 여러 단계를 거칩니다 — 분석, 증거 수집, 교차 검증, 반대 검증, 판정, 최신성 — 불투명한 답 대신 단계별 추적을 남깁니다.",
+    "q3t": "판정 이해하기",
+    "q3b": "<b>Verified</b> — 증거로 잘 뒷받침됨. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 판단할 연결 증거 부족. <b>False</b> — 증거로 반박됨.",
     "q4t": "정확도와 한계",
-    "q4b": "AI 기반 분석이라 오류가 있을 수 있습니다. 리포트의 출처와 근거를 함께 확인하시고, 최종 판단은 사용자에게 있습니다.",
+    "q4b": "AI가 생성한 분석이므로 틀릴 수 있습니다. 각 리포트의 출처와 근거를 검토하세요; 최종 판단은 사용자의 몫입니다.",
     "q5t": "문의",
-    "q5b": "서비스 관련 문의와 피드백은 annverify.ai를 통해 보내주세요."
+    "q5b": "질문과 피드백은 annverify.ai를 통해 문의해 주세요."
+  },
+  "m": {
+    "community": "커뮤니티",
+    "myPerf": "내 성과",
+    "rank": "순위",
+    "ap": "AP",
+    "lbDesc": "정확한 검증 활동으로 얻은 ANN 포인트 기준 상위 검증자."
   }
 }
