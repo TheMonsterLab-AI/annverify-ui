@@ -60,7 +60,7 @@ async function submitChatMessage(text) {
     if (typingEl) typingEl.remove();
     var isNetworkErr = err instanceof TypeError;
     var msg = mapErrorToMessage(null, null, isNetworkErr);
-    appendAiBubble(msg.ko + " / " + msg.en, false, null);
+    appendAiBubble(msg, false, null);
   } finally {
     submitBtn.disabled = false;
   }
@@ -87,9 +87,9 @@ async function triggerVerifyFromSuggestion(claimText) {
   } catch (err) {
     var msg = mapErrorToMessage(err.v1Res || null, err.v1Data || null, err.v1NetworkErr !== undefined ? err.v1NetworkErr : true);
     console.warn("[verify] failed:", err.message);
-    appendMessageToSession({ role: "verify-error", claim: claimText, errKo: msg.ko, errEn: msg.en, ts: Date.now() });
-    replacePendingWithCard(id, { claim: claimText, errorKo: msg.ko, errorEn: msg.en }, true);
-    showErrorInRightPanel(claimText, msg.ko, msg.en);
+    appendMessageToSession({ role: "verify-error", claim: claimText, errKo: msg, errEn: "", ts: Date.now() });
+    replacePendingWithCard(id, { claim: claimText, errorKo: msg, errorEn: "" }, true);
+    showErrorInRightPanel(claimText, msg, "");
     return;
   }
 

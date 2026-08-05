@@ -229,5 +229,15 @@
   "report": {
     "verifyThis": "Verify this",
     "disclaimer": "This report is an AI-generated analysis. Final judgment is the user's responsibility."
+  },
+  "err": {
+    "connFail": "Connection failed. Please check your internet connection.",
+    "tooMany": "Too many requests. Please try again later.",
+    "serverErr": "A server error occurred. Please try again later.",
+    "tooShort": "Input is too short. Please enter at least 15 characters.",
+    "ipAddr": "IP addresses cannot be verified.",
+    "numeric": "Numbers-only input cannot be verified.",
+    "invalidInput": "This input can't be verified. Please enter a specific claim or a news URL.",
+    "verifyFail": "Verification failed. Please try again later."
   }
 }

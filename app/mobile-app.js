@@ -756,7 +756,7 @@ async function mobileTriggerVerify(claimText, opts) {
     result = await runVerification(claimText);
   } catch (err) {
     var msg = mapErrorToMessage(err.v1Res || null, err.v1Data || null, err.v1NetworkErr !== undefined ? err.v1NetworkErr : true);
-    mobileReplaceLoadingWithResult(id, { errorKo: msg.ko, errorEn: msg.en }, true);
+    mobileReplaceLoadingWithResult(id, { errorKo: msg, errorEn: "" }, true);
     return;
   }
 

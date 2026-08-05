@@ -92,32 +92,29 @@ function toneColor(tone) {
 // SINGLE_WORD, MAC_ADDRESS, PHONE_NUMBER) — not the lowercase values in the original spec.
 function mapErrorToMessage(res, data, isNetworkError) {
   if (isNetworkError) {
-    return { ko: "연결에 실패했습니다. 인터넷 연결을 확인해주세요.", en: "Connection failed. Please check your internet connection." };
+    return t("err.connFail");
   }
   if (res && res.status === 429) {
-    return { ko: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", en: "Too many requests. Please try again later." };
+    return t("err.tooMany");
   }
   if (res && res.status >= 500) {
-    return { ko: "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", en: "A server error occurred. Please try again later." };
+    return t("err.serverErr");
   }
   if (data && data.error === "INVALID_INPUT") {
     var pattern = (data.pattern || "").toString().toUpperCase();
     if (pattern === "TOO_SHORT") {
-      return { ko: "입력이 너무 짧습니다. 15자 이상 입력해주세요.", en: "Input is too short. Please enter at least 15 characters." };
+      return t("err.tooShort");
     }
     if (pattern === "IP_IN_TEXT" || pattern === "IP_ADDRESS") {
-      return { ko: "IP 주소는 검증할 수 없습니다.", en: "IP addresses cannot be verified." };
+      return t("err.ipAddr");
     }
     if (pattern === "PURE_NUMERIC") {
-      return { ko: "숫자만 입력된 경우 검증할 수 없습니다.", en: "Numbers-only input cannot be verified." };
+      return t("err.numeric");
     }
     // generic fallback — covers SINGLE_WORD, MAC_ADDRESS, PHONE_NUMBER, and anything else
-    return {
-      ko: "검증할 수 없는 입력입니다. 구체적인 주장이나 뉴스 URL을 입력해주세요.\n예: '정부가 세금을 인상했다' 또는 기사 URL",
-      en: "This input can't be verified. Please enter a specific claim or a news URL.",
-    };
+    return t("err.invalidInput");
   }
-  return { ko: "검증에 실패했습니다. 잠시 후 다시 시도해주세요.", en: "Verification failed. Please try again later." };
+  return t("err.verifyFail");
 }
 
 // ── Left panel: chat log ────────────────────────────────────────────────
