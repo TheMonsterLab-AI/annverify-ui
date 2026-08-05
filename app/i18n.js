@@ -69,6 +69,18 @@ function _applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll("[data-i18n-ph]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-ph")); });
   document.documentElement.lang = _i18nLang;
+  // 언어 선택기(index.html 정적 [data-lang-select]) 채우기·바인딩·동기화 — setLang 연결.
+  var _langOpts = Object.keys(I18N_LANGS).map(function (l) {
+    return '<option value="' + l + '">' + I18N_LANGS[l].flag + " " + I18N_LANGS[l].label + "</option>";
+  }).join("");
+  document.querySelectorAll("[data-lang-select]").forEach(function (sel) {
+    if (!sel.getAttribute("data-lang-bound")) {
+      sel.innerHTML = _langOpts;
+      sel.addEventListener("change", function () { setLang(sel.value); });
+      sel.setAttribute("data-lang-bound", "1");
+    }
+    sel.value = _i18nLang;
+  });
   // JS 렌더 영역 재렌더 훅 — mobile-app.js가 정의(설정/프로필 등 열려있으면 다시 그림)
   if (typeof onI18nApplied === "function") { try { onI18nApplied(); } catch (e) {} }
 }

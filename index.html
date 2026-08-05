@@ -146,6 +146,9 @@ tailwind.config = {
     <div id="history-list" class="history-list">
       <div class="hdt hist-empty" data-i18n="dsb.noHist">No verifications yet</div>
     </div>
+    <div style="padding:10px 12px 4px">
+      <select data-lang-select aria-label="Language" style="width:100%;background:transparent;color:inherit;border:1px solid rgba(255,255,255,.16);border-radius:6px;padding:6px 8px;font-size:12px;cursor:pointer"></select>
+    </div>
     <div class="sbot" id="sidebar-user-area">
       <!-- populated by auth.js: signed-out shows Sign-in button, signed-in shows avatar row -->
     </div>
@@ -556,6 +559,10 @@ tailwind.config = {
       <button class="mmenu-item flex items-center gap-3 px-md py-3 text-on-surface hover:bg-surface-container-low transition-colors text-left" id="mmenu-help">
         <span class="material-symbols-outlined">help</span><span class="font-body-md text-body-md" data-i18n="menu.help">Help</span>
       </button>
+      <div class="px-md py-3">
+        <label class="font-label-caps text-label-caps text-on-surface-variant" data-i18n="settings.language">Language</label>
+        <select data-lang-select aria-label="Language" class="mt-1 w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-md text-on-surface"></select>
+      </div>
       <div class="h-px bg-outline-variant my-2"></div>
       <button class="mmenu-item hidden flex items-center gap-3 px-md py-3 text-error hover:bg-error-container/30 transition-colors text-left" id="mmenu-signout">
         <span class="material-symbols-outlined">logout</span><span class="font-body-md text-body-md" data-i18n="menu.signout">Sign Out</span>
