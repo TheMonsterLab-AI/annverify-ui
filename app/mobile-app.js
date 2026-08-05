@@ -181,7 +181,7 @@ function _renderMobileWorldFeed(items) {
   var el = document.getElementById("mworldfeed-list");
   if (!el) return;
   var filtered = items.filter(function (it) { return it.topUrl && it.topTitle; });
-  if (!filtered.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">해당 국가의 뉴스가 없습니다.</p>'; return; }
+  if (!filtered.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">' + t("msg.noCountryNews") + '</p>'; return; }
   el.innerHTML = filtered.map(_worldNewsCardHtml).join("");
   _wireNewsCardActionButtons(el);
 }
@@ -840,20 +840,20 @@ async function _loadMobileProfile() {
       '</div>' +
       '<p class="font-headline-sm text-headline-sm">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
       '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
-      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("settings.joined") + ' ' + escapeHtml(joinDate) + '</p>' +
       '<p class="font-headline-sm text-headline-sm text-primary mt-2" id="mprofile-ap-total">--</p>' +
     '</div>' +
     '<div class="grid grid-cols-2 gap-base mb-md">' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">총 검증 수</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
-      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">진실 판정 비율</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.totalVerify") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + localStats.total + '</div></div>' +
+      '<div class="paper-card p-sm text-center"><span class="font-label-caps text-label-caps text-on-surface-variant uppercase">' + t("profile.truthRate") + '</span><div class="font-headline-md text-headline-md text-primary mt-1">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2">최근 검증 기록</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2">' + t("profile.recent") + '</h3>' +
     '<div id="mprofile-verify-history">' +
       (localStats.recent.length
         ? localStats.recent.map(_profileVerifyHistoryCardHtml).join("")
-        : '<p class="text-on-surface-variant font-body-sm text-center py-md">최근 검증 기록이 없습니다.</p>') +
+        : '<p class="text-on-surface-variant font-body-sm text-center py-md">' + t("profile.noRecent") + '</p>') +
     '</div>' +
-    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">ANN Points 기록</h3>' +
+    '<h3 class="font-headline-sm text-headline-sm mb-2 mt-md">' + t("profile.pointsHistory") + '</h3>' +
     '<div id="mprofile-points-history"><div class="paper-card h-16 animate-pulse"></div></div>';
 
   function _findLocalEntry(id) {
@@ -946,12 +946,12 @@ function _loadMobileSettings() {
       '<div class="paper-card p-md mb-md">' +
         '<p class="font-body-md text-on-surface font-bold">' + escapeHtml(currentUser.displayName || "Verifier") + '</p>' +
         '<p class="font-body-sm text-on-surface-variant">' + escapeHtml(currentUser.email || "") + '</p>' +
-        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Joined ' + escapeHtml(joinDate) + '</p>' +
+        '<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">' + t("settings.joined") + ' ' + escapeHtml(joinDate) + '</p>' +
       '</div>';
   } else {
     accountHtml =
       '<div class="paper-card p-md mb-md text-center">' +
-        '<p class="font-body-sm text-on-surface-variant mb-2">로그인하면 계정 정보가 표시됩니다. / Sign in to see your account.</p>' +
+        '<p class="font-body-sm text-on-surface-variant mb-2">' + t("settings.signinPrompt") + '</p>' +
         '<button id="msettings-signin" class="bg-primary text-white rounded-[10px] text-[15px] px-4 py-2 font-bold">Sign in with Google</button>' +
       '</div>';
   }
@@ -964,9 +964,9 @@ function _loadMobileSettings() {
     accountHtml +
     '<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Data</h3>' +
     '<div class="paper-card p-md mb-md">' +
-      '<p class="font-body-sm text-on-surface">로컬 검증·대화 기록 (이 기기 전용)</p>' +
-      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">On-device history · ' + localCount + ' conversation(s). 기기 간 동기화되지 않습니다.</p>' +
-      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">로컬 기록 삭제 / Clear local history</button>' +
+      '<p class="font-body-sm text-on-surface">' + t("settings.localHistory") + '</p>' +
+      '<p class="font-label-caps text-label-caps text-on-surface-variant mb-3">' + t("settings.localHistoryDesc", { n: localCount }) + '</p>' +
+      '<button id="msettings-clear-history" class="w-full border border-error text-error rounded-[10px] text-[15px] py-2.5 font-bold">' + t("settings.clearHistory") + '</button>' +
     '</div>' +
     (signedIn
       ? '<button id="msettings-signout" class="w-full flex items-center justify-center gap-2 text-error font-body-md py-3"><span class="material-symbols-outlined">logout</span>Sign Out</button>'
@@ -981,14 +981,14 @@ function _loadMobileSettings() {
 
   var clearBtn = document.getElementById("msettings-clear-history");
   if (clearBtn) clearBtn.addEventListener("click", function () {
-    var ok = window.confirm("이 기기의 로컬 검증·대화 기록을 모두 삭제할까요? 되돌릴 수 없습니다.\nDelete all on-device history? This cannot be undone.");
+    var ok = window.confirm(t("records.clearConfirm"));
     if (!ok) return;
     try { localStorage.removeItem("annverify_ui_sessions_v1"); } catch (e) {}
     // history.js의 모듈 전역 _currentSession도 초기화(안 하면 다음 저장 시 삭제된 세션이 되살아남).
     if (typeof _currentSession !== "undefined") _currentSession = null;
     if (typeof renderHistorySidebar === "function") renderHistorySidebar();
     if (typeof renderMobileMenuHistory === "function") renderMobileMenuHistory();
-    if (typeof showAppToast === "function") showAppToast("로컬 기록을 삭제했습니다.");
+    if (typeof showAppToast === "function") showAppToast(t("settings.historyCleared"));
     _loadMobileSettings();
   });
 
@@ -1001,33 +1001,33 @@ function _loadMobileSettings() {
 
 // ── Help page ─────────────────────────────────────────────────────────────
 // 정적 FAQ/면책(서버 조회 없음). 실제로 검증된 서비스 동작만 설명 — 없는 기능/과장 없음.
-var _MOBILE_HELP_HTML =
+function _MOBILE_HELP_HTML() { return
   '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">ANN Verify란? / What is ANN Verify?</h3>' +
-    '<p class="font-body-sm text-on-surface">주장이나 뉴스 URL을 입력하면 여러 출처를 교차검증해 사실 여부를 판정하는 AI 팩트체크 서비스입니다. / An AI fact-checking service: enter a claim or news URL and it cross-checks multiple sources to assess whether it holds up.</p>' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + t("help.q1t") + '</h3>' +
+    '<p class="font-body-sm text-on-surface">' + t("help.q1b") + '</p>' +
   '</div>' +
   '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">7-Layer Engine이 뭔가요? / The 7-Layer Engine</h3>' +
-    '<p class="font-body-sm text-on-surface">입력 분석 → 증거 수집(웹·팩트체크 DB) → 교차검증 → 반론 검토 → 판정 → 시의성(신선도) 점검까지 여러 단계를 거쳐 결론을 냅니다. 단일 답변이 아니라 단계별 근거를 남깁니다. / Your input passes through several stages — analysis, evidence gathering, cross-validation, counter-checking, verdict, and freshness — leaving a step-by-step trail rather than a single opaque answer.</p>' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + t("help.q2t") + '</h3>' +
+    '<p class="font-body-sm text-on-surface">' + t("help.q2b") + '</p>' +
   '</div>' +
   '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">판정 라벨 읽는 법 / Reading the verdict</h3>' +
-    '<p class="font-body-sm text-on-surface"><b>Verified</b> — 근거가 충분히 뒷받침. <b>Likely True</b> — 대체로 뒷받침되나 일부 불확실. <b>Partially True</b> — 부분적으로만 사실. <b>Unverified</b> — 연결된 증거가 부족해 판정 보류. <b>False</b> — 근거가 반박.</p>' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + t("help.q3t") + '</h3>' +
+    '<p class="font-body-sm text-on-surface">' + t("help.q3b") + '</p>' +
   '</div>' +
   '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">정확도와 한계 / Accuracy &amp; limits</h3>' +
-    '<p class="font-body-sm text-on-surface">AI 기반 분석이라 오류가 있을 수 있습니다. 리포트의 출처와 근거를 함께 확인하시고, 최종 판단은 사용자에게 있습니다. / This is an AI-generated analysis and can be wrong. Review the sources and reasoning in each report; the final judgment is yours.</p>' +
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + t("help.q4t") + '</h3>' +
+    '<p class="font-body-sm text-on-surface">' + t("help.q4b") + '</p>' +
   '</div>' +
   '<div class="paper-card p-md mb-md">' +
-    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">문의 / Contact</h3>' +
-    '<p class="font-body-sm text-on-surface">서비스 관련 문의와 피드백은 annverify.ai를 통해 보내주세요. / For questions and feedback, reach us via annverify.ai.</p>' +
-  '</div>';
+    '<h3 class="font-headline-sm text-headline-sm text-primary mb-1">' + t("help.q5t") + '</h3>' +
+    '<p class="font-body-sm text-on-surface">' + t("help.q5b") + '</p>' +
+  '</div>'; }
 
 function openMobileHelp() {
   var overlay = document.getElementById("mhelp-page");
   if (overlay) overlay.classList.remove("hidden");
   var body = document.getElementById("mhelp-body");
-  if (body) body.innerHTML = _MOBILE_HELP_HTML;
+  if (body) body.innerHTML = _MOBILE_HELP_HTML();
 }
 
 function closeMobileHelp() {
@@ -1088,7 +1088,7 @@ function renderMobileMenuHistory() {
   var el = document.getElementById("mmenu-history-list");
   if (!el) return;
   if (typeof currentUser === "undefined" || !currentUser) {
-    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">로그인하면 대화 기록을 볼 수 있습니다</p>';
+    el.innerHTML = '<p class="font-body-sm text-on-surface-variant py-2">' + t("settings.signinHistory") + '</p>';
     return;
   }
   var list = (typeof loadSessions === "function") ? loadSessions() : [];
@@ -1254,7 +1254,7 @@ function _aiNewsCardHtml(a, featured) {
         '<p class="font-body-sm text-on-surface-variant" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(a.excerpt || "") + '</p>' +
         '<div class="flex items-center justify-between mt-3">' +
           '<div class="flex items-center gap-3"><span class="font-body-sm font-bold text-primary">' + score + '%</span><span class="px-2.5 py-1 rounded bg-surface-container text-[10px] font-bold">' + escapeHtml(grade) + '</span></div>' +
-          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">토론</button>' +
+          '<button class="mnews-discuss-btn text-primary font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1300,8 +1300,8 @@ function _worldNewsCardHtml(item) {
         '<h3 class="mb-1 leading-tight" style="font-family:\'Source Serif 4\',serif;font-size:18px;font-weight:700;color:#1c1b1b">' + escapeHtml(item.topTitle || item.keyword || "") + '</h3>' +
         (item.topSnippet ? '<p class="font-body-sm text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(item.topSnippet) + '</p>' : "") +
         '<div class="flex gap-2 mt-2">' +
-          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">토론</button>' +
-          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">새 팩트체크</button>' +
+          '<button class="mnews-discuss-btn flex-1 py-2 border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps">' + t("card.discuss") + '</button>' +
+          '<button class="mnews-factcheck-btn flex-1 py-2 bg-primary text-white rounded font-label-caps text-label-caps" data-url="' + escapeHtml(item.topUrl || "") + '">' + t("card.newFactcheck") + '</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1389,7 +1389,7 @@ function _renderMobileLocalNews() {
   // KR은 실측상 항상 데이터가 있었지만(curl 확인), 워커가 어느 시점에 특정 국가 배치 작업을
   // 못 돌렸을 경우까지 대비 — 빈 데이터를 "일반 로딩 실패"처럼 보이게 하는 대신 정직하게
   // "준비 중" 안내(빈 결과보다 낫다는 스펙 원칙).
-  if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">로컬 뉴스 준비 중입니다.</p>'; return; }
+  if (!items.length) { el.innerHTML = '<p class="text-on-surface-variant font-body-sm text-center py-lg">' + t("msg.localNewsSoon") + '</p>'; return; }
   el.innerHTML = items.map(_worldNewsCardHtml).join("");
   _wireNewsCardActionButtons(el);
 }

@@ -92,14 +92,14 @@ async function _loadDesktopProfile() {
       '<div class="dp-ap-total" id="dp-ap-total">-- AP</div>' +
     '</div>' +
     '<div class="dp-stats">' +
-      '<div class="dp-stat-card"><div class="dp-stat-label">총 검증 수</div><div class="dp-stat-value">' + localStats.total + '</div></div>' +
-      '<div class="dp-stat-card"><div class="dp-stat-label">진실 판정 비율</div><div class="dp-stat-value">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
+      '<div class="dp-stat-card"><div class="dp-stat-label">' + t("profile.totalVerify") + '</div><div class="dp-stat-value">' + localStats.total + '</div></div>' +
+      '<div class="dp-stat-card"><div class="dp-stat-label">' + t("profile.truthRate") + '</div><div class="dp-stat-value">' + (localStats.truthRatePct != null ? localStats.truthRatePct + "%" : "--") + '</div></div>' +
     '</div>' +
-    '<div class="dp-section-title">최근 검증 기록</div>' +
+    '<div class="dp-section-title">' + t("profile.recent") + '</div>' +
     '<div id="dp-verify-history">' +
-      (localStats.recent.length ? localStats.recent.map(_dpVerifyItemHtml).join("") : '<div class="dp-empty">최근 검증 기록이 없습니다.</div>') +
+      (localStats.recent.length ? localStats.recent.map(_dpVerifyItemHtml).join("") : '<div class="dp-empty">' + t("profile.noRecent") + '</div>') +
     '</div>' +
-    '<div class="dp-section-title">ANN Points 기록</div>' +
+    '<div class="dp-section-title">' + t("profile.pointsHistory") + '</div>' +
     '<div id="dp-points-history"><div class="dp-empty">Loading…</div></div>';
 
   function _findLocalEntryDp(id) {
@@ -173,7 +173,7 @@ function renderSidebarUser() {
       '<div class="urow" id="sidebar-profile-open" style="cursor:pointer">' +
         '<div class="av">' + avatarHtml + '</div>' +
         '<div><div class="un">' + escapeHtml(name) + '</div>' +
-        '<div class="up" id="sign-out-btn">Sign out</div></div>' +
+        '<div class="up" id="sign-out-btn">' + t("menu.signout") + '</div></div>' +
       '</div>';
     var profileOpenEl = document.getElementById("sidebar-profile-open");
     if (profileOpenEl) profileOpenEl.addEventListener("click", function () { if (typeof openDesktopProfile === "function") openDesktopProfile(); });
@@ -219,15 +219,4 @@ auth.onAuthStateChanged(function (user) {
   // 모바일 햄버거 드로어 헤더(유저명/티어 또는 Sign In) — app/mobile-app.js에 정의,
   // 스크립트 로드 순서상 auth.js가 먼저 실행되지만 이 콜백은 비동기(Firebase 초기화 후)라 안전.
   if (typeof renderMobileMenuHeader === "function") renderMobileMenuHeader();
-  // live WRITE 동의상태 로드(패리티) — 로그인 시 users/{uid}.publicOptIn을 읽어 전역 세팅.
-  //   recordLiveActivity가 _annOptInReady(Promise)를 await해 로드 전 검증 시 모달 재등장 race 방지.
-  if (user && typeof db !== "undefined") {
-    window._annOptInReady = db.collection("users").doc(user.uid).get().then(function (snap) {
-      var d = (snap && snap.exists) ? snap.data() : null;
-      window._annPublicOptIn = !!(d && d.publicOptIn);
-      window._annOptInAsked  = !!(d && d.publicOptInAsked);
-    }).catch(function () { window._annPublicOptIn = false; window._annOptInAsked = false; });
-  } else {
-    window._annPublicOptIn = false; window._annOptInAsked = false; window._annOptInReady = null;
-  }
 });

@@ -44,13 +44,16 @@
     "clearHistory": "Clear local history",
     "language": "Language",
     "signinPrompt": "Sign in to see your account.",
-    "signout": "Sign Out"
+    "signout": "Sign Out",
+    "historyCleared": "Local history cleared.",
+    "signinHistory": "Sign in to see your chat history."
   },
   "dsb": {
     "newVerif": "New Verification",
     "mainTerminal": "Main Terminal",
     "myHistory": "My History",
-    "noHist": "No verifications yet"
+    "noHist": "No verifications yet",
+    "noConvo": "No conversations yet"
   },
   "dnav": {
     "dashboard": "Dashboard",
@@ -218,5 +221,13 @@
     "rank": "RANK",
     "ap": "AP",
     "lbDesc": "Top verifiers ranked by ANN Points earned through accurate verification activity."
+  },
+  "toast": {
+    "linkCopied": "Link copied",
+    "shareUnsupported": "Sharing isn't supported here"
+  },
+  "report": {
+    "verifyThis": "Verify this",
+    "disclaimer": "This report is an AI-generated analysis. Final judgment is the user's responsibility."
   }
 }
